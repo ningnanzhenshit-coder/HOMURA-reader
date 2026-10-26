@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 
 // 生成 Release 说明：静态安装信息 + 基于 Conventional Commits 的自动更新日志
-const repo = process.env.GITHUB_REPOSITORY || 'akisameMio/homura-reader';
+const repo = process.env.GITHUB_REPOSITORY || 'ningnanzhenshit-coder/homura-reader';
 const server = process.env.GITHUB_SERVER_URL || 'https://github.com';
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const tag = process.env.GITHUB_REF_NAME || `v${version}`;

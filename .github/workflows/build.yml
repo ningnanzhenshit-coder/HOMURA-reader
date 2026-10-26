@@ -2,6 +2,8 @@ name: Build Desktop App
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -71,13 +73,20 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: node scripts/release-notes.mjs
 
-      # 有 tag 推送时自动创建草稿 Release；手动触发时只上传构建产物。
-      # 如需 Apple 签名/公证，在仓库 Secrets 配置 APPLE_CERTIFICATE、APPLE_CERTIFICATE_PASSWORD、
-      # APPLE_SIGNING_IDENTITY、APPLE_ID、APPLE_PASSWORD、APPLE_TEAM_ID，并在此处传入 env。
+      # 有 tag 推送时自动创建草稿 Release；推 main 或手动触发时只上传构建产物。
+      # Apple 签名/公证：在仓库 Secrets 配置下列变量后自动生效，未配置时走未签名构建。
+      # APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY
+      # APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           args: ${{ matrix.args }}
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
