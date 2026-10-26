@@ -1,2 +1,127 @@
-# HOMURA-reader
-浏览器本地漫画、EPUB、TXT 阅读器，纯前端离线阅读
+# HOMURA — ACGN GO 本地漫画与轻小说阅读器
+
+*（又让本鱼写 README……行吧，反正摸鱼也是摸。）*
+
+HOMURA 是一个**本地优先**的桌面 ACGN 阅读器：漫画、轻小说、图集拖进来就能看，解析和渲染全在本机完成，**不上传任何文件**。基于 Tauri 2 打包，支持 macOS / Windows / Linux。
+
+- 当前版本：**2.0.0**
+- 仓库：[ningnanzhenshit-coder/homura-reader](https://github.com/ningnanzhenshit-coder/homura-reader)
+- 下载：[Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases)
+
+---
+
+## 能吃什么格式
+
+| 格式 | 扩展名 | 说明 |
+| --- | --- | --- |
+| EPUB / KEPUB | `.epub`、`.kepub.epub` | 解析 OPF spine 与章节正文；图片占主导的 EPUB 会自动切成漫画模式 |
+| 漫画压缩包 | `.cbz`、`.zip` | 提取压缩包内图片，按文件名自然序排序 |
+| 纯文本 / Markdown | `.txt`、`.md` | 识别「第 X 章 / Chapter N / 序章 / 尾声」等标题切章；Markdown 按纯文本读取，不渲染语法 |
+| 图片文件夹 | `.jpg` `.jpeg` `.png` `.webp` `.gif` `.avif` `.bmp` | 按所在子文件夹分组，一组图 = 一本书 |
+
+导入方式：拖拽文件/文件夹到窗口、点「导入文件」、点「导入文件夹」，或者直接拖整个目录进来。书架为空时还会放两本示例书，打开就能试试手感。
+
+## 阅读手感
+
+- **方向与排版**：左→右、右→左（日漫）、上下条漫，配合单页 / 双页并排；双页模式可以开启「首页单排」，让跨页大图对齐。
+- **长文自动分页**：小说按窗口尺寸、字号和可用高度实时分页，改字号（14–28px）或改窗口大小都会重新排。
+- **条漫三档尺寸**：完整单张、适中宽幅、超宽满屏。
+- **翻页动画**：丝滑平移、柔和淡入、极速无动画，随便挑。
+- **视觉主题**：晴空蓝 / 绯红金 / 森系绿 / 星夜紫四种主色，白昼 / 暖色护眼 / 夜间三种阅读表面；护眼模式会给漫画图片加一层柔和的暖色滤镜。
+- **顺手操作**：滚轮翻页、键盘翻页、全屏沉浸；漫画页面懒加载，翻页动画结束后再后台预解码后面几页。
+- **书架**：作品元数据、封面和源文件存进本地 IndexedDB，重开自动恢复；可以单本移除或清空。
+- **离线单文件**：点「保存离线单文件」把 CSS/JS 内联成一个 HTML，导出一份能带走的离线副本。
+
+## 快捷键
+
+| 按键 | 作用 |
+| --- | --- |
+| `F` | 进入 / 退出全屏 |
+| `←` / `→` | 上一页 / 下一页（日漫右→左模式下按钮方向会反转） |
+| `Space` | 下一页 |
+| `↑` / `↓` | 上一页 / 下一页 |
+| `Esc` | 关闭阅读器回到书架 |
+
+条漫模式不用按键，滚轮或触控板直接往下滑；小说模式滑动底部进度条也能跳页。
+
+## 下载即用
+
+到 [Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases) 找对应平台的包：
+
+| 平台 | 安装包 |
+| --- | --- |
+| macOS | `.dmg`（Universal，Apple Silicon + Intel） |
+| Windows | `.msi` 或 NSIS `-setup.exe` |
+| Linux | `.AppImage` / `.deb` / `.rpm` |
+
+> **macOS 首次打开**：当前包没有 Apple 开发者签名，系统可能提示「无法验证开发者」。右键 `HOMURA.app` → 打开，或执行 `xattr -cr /Applications/HOMURA.app` 即可。
+
+## 从源码构建
+
+需要 Node.js 22+、Rust stable（≥ 1.77.2）以及对应平台的 Tauri 依赖：macOS 装 Xcode Command Line Tools；Linux 装 `libwebkit2gtk-4.1-dev`、`libappindicator3-dev`、`librsvg2-dev`、`patchelf`；Windows 装 WebView2 与 MSVC 构建工具。
+
+```bash
+npm install
+npm run dev      # 生成 dist/ 并启动 Tauri 开发窗口
+npm run build    # 打包安装包
+```
+
+构建产物在 `src-tauri/target/release/bundle/`。
+
+常用脚本：
+
+| 命令 | 作用 |
+| --- | --- |
+| `npm run prepare:web` | 把 `src/` 里的入口页、`css/`、`js/` 拷进 `dist/`，生成 Tauri 需要的 `index.html` |
+| `npm run dev` | `prepare:web` + `tauri dev` |
+| `npm run build` | `prepare:web` + `tauri build` |
+
+## 项目结构
+
+```text
+homura-reader/
+├── src/
+│   ├── homura-ultra.html  # 前端入口页（页面骨架 + 工具栏）
+│   ├── css/homura.css     # 主题变量、阅读表面、动效
+│   └── js/
+│       ├── homura.js          # 书架、解析、分页、双缓冲翻页引擎
+│       ├── storage.js         # IndexedDB 书架存档（books / sources）
+│       ├── tailwind-config.js # Tailwind 主题配置
+│       └── vendor/            # 内置 Tailwind 与 JSZip，断网也能用
+├── scripts/
+│   ├── prepare-web.mjs    # 生成 dist/
+│   └── release-notes.mjs  # 用 Conventional Commits 生成 Release 说明
+├── src-tauri/             # Tauri 2 壳、图标与打包配置
+├── dist/                  # 构建生成的前端目录（已 gitignore）
+└── .github/workflows/     # 三平台自动打包
+```
+
+技术栈很朴素：原生 HTML/CSS/JavaScript + Tailwind + JSZip，桌面壳用 Tauri 2（Rust）。没有前端框架，没有构建打包器，`prepare-web` 就是把静态文件复制进 `dist/`。
+
+## 数据与隐私
+
+- 书架数据存在本机 IndexedDB 数据库 `homura_shelf`，分 `books`（元数据 + 封面）和 `sources`（原始文件）两栏。
+- 支持文件句柄时会优先保存句柄，尽量不占本地存储；不支持时退化为保存原始 Blob。
+- 阅读主题和明暗模式记在 `localStorage`，只有两个键。
+- 应用不联网读取书籍、不上传文件；清除应用本地数据会一起清掉书架，卸载前记得留好原始文件。
+- 阅读进度和目录目前**没有**做持久化，关掉阅读器就回到第一页。
+
+## 已知限制
+
+- 安装包未做 Apple 签名 / 公证，macOS 首次打开需要手动放行。
+- 桌面 WebView 不支持文件句柄时会走 Blob 存档，大图集会占用更多本地空间。
+- EPUB 的复杂排版、固定版式、自定义字体不会完整还原，正文按自定义规则重新分页。
+- 暂不支持目录跳转、书签、阅读进度记忆。
+- 字体来自 Google Fonts，完全断网时会回退到系统字体；Tailwind 和 JSZip 已内置，不受影响。
+
+## 开发与发布
+
+推 `v*` 标签会触发 [build.yml](.github/workflows/build.yml)：macOS Universal、Linux、Windows 三平台并行构建，自动生成草稿 Release，并用 Conventional Commits 汇总更新日志；手动 `workflow_dispatch` 只上传构建产物（保留 14 天）。
+
+提交信息按 Conventional Commits 写（`feat:` / `fix:` / `perf:` / `refactor:` / `docs:` / `build:` 等），Release 说明会按类别自动分组。发版提交本身会被过滤掉。
+
+## 许可
+
+仓库暂未附带 LICENSE 文件。在明确许可前，请勿直接商用或再分发；有需要先联系作者确认。
+
+*（README 写完了，本鱼先去吃小鱼干了。有问题提 issue，别私信戳我，戳也装死。）* 🐋

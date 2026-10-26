@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const src = path.join(root, 'src');
 const dist = path.join(root, 'dist');
 
 await rm(dist, { recursive: true, force: true });
@@ -11,10 +12,10 @@ await mkdir(dist, { recursive: true });
 // 只拷贝前端资源，避免把 src-tauri 与 node_modules 打进应用
 const entries = ['homura-ultra.html', 'css', 'js'];
 for (const entry of entries) {
-  await cp(path.join(root, entry), path.join(dist, entry), { recursive: true });
+  await cp(path.join(src, entry), path.join(dist, entry), { recursive: true });
 }
 
 // Tauri 默认加载 index.html，这里用入口页副本做别名，保持原文件路径不变
-await cp(path.join(root, 'homura-ultra.html'), path.join(dist, 'index.html'));
+await cp(path.join(src, 'homura-ultra.html'), path.join(dist, 'index.html'));
 
 console.log('[prepare-web] 已生成 dist/');
