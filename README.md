@@ -4,7 +4,7 @@
 
 HOMURA 是一个**本地优先**的桌面 ACGN 阅读器：漫画、轻小说、图集拖进来就能看，解析和渲染全在本机完成，**不上传任何文件**。基于 Tauri 2 打包，支持 macOS / Windows / Linux。
 
-- 当前版本：**2.0.2**
+- 当前版本：**2.0.3**
 - 仓库：[ningnanzhenshit-coder/homura-reader](https://github.com/ningnanzhenshit-coder/homura-reader)
 - 下载：[Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases)
 
@@ -52,7 +52,7 @@ HOMURA 是一个**本地优先**的桌面 ACGN 阅读器：漫画、轻小说、
 | --- | --- |
 | macOS | `.dmg`（Universal，Apple Silicon + Intel） |
 | Windows | `.msi` 或 NSIS `-setup.exe` |
-| Linux | `.AppImage` / `.deb` / `.rpm` |
+| Linux | `.deb` / `.rpm` |
 
 > **macOS 首次打开**：当前包没有 Apple 开发者签名，系统可能提示「无法验证开发者」。右键 `HOMURA.app` → 打开，或执行 `xattr -cr /Applications/HOMURA.app` 即可。
 
