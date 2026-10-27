@@ -27,7 +27,7 @@ jobs:
             rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - name: Linux
             platform: ubuntu-22.04
-            args: ''
+            args: --bundles deb,rpm
             rust_targets: ''
           - name: Windows
             platform: windows-latest

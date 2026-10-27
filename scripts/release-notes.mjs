@@ -97,7 +97,7 @@ ${changelog}
 | --- | --- |
 | macOS | \`.dmg\`（Universal，Apple Silicon + Intel） |
 | Windows | \`.msi\` 或 NSIS \`-setup.exe\` |
-| Linux | \`.AppImage\` / \`.deb\` / \`.rpm\` |
+| Linux | \`.deb\` / \`.rpm\` |
 
 ## 🍎 macOS 首次打开
 
