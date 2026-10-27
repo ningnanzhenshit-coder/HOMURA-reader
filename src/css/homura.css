@@ -82,6 +82,14 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色 */
+    html.surface-switching,
+    html.surface-switching *,
+    html.surface-switching *::before,
+    html.surface-switching *::after {
+      transition: none !important;
+    }
+
     .manga-page-img {
       filter: var(--manga-filter);
       transform: translateZ(0);
@@ -107,6 +115,10 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--brand-primary); opacity: 0.35; border-radius: 9999px; }
+
+    /* 隐藏滚动条但保留可滚动能力（窄窗口下的阅读器工具栏） */
+    .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
     /* Uiverse-inspired tactile button */
     .uiverse-btn {

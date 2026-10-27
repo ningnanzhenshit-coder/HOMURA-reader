@@ -30,6 +30,8 @@ export async function openBook(id) {
 
   document.getElementById('readerTitle').innerText = book.title;
   document.getElementById('readerModal').classList.remove('hidden');
+  // 阅读器是全屏遮罩，锁住底层书架页的滚动，避免右侧多出无用的长滚动条
+  document.body.classList.add('overflow-hidden');
 
   const fontCtrl = document.getElementById('novelFontControls');
   if (book.type === 'manga') {
@@ -57,6 +59,7 @@ export function closeReader() {
   }
   clearTimeout(state.preloadTimer);
   document.getElementById('readerModal').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
   state.currentBook = null;
   state.currentStageModeKey = '';
 }

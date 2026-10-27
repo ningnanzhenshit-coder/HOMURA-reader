@@ -82,6 +82,9 @@ function applyNativeWindowChrome(modeName) {
 export function setSurfaceMode(modeName, silent = false) {
   state.layoutConfig.surfaceMode = modeName;
   const html = document.documentElement;
+  // 先关闭过渡并强制回流，避免页面颜色渐变而标题栏瞬间换色造成的不同步
+  html.classList.add('surface-switching');
+  void html.offsetWidth;
   html.setAttribute('data-mode', modeName);
   if (modeName === 'dark') {
     html.classList.add('dark');
@@ -108,6 +111,11 @@ export function setSurfaceMode(modeName, silent = false) {
     dark: '🌙 夜间深邃模式'
   };
   if (!silent) showToast(`已切换：${labels[modeName]}`);
+
+  // 新配色绘制完成后恢复过渡，保留日常交互动画
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => html.classList.remove('surface-switching'));
+  });
 }
 
 export function toggleTransitionStyle() {
