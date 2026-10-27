@@ -90,6 +90,16 @@
       transition: none !important;
     }
 
+    /* 阅读模式切换：旧底色半透明叠在最上层，收缩时保留组件轮廓与配色 */
+    .surface-wipe {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      opacity: 0.45;
+      pointer-events: none;
+      will-change: clip-path;
+    }
+
     .manga-page-img {
       filter: var(--manga-filter);
       transform: translateZ(0);

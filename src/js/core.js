@@ -67,6 +67,7 @@ export function setThemeColor(colorName, silent = false) {
 }
 
 const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
+let surfaceWipeToken = 0;
 
 // 同步原生窗口外观（macOS 标题栏与窗口底色），避免夜间模式下启动闪白
 function applyNativeWindowChrome(modeName) {
@@ -82,40 +83,78 @@ function applyNativeWindowChrome(modeName) {
 export function setSurfaceMode(modeName, silent = false) {
   state.layoutConfig.surfaceMode = modeName;
   const html = document.documentElement;
-  // 先关闭过渡并强制回流，避免页面颜色渐变而标题栏瞬间换色造成的不同步
-  html.classList.add('surface-switching');
-  void html.offsetWidth;
-  html.setAttribute('data-mode', modeName);
-  if (modeName === 'dark') {
-    html.classList.add('dark');
-  } else {
-    html.classList.remove('dark');
-  }
-  try { localStorage.setItem('homura_surface_mode', modeName); } catch (e) {}
-  applyNativeWindowChrome(modeName);
 
-  document.querySelectorAll('[data-mode-btn]').forEach(btn => {
-    const isCurrent = btn.getAttribute('data-mode-btn') === modeName;
-    if (isCurrent) {
-      btn.style.backgroundColor = 'var(--brand-primary)';
-      btn.style.color = '#FFFFFF';
+  const applyMode = () => {
+    // 关闭过渡并强制回流，避免页面颜色渐变而标题栏瞬间换色造成的不同步
+    html.classList.add('surface-switching');
+    void html.offsetWidth;
+    html.setAttribute('data-mode', modeName);
+    if (modeName === 'dark') {
+      html.classList.add('dark');
     } else {
-      btn.style.backgroundColor = 'transparent';
-      btn.style.color = 'var(--fg-muted)';
+      html.classList.remove('dark');
     }
-  });
+    try { localStorage.setItem('homura_surface_mode', modeName); } catch (e) {}
+
+    document.querySelectorAll('[data-mode-btn]').forEach(btn => {
+      const isCurrent = btn.getAttribute('data-mode-btn') === modeName;
+      if (isCurrent) {
+        btn.style.backgroundColor = 'var(--brand-primary)';
+        btn.style.color = '#FFFFFF';
+      } else {
+        btn.style.backgroundColor = 'transparent';
+        btn.style.color = 'var(--fg-muted)';
+      }
+    });
+  };
 
   const labels = {
     light: '☀️ 白昼清爽模式',
     warm: '🌾 暖色调护眼模式（羊皮纸柔光）',
     dark: '🌙 夜间深邃模式'
   };
-  if (!silent) showToast(`已切换：${labels[modeName]}`);
 
-  // 新配色绘制完成后恢复过渡，保留日常交互动画
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => html.classList.remove('surface-switching'));
-  });
+  // 启动恢复模式（silent）不做动画，直接落色
+  if (silent) {
+    applyMode();
+    applyNativeWindowChrome(modeName);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => html.classList.remove('surface-switching'));
+    });
+    return;
+  }
+
+  // 旧内容区底色整层覆盖，再以右下角为圆心圆形收缩，露出新配色
+  const oldCanvas = getComputedStyle(document.body).backgroundColor;
+  const token = ++surfaceWipeToken;
+  document.querySelectorAll('.surface-wipe').forEach(el => el.remove());
+
+  const wipe = document.createElement('div');
+  wipe.className = 'surface-wipe';
+  wipe.style.backgroundColor = oldCanvas;
+  document.body.appendChild(wipe);
+
+  applyMode();
+  // 标题栏与窗口底色在动画开始时就切到新色，和新内容一致
+  applyNativeWindowChrome(modeName);
+
+  const finish = () => {
+    if (token !== surfaceWipeToken) return;
+    wipe.remove();
+    html.classList.remove('surface-switching');
+    showToast(`已切换：${labels[modeName]}`);
+  };
+
+  if (typeof wipe.animate === 'function') {
+    // easeOutExpo 风格非线性曲线：起手快、收尾缓
+    const anim = wipe.animate(
+      { clipPath: ['circle(150% at 100% 100%)', 'circle(0% at 100% 100%)'] },
+      { duration: 1000, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+    );
+    anim.finished.then(finish, finish);
+  } else {
+    finish();
+  }
 }
 
 export function toggleTransitionStyle() {
