@@ -66,6 +66,19 @@ export function setThemeColor(colorName, silent = false) {
   if (state.currentBook) updateToolbarHighlight();
 }
 
+const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
+
+// 同步原生窗口外观（macOS 标题栏与窗口底色），避免夜间模式下启动闪白
+function applyNativeWindowChrome(modeName) {
+  const tauriWindow = window.__TAURI__ && window.__TAURI__.window;
+  if (!tauriWindow || typeof tauriWindow.getCurrentWindow !== 'function') return;
+  const win = tauriWindow.getCurrentWindow();
+  const theme = modeName === 'dark' ? 'dark' : 'light';
+  const canvas = SURFACE_CANVAS[modeName] || SURFACE_CANVAS.light;
+  if (win.setTheme) win.setTheme(theme).catch(() => {});
+  if (win.setBackgroundColor) win.setBackgroundColor(canvas).catch(() => {});
+}
+
 export function setSurfaceMode(modeName, silent = false) {
   state.layoutConfig.surfaceMode = modeName;
   const html = document.documentElement;
@@ -76,6 +89,7 @@ export function setSurfaceMode(modeName, silent = false) {
     html.classList.remove('dark');
   }
   try { localStorage.setItem('homura_surface_mode', modeName); } catch (e) {}
+  applyNativeWindowChrome(modeName);
 
   document.querySelectorAll('[data-mode-btn]').forEach(btn => {
     const isCurrent = btn.getAttribute('data-mode-btn') === modeName;

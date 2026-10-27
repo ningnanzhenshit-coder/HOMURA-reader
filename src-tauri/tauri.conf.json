@@ -9,6 +9,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "label": "main",
@@ -21,7 +22,8 @@
         "resizable": true,
         "dragDropEnabled": false,
         "visible": false,
-        "backgroundColor": "#F8FAFC"
+        "backgroundColor": "#090D16",
+        "titleBarStyle": "Transparent"
       }
     ],
     "security": {
