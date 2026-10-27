@@ -68,6 +68,8 @@ npm run build    # 打包安装包
 
 构建产物在 `src-tauri/target/release/bundle/`。
 
+> 前端使用 ES Modules，`dist/index.html` 不能直接双击用 `file://` 打开；请用 `npm run dev`，或在 `dist/` 目录下起一个本地静态服务器再访问。
+
 常用脚本：
 
 | 命令 | 作用 |
@@ -84,8 +86,19 @@ homura-reader/
 │   ├── homura-ultra.html  # 前端入口页（页面骨架 + 工具栏）
 │   ├── css/homura.css     # 主题变量、阅读表面、动效
 │   └── js/
-│       ├── homura.js          # 书架、解析、分页、双缓冲翻页引擎
+│       ├── main.js            # ES Module 入口：汇总模块并暴露内联事件
 │       ├── storage.js         # IndexedDB 书架存档（books / sources）
+│       ├── core.js            # 全局状态、主题与通用 UI
+│       ├── demo.js            # 示例漫画 / 轻小说
+│       ├── bookshelf.js       # 书架渲染与增删
+│       ├── parsers.js         # EPUB / CBZ / TXT 解析
+│       ├── restore.js         # 存档写入与源文件恢复
+│       ├── importer.js        # 文件 / 文件夹 / 拖拽导入
+│       ├── pagination.js      # 图片加载与小说智能分页
+│       ├── reader.js          # 阅读器控制、翻页与快捷键
+│       ├── renderer.js        # 双缓冲翻页渲染引擎
+│       ├── export.js          # 离线单文件导出
+│       ├── init.js            # 启动初始化
 │       ├── tailwind-config.js # Tailwind 主题配置
 │       └── vendor/            # 内置 Tailwind 与 JSZip，断网也能用
 ├── scripts/
@@ -96,7 +109,7 @@ homura-reader/
 └── .github/workflows/     # 三平台自动打包
 ```
 
-技术栈很朴素：原生 HTML/CSS/JavaScript + Tailwind + JSZip，桌面壳用 Tauri 2（Rust）。没有前端框架，没有构建打包器，`prepare-web` 就是把静态文件复制进 `dist/`。
+技术栈很朴素：原生 HTML/CSS/JavaScript + Tailwind + JSZip，桌面壳用 Tauri 2（Rust）。前端使用浏览器原生 **ES Modules**（`js/main.js` 为唯一入口），没有前端框架，没有构建打包器，`prepare-web` 就是把静态文件复制进 `dist/`。
 
 ## 数据与隐私
 

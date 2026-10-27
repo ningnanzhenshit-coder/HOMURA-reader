@@ -6,7 +6,7 @@
               不支持时降级为原始 Blob 副本。
    浏览器禁用 IndexedDB（例如直接 file:// 打开）时自动降级为纯内存模式。
    ========================================================================== */
-const HomuraStore = (() => {
+export const HomuraStore = (() => {
   const DB_NAME = 'homura_shelf';
   const DB_VERSION = 1;
   const STORE_BOOKS = 'books';
