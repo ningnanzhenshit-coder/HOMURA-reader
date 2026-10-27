@@ -18,7 +18,6 @@ import {
   toggleRtlTapInvert, onLeftButtonClick, onRightButtonClick, onSliderInput
 } from './reader.js';
 import './renderer.js';
-import { downloadSelf } from './export.js';
 import './init.js';
 
 // HTML 与生成出来的卡片/翻页区使用内联 onclick，这里统一暴露到全局
@@ -41,6 +40,5 @@ Object.assign(window, {
   toggleRtlTapInvert,
   onLeftButtonClick,
   onRightButtonClick,
-  onSliderInput,
-  downloadSelf
+  onSliderInput
 });
