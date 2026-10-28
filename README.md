@@ -1,4 +1,7 @@
-# HOMURA — ACGN GO 本地漫画与轻小说阅读器
+<img width="400" height="400" alt="1822a9f2-5767-4a06-9b29-824e91cf59ad" src="https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e" />
+
+
+# HOMURA — 本地漫画与轻小说阅读器
 
 *（又让本鱼写 README……行吧，反正摸鱼也是摸。）*
 
