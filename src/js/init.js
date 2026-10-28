@@ -7,6 +7,7 @@
 import { showToast, setThemeColor, setSurfaceMode } from './core.js';
 import { HomuraStore } from './storage.js';
 import { restoreLibrary } from './restore.js';
+import { loadProgressIntoState } from './progress.js';
 import { loadDemoManga, loadDemoNovel } from './demo.js';
 import { renderBookshelf } from './bookshelf.js';
 
@@ -24,6 +25,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // 书架上一次导入的作品会从 IndexedDB 里恢复；第一次使用才放示例书
   const hasStoredBooks = await restoreLibrary();
+  await loadProgressIntoState();
   if (!hasStoredBooks) {
     loadDemoNovel(false);
     loadDemoManga(false);

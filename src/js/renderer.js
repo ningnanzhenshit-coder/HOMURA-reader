@@ -8,6 +8,7 @@ import { state, updateToolbarHighlight } from './core.js';
 import { escapeHtml } from './bookshelf.js';
 import { ensurePageUrlLoaded, decodeImgIntoElement } from './pagination.js';
 import { getSpreadPair, isNavigationInverted } from './reader.js';
+import { scheduleProgressSave } from './progress.js';
 
 
 // Generate inner HTML for a single buffer layer (Buffer 0 or Buffer 1)
@@ -145,6 +146,8 @@ export async function renderReaderViewport(transitionDir = 'fade') {
 
   slider.max = Math.max(0, total - 1);
   slider.value = state.currentIndex;
+  // 所有翻页 / 跳页 / 重排最终都会经过这里，统一防抖记录阅读位置
+  scheduleProgressSave();
 
   // ========================================================================
   // 1. VERTICAL MODE (Webtoon / Continuous Scroll)
@@ -198,6 +201,7 @@ export async function renderReaderViewport(transitionDir = 'fade') {
             state.currentIndex = idx;
             indicator.innerText = `${idx + 1} / ${total}`;
             slider.value = idx;
+            scheduleProgressSave();
           }
         });
       }, { root: scrollRoot, rootMargin: '800px 0px', threshold: 0.1 });

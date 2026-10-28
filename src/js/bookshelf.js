@@ -6,6 +6,7 @@
 
 import { state, showToast } from './core.js';
 import { HomuraStore } from './storage.js';
+import { progressInfoFor } from './progress.js';
 
 
 export function renderBookshelf() {
@@ -29,6 +30,7 @@ export function renderBookshelf() {
     const subInfo = book.type === 'manga'
       ? `共 ${book.pageCount || (book.pageItems ? book.pageItems.length : 0)} 页`
       : `共 ${book.pageCount || (book.chapters ? book.chapters.length : 1)} 章`;
+    const prog = progressInfoFor(book.id);
 
     const coverHtml = book.cover
       ? `<img src="${book.cover}" class="manga-page-img w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" />`
@@ -37,6 +39,12 @@ export function renderBookshelf() {
           <div class="font-display font-bold text-sm line-clamp-3 leading-snug text-white">${escapeHtml(book.title)}</div>
           <span class="text-[10px] opacity-80 font-mono">${subInfo}</span>
         </div>`;
+
+    const progressBarHtml = prog
+      ? `<div class="absolute bottom-0 inset-x-0 h-[3px] bg-slate-900/25">
+          <div class="h-full" style="width: ${prog.percent}%; background-color: var(--brand-primary);"></div>
+        </div>`
+      : '';
 
     return `
       <div onclick="openBook('${book.id}')" class="editorial-card group cursor-pointer overflow-hidden flex flex-col">
@@ -48,6 +56,7 @@ export function renderBookshelf() {
           <button onclick="removeBook('${book.id}', event)" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-md bg-slate-900/75 hover:bg-red-600 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition" title="从书架移除">
             ✕
           </button>
+          ${progressBarHtml}
         </div>
         <div class="p-3 flex-1 flex flex-col justify-between gap-1.5">
           <h4 class="font-bold text-xs line-clamp-2 leading-snug group-hover:text-[var(--brand-primary)] transition">
@@ -55,7 +64,7 @@ export function renderBookshelf() {
           </h4>
           <div class="flex items-center justify-between text-[11px] font-mono text-[var(--fg-muted)] pt-1">
             <span>${subInfo}</span>
-            <span class="text-[var(--brand-primary)] font-bold">阅读 →</span>
+            <span class="text-[var(--brand-primary)] font-bold">${prog ? `读至 ${prog.percent}%` : '阅读 →'}</span>
           </div>
         </div>
       </div>

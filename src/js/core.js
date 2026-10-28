@@ -7,6 +7,7 @@
 
 export const state = {
   library: [],
+  progressMap: {},
   currentBook: null,
   currentIndex: 0,
   activePages: [],

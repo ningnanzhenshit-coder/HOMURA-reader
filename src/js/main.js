@@ -10,6 +10,7 @@ import { loadDemoManga, loadDemoNovel } from './demo.js';
 import { removeBook, clearShelf } from './bookshelf.js';
 import './parsers.js';
 import './restore.js';
+import './progress.js';
 import './importer.js';
 import './pagination.js';
 import {

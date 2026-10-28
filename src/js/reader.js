@@ -10,6 +10,33 @@ import { renderBookshelf } from './bookshelf.js';
 import { hydrateBook } from './restore.js';
 import { buildActivePagesForBook, ensureChapterImagesResolved, recalculateNovelPaginationAndRender } from './pagination.js';
 import { renderReaderViewport } from './renderer.js';
+import { applyRestoredProgress, scheduleProgressSave, flushProgress } from './progress.js';
+
+const LAYOUT_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
+const WEBTOON_FITS = ['screen', 'medium', 'wide'];
+const WEBTOON_FIT_LABELS = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
+
+// 打开书籍时恢复这本书上次的排版；没有存档的书沿用当前全局设置
+function applyLayoutForBook(book) {
+  const rec = state.progressMap[book.id];
+  const saved = rec && rec.layout;
+  if (!saved) return;
+
+  const config = state.layoutConfig;
+  if (LAYOUT_DIRECTIONS.includes(saved.direction)) config.direction = saved.direction;
+  if (saved.spread === 1 || saved.spread === 2) config.spread = saved.spread;
+  if (typeof saved.coverOffset === 'boolean') config.coverOffset = saved.coverOffset;
+  if (typeof saved.fontSize === 'number') config.fontSize = Math.min(28, Math.max(14, saved.fontSize));
+  if (WEBTOON_FITS.includes(saved.webtoonFit)) config.webtoonFit = saved.webtoonFit;
+
+  // 工具栏上的文字标签同步，避免显示和真实设置不一致
+  const fontLabel = document.getElementById('fontSizeLabel');
+  if (fontLabel) fontLabel.innerText = config.fontSize;
+  const offsetLabel = document.getElementById('coverOffsetStatus');
+  if (offsetLabel) offsetLabel.innerText = config.coverOffset ? '开' : '关';
+  const fitLabel = document.getElementById('webtoonFitStatus');
+  if (fitLabel) fitLabel.innerText = WEBTOON_FIT_LABELS[config.webtoonFit];
+}
 
 
 export async function openBook(id) {
@@ -27,6 +54,8 @@ export async function openBook(id) {
   state.currentIndex = 0;
   state.currentStageModeKey = '';
   state.activeBufferSlot = 0;
+  // 先恢复这本书的排版，后续分页与恢复位置都按这套设置计算
+  applyLayoutForBook(book);
 
   document.getElementById('readerTitle').innerText = book.title;
   document.getElementById('readerModal').classList.remove('hidden');
@@ -38,7 +67,9 @@ export async function openBook(id) {
     fontCtrl.classList.add('hidden');
     fontCtrl.classList.remove('sm:flex');
     buildActivePagesForBook(book);
+    const resumed = applyRestoredProgress(book);
     renderReaderViewport('none');
+    if (resumed) showToast(`已回到上次阅读位置 · 第 ${state.currentIndex + 1} / ${state.activePages.length} 页`);
   } else {
     fontCtrl.classList.remove('hidden');
     fontCtrl.classList.add('sm:flex');
@@ -48,11 +79,15 @@ export async function openBook(id) {
       }
     }
     buildActivePagesForBook(book);
+    const resumed = applyRestoredProgress(book);
     renderReaderViewport('none');
+    if (resumed) showToast(`已回到上次阅读位置 · 第 ${state.currentIndex + 1} / ${state.activePages.length} 页`);
   }
 }
 
 export function closeReader() {
+  // 关闭前把防抖窗口内尚未落盘的位置补写一次，此时 currentBook 仍然有效
+  flushProgress();
   if (state.webtoonObserver) {
     state.webtoonObserver.disconnect();
     state.webtoonObserver = null;
@@ -62,6 +97,8 @@ export function closeReader() {
   document.body.classList.remove('overflow-hidden');
   state.currentBook = null;
   state.currentStageModeKey = '';
+  // 回到书架时重绘一次，让刚记录的进度立刻显示在卡片上
+  renderBookshelf();
 }
 
 export function setDirection(dir) {
@@ -96,8 +133,8 @@ export function toggleCoverOffset() {
 }
 
 export function toggleWebtoonWidth() {
-  const order = ['screen', 'medium', 'wide'];
-  const labels = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
+  const order = WEBTOON_FITS;
+  const labels = WEBTOON_FIT_LABELS;
   const nextIdx = (order.indexOf(state.layoutConfig.webtoonFit) + 1) % order.length;
   state.layoutConfig.webtoonFit = order[nextIdx];
   document.getElementById('webtoonFitStatus').innerText = labels[state.layoutConfig.webtoonFit];
@@ -227,6 +264,7 @@ export function onSliderInput(val) {
       targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     document.getElementById('pageIndicatorLeft').innerText = `${state.currentIndex + 1} / ${state.activePages.length}`;
+    scheduleProgressSave();
     return;
   }
   renderReaderViewport('fade');

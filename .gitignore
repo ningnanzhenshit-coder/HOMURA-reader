@@ -2,5 +2,7 @@ node_modules/
 dist/
 src-tauri/target/
 src-tauri/gen/
-.trae-html-share-packages
+.trae/
+.trae-html-share-packages/
 .DS_Store
+
