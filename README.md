@@ -1,4 +1,5 @@
-<img width="400" height="400" alt="636C4E7674D719129FE30ED267BA84AC" src="https://github.com/user-attachments/assets/1897cf25-61a8-43b4-8f0d-11b5f9cfbc2d" />
+<img width="400" height="400" alt="1822a9f2-5767-4a06-9b29-824e91cf59ad" src="https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e" />
+
 
 # HOMURA — ACGN GO 本地漫画与轻小说阅读器
 
