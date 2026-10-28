@@ -1,12 +1,13 @@
 <template>
-  <!-- Reader Bottom Control Bar -->
-  <div class="h-11 border-t border-[var(--border-line)] bg-[var(--bg-card)]/95 backdrop-blur px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0 z-20">
-    <button @click="reader.onLeftButtonClick()" :class="leftBtnClass">
-      <span>←</span> <span>{{ leftText }}</span>
+  <!-- 阅读器底部栏：只保留翻页与进度 -->
+  <footer class="h-12 shrink-0 px-3 sm:px-6 flex items-center gap-3 bg-[var(--bg-card)] border-t border-[var(--border-line)]">
+    <button @click="reader.onLeftButtonClick()" :class="leftBtnClass" :title="leftText">
+      <span class="text-sm">←</span>
+      <span class="hidden sm:inline">{{ leftText }}</span>
     </button>
 
-    <div class="flex-1 max-w-xl flex items-center gap-3">
-      <span class="text-xs font-mono font-bold text-[var(--fg-muted)] shrink-0 min-w-[65px] text-right">{{ reader.pageIndicator }}</span>
+    <div class="flex-1 flex items-center gap-3 min-w-0">
+      <span class="text-[11px] font-mono font-bold text-[var(--fg-muted)] shrink-0 min-w-[54px] text-right tabular-nums">{{ reader.pageIndicator }}</span>
       <input
         type="range"
         min="0"
@@ -14,28 +15,21 @@
         :value="reader.sliderValue"
         @input="reader.onSliderInput($event.target.value)"
         style="accent-color: var(--brand-primary);"
-        class="w-full cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+        class="flex-1 min-w-0 cursor-pointer h-1.5 bg-[var(--bg-subtle)] rounded-lg"
         :class="{ 'rtl-slider': inverted }"
+        title="拖动跳转"
       />
-      <button @click="reader.toggleRtlTapInvert()" class="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-[var(--brand-border)] shrink-0 hover:opacity-80 transition" title="点击可切换左右翻页按钮方向">
-        {{ swapTapText }}
-      </button>
+      <span class="text-[10px] font-mono text-[var(--fg-muted)] shrink-0 tabular-nums hidden sm:inline">{{ percentText }}</span>
     </div>
 
-    <button @click="reader.onRightButtonClick()" :class="rightBtnClass">
-      <span>{{ rightText }}</span> <span>→</span>
+    <button @click="reader.onRightButtonClick()" :class="rightBtnClass" :title="rightText">
+      <span class="hidden sm:inline">{{ rightText }}</span>
+      <span class="text-sm">→</span>
     </button>
-  </div>
+  </footer>
 </template>
 
 <script setup>
-/* ============================================================================
-   HOMURA · 阅读器底部控制条
-   ----------------------------------------------------------------------------
-   左右翻页按钮 / 进度滑条 / RTL 手势反转。按钮主副样式与文案随方向模式
-   响应式切换（旧版 updateToolbarHighlight 的 className 改写改为 :class）。
-   ========================================================================== */
-
 import { computed } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 
@@ -44,7 +38,6 @@ const config = reader.layoutConfig;
 
 const inverted = computed(() => config.direction === 'rtl' && config.rtlInvertButtons);
 const isVertical = computed(() => config.direction === 'vertical');
-const spreadLabel = computed(() => (config.spread === 2 ? '双页并排' : '单页模式'));
 
 const leftText = computed(() => {
   if (isVertical.value) return '上滚一屏';
@@ -58,18 +51,16 @@ const rightText = computed(() => {
   return '下一页';
 });
 
+const percentText = computed(() => {
+  const total = reader.activePages.length;
+  if (!total) return '0%';
+  return Math.round(((reader.currentIndex + 1) / total) * 100) + '%';
+});
+
 const leftBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn-primary' : 'uiverse-btn') + ' py-1 px-3.5 shrink-0'
+  (inverted.value ? 'uiverse-btn-primary' : 'uiverse-btn') + ' py-1 px-2.5 shrink-0'
 );
 const rightBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn' : 'uiverse-btn-primary') + ' py-1 px-3.5 shrink-0'
+  (inverted.value ? 'uiverse-btn' : 'uiverse-btn-primary') + ' py-1 px-2.5 shrink-0'
 );
-
-const swapTapText = computed(() => {
-  if (isVertical.value) return '上→下长卷';
-  if (config.direction === 'rtl') {
-    return inverted.value ? '日漫:左翻下一页(滚轮可用)' : '日漫:右翻下一页(滚轮可用)';
-  }
-  return `滚轮可翻页 · ${spreadLabel.value}`;
-});
 </script>

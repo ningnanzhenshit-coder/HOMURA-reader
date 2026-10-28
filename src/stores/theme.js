@@ -1,7 +1,7 @@
 /* ============================================================================
    HOMURA · 主题 Store
    ----------------------------------------------------------------------------
-   主题色 / 阅读表面 / 翻页过渡效果，以及全屏切换。
+   主题色 / 阅读表面 / 翻页过渡效果。
    高亮态不再手动改 DOM，由组件根据 store 状态做 :class / :style 绑定。
    ========================================================================== */
 
@@ -12,9 +12,9 @@ import { showToast } from '../composables/useToast.js';
 const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
 const THEME_NAMES = { blue: '晴空蓝', red: '绯红金', green: '森系绿', violet: '星夜紫' };
 const MODE_LABELS = {
-  light: '☀️ 白昼清爽模式',
-  warm: '🌾 暖色调护眼模式（羊皮纸柔光）',
-  dark: '🌙 夜间深邃模式'
+  light: '白昼清爽模式',
+  warm: '暖色调护眼模式（羊皮纸柔光）',
+  dark: '夜间深邃模式'
 };
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];
 export const TRANSITION_LABELS = { slide: '丝滑平移', fade: '柔和淡入', none: '极速无动画' };
@@ -34,12 +34,7 @@ export const useThemeStore = defineStore('theme', () => {
   const themeColor = ref('blue');
   const surfaceMode = ref('light');
   const transitionStyle = ref('slide');
-  const isFullscreen = ref(false);
   let surfaceWipeToken = 0;
-
-  document.addEventListener('fullscreenchange', () => {
-    isFullscreen.value = !!document.fullscreenElement;
-  });
 
   function setThemeColor(colorName, silent = false) {
     themeColor.value = colorName;
@@ -114,24 +109,12 @@ export const useThemeStore = defineStore('theme', () => {
     showToast('翻页过渡效果：' + TRANSITION_LABELS[transitionStyle.value]);
   }
 
-  function toggleFullScreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        showToast('无法进入全屏模式: ' + err.message);
-      });
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  }
-
   return {
     themeColor,
     surfaceMode,
     transitionStyle,
-    isFullscreen,
     setThemeColor,
     setSurfaceMode,
-    toggleTransitionStyle,
-    toggleFullScreen
+    toggleTransitionStyle
   };
 });

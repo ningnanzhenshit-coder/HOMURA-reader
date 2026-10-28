@@ -1,24 +1,18 @@
 /* ============================================================================
    HOMURA · 阅读器快捷键与窗口事件
    ----------------------------------------------------------------------------
-   键盘（F / 方向键 / 空格 / Esc）、视口滚轮翻页（190ms 节流）、
-   全屏变化与窗口尺寸变化时的小说重排。由 ReaderModal 挂载时安装。
+   键盘（方向键 / 空格 / Esc）、视口滚轮翻页（190ms 节流）、
+   窗口尺寸变化时的小说重排。由 ReaderModal 挂载时安装。
    ========================================================================== */
 
 import { onMounted, onBeforeUnmount } from 'vue';
-import { useThemeStore } from '../stores/theme.js';
+import { useUiStore } from '../stores/ui.js';
 
 export function useShortcuts(reader, viewportRef) {
-  const theme = useThemeStore();
+  const ui = useUiStore();
 
   function onKeydown(e) {
     if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
-
-    if (e.key === 'f' || e.key === 'F') {
-      e.preventDefault();
-      theme.toggleFullScreen();
-      return;
-    }
 
     if (!reader.currentBook) return;
     if (e.key === 'ArrowLeft') {
@@ -34,7 +28,16 @@ export function useShortcuts(reader, viewportRef) {
       e.preventDefault();
       reader.goPrevPage();
     } else if (e.key === 'Escape') {
-      reader.closeReader();
+      // 逐层退出：先关抽屉，再唤出工具栏，最后关闭阅读器
+      if (ui.settingsOpen) {
+        ui.closeSettings();
+      } else if (ui.tocOpen) {
+        ui.closeToc();
+      } else if (!ui.readerChromeVisible) {
+        ui.showChrome();
+      } else {
+        reader.closeReader();
+      }
     }
   }
 
@@ -64,13 +67,6 @@ export function useShortcuts(reader, viewportRef) {
     }
   }
 
-  // 全屏状态变化：小说可用高度变了，按当前字号重排
-  function onFullscreenChange() {
-    if (reader.currentBook && reader.currentBook.type !== 'manga') {
-      reader.recalculateNovelPaginationAndRender();
-    }
-  }
-
   // 窗口尺寸变化：小说防抖重排（条漫页不依赖窗口尺寸，跳过重排避免滚动位置丢失）
   function onResize() {
     if (!reader.currentBook || reader.currentBook.type === 'manga') return;
@@ -83,7 +79,6 @@ export function useShortcuts(reader, viewportRef) {
 
   onMounted(() => {
     window.addEventListener('keydown', onKeydown);
-    document.addEventListener('fullscreenchange', onFullscreenChange);
     window.addEventListener('resize', onResize);
     if (viewportRef.value) {
       viewportRef.value.addEventListener('wheel', onWheel, { passive: false });
@@ -92,7 +87,6 @@ export function useShortcuts(reader, viewportRef) {
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', onKeydown);
-    document.removeEventListener('fullscreenchange', onFullscreenChange);
     window.removeEventListener('resize', onResize);
     if (viewportRef.value) {
       viewportRef.value.removeEventListener('wheel', onWheel);

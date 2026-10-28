@@ -32,7 +32,7 @@ export const useShelfStore = defineStore('shelf', () => {
     } catch (err) {
       if (!storageNoticeShown) {
         storageNoticeShown = true;
-        showToast('⚠️ 本地存档不可用，请通过 http://localhost 打开页面');
+        showToast('本地存档不可用，请通过 http://localhost 打开页面');
       }
     }
   }

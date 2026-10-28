@@ -52,7 +52,7 @@ export function useImporter() {
     await Promise.allSettled(persistTasks);
 
     if (importedCount > 0) {
-      showToast(`✅ 已秒速添加 ${importedCount} 部作品到书架`);
+      showToast(`已秒速添加 ${importedCount} 部作品到书架`);
     } else {
       showToast('未找到支持的漫画或小说格式 (.epub / .cbz / .zip / .txt / 图片)');
     }

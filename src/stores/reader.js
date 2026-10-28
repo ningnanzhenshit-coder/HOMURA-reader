@@ -230,12 +230,11 @@ export const useReaderStore = defineStore('reader', () => {
     requestRender('fade');
   }
 
-  function toggleWebtoonWidth() {
-    const nextIdx = (WEBTOON_FITS.indexOf(layoutConfig.webtoonFit) + 1) % WEBTOON_FITS.length;
-    layoutConfig.webtoonFit = WEBTOON_FITS[nextIdx];
+  function setWebtoonFit(fit) {
+    if (!WEBTOON_FITS.includes(fit) || layoutConfig.webtoonFit === fit) return;
+    layoutConfig.webtoonFit = fit;
     // 条漫模式下 WebtoonView 通过 :class 绑定响应尺寸变化，无需重渲染
     requestRender('none');
-    showToast('条漫显示尺寸：' + WEBTOON_FIT_LABELS[layoutConfig.webtoonFit]);
   }
 
   function changeFontSize(delta) {
@@ -351,7 +350,7 @@ export const useReaderStore = defineStore('reader', () => {
     setDirection,
     setSpreadCount,
     toggleCoverOffset,
-    toggleWebtoonWidth,
+    setWebtoonFit,
     changeFontSize,
     goNextPage,
     goPrevPage,

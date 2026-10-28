@@ -1,12 +1,29 @@
 <template>
-  <AppHeader ref="headerRef" />
+  <div class="flex flex-1 min-h-0">
+    <SideNav />
 
-  <!-- Main Workspace -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 flex flex-col gap-8">
-    <DropZone @pick-file="headerRef && headerRef.openFilePicker()" @pick-folder="headerRef && headerRef.openFolderPicker()" />
-    <BookShelf @open="reader.openBook" />
-  </main>
+    <div class="flex-1 min-w-0 flex flex-col">
+      <LibraryHeader
+        :count="shelf.library.length"
+        v-model:query="query"
+        v-model:type="typeFilter"
+        v-model:sort="sortKey"
+        @pick-file="openFilePicker"
+        @pick-folder="openFolderPicker"
+      />
 
+      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-6 flex flex-col gap-6">
+        <ContinueReading @open="reader.openBook" />
+        <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
+        <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
+      </main>
+    </div>
+  </div>
+
+  <input ref="fileInput" type="file" multiple accept=".epub,.cbz,.zip,.txt,.md,image/*" class="hidden" @change="onFileChange" />
+  <input ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
+
+  <DragOverlay />
   <ReaderModal />
   <AppToast />
 
@@ -15,25 +32,76 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
 import { HomuraStore } from './services/storage.js';
 import { installProgressFlushHooks } from './services/progress.js';
+import { useImporter } from './composables/useImporter.js';
 import { showToast } from './composables/useToast.js';
-import AppHeader from './components/AppHeader.vue';
-import DropZone from './components/DropZone.vue';
+import SideNav from './components/SideNav.vue';
+import LibraryHeader from './components/LibraryHeader.vue';
+import ContinueReading from './components/ContinueReading.vue';
 import BookShelf from './components/BookShelf.vue';
+import EmptyShelf from './components/EmptyShelf.vue';
+import DragOverlay from './components/DragOverlay.vue';
 import ReaderModal from './components/ReaderModal.vue';
 import AppToast from './components/AppToast.vue';
 
 const theme = useThemeStore();
 const shelf = useShelfStore();
 const reader = useReaderStore();
+const importer = useImporter();
 
-const headerRef = ref(null);
 const measurerRef = ref(null);
+const fileInput = ref(null);
+const folderInput = ref(null);
+
+// 书架视图状态
+const query = ref('');
+const typeFilter = ref('all');
+const sortKey = ref('recent');
+
+const visibleBooks = computed(() => {
+  let list = shelf.library;
+  if (typeFilter.value !== 'all') {
+    list = list.filter(book => book.type === typeFilter.value);
+  }
+  const keyword = query.value.trim().toLowerCase();
+  if (keyword) {
+    list = list.filter(book => (book.title || '').toLowerCase().includes(keyword));
+  }
+  if (sortKey.value === 'title') {
+    return [...list].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh-Hans-CN'));
+  }
+  if (sortKey.value === 'progress') {
+    const ts = id => (shelf.progressMap[id] && shelf.progressMap[id].updatedAt) || 0;
+    return [...list].sort((a, b) => ts(b.id) - ts(a.id));
+  }
+  return list;
+});
+
+function openFilePicker() {
+  if (window.showOpenFilePicker) {
+    importer.pickFilesViaFSA();
+    return;
+  }
+  fileInput.value && fileInput.value.click();
+}
+
+function openFolderPicker() {
+  if (window.showDirectoryPicker) {
+    importer.pickFolderViaFSA();
+    return;
+  }
+  folderInput.value && folderInput.value.click();
+}
+
+async function onFileChange(e) {
+  await importer.handleFiles(e.target.files);
+  e.target.value = '';
+}
 
 onMounted(async () => {
   let savedTheme = 'blue';
