@@ -1,0 +1,305 @@
+/* ============================================================================
+   HOMURA · 格式解析
+   ----------------------------------------------------------------------------
+   EPUB / CBZ / ZIP / TXT / Markdown 的懒加载解析，统一输出书架可用的书籍对象；
+   以及把散装图片按文件夹分组生成漫画书的 buildImageFolderBooks。
+   ========================================================================== */
+
+import JSZip from 'jszip';
+import { showToast } from '../composables/useToast.js';
+import { escapeHtml } from './utils.js';
+
+
+// ---- EPUB 内部相对路径解析 ----
+
+function resolveRelativePath(basePath, relativePath) {
+  const baseDir = basePath.includes('/') ? basePath.substring(0, basePath.lastIndexOf('/') + 1) : '';
+  const stack = baseDir.split('/').filter(Boolean);
+  const parts = relativePath.split('/');
+  for (const p of parts) {
+    if (p === '..') stack.pop();
+    else if (p !== '.' && p !== '') stack.push(p);
+  }
+  return stack.join('/');
+}
+
+// ---- EPUB 解析：章节正文 + 图片型 EPUB 自动转漫画 ----
+// ---- CBZ / ZIP 解析：压缩包内图片按自然序排列 ----
+// ---- TXT / Markdown 解析：按章节标题切分 ----
+
+export async function parseEpubFileLazy(file) {
+  try {
+    showToast(`正在快速索引《${file.name}》...`);
+    const zip = new JSZip();
+    const zipContent = await zip.loadAsync(file);
+
+    const containerFile = zipContent.file('META-INF/container.xml');
+    if (!containerFile) throw new Error('缺少 META-INF/container.xml');
+    const containerXml = await containerFile.async('text');
+    const parser = new DOMParser();
+    const containerDoc = parser.parseFromString(containerXml, 'text/xml');
+    const rootfileEl = containerDoc.querySelector('rootfile');
+    const opfPath = rootfileEl ? rootfileEl.getAttribute('full-path') : 'content.opf';
+    const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
+
+    const opfFile = zipContent.file(opfPath);
+    if (!opfFile) throw new Error('未找到 OPF 配置文件');
+    const opfText = await opfFile.async('text');
+    const opfDoc = parser.parseFromString(opfText, 'text/xml');
+
+    const titleEl = opfDoc.querySelector('title, dc\\:title');
+    const bookTitle = titleEl ? titleEl.textContent.trim() : file.name.replace(/(\.kepub)?\.epub$/i, '');
+
+    const manifest = {};
+    opfDoc.querySelectorAll('manifest > item').forEach(item => {
+      manifest[item.getAttribute('id')] = {
+        href: item.getAttribute('href'),
+        mediaType: item.getAttribute('media-type') || ''
+      };
+    });
+
+    const spineIds = [];
+    opfDoc.querySelectorAll('spine > itemref').forEach(ref => {
+      spineIds.push(ref.getAttribute('idref'));
+    });
+
+    const lazyMangaEntries = [];
+    const seenGlobalPaths = new Set();
+    const chapters = [];
+    let imageHeavyCount = 0;
+
+    for (const idref of spineIds) {
+      const item = manifest[idref];
+      if (!item) continue;
+      const fullPath = opfDir + decodeURIComponent(item.href);
+      const entry = zipContent.file(fullPath) || zipContent.file(item.href);
+      if (!entry) continue;
+
+      const rawHtml = await entry.async('text');
+      const htmlDoc = parser.parseFromString(rawHtml, 'text/html');
+      const imgs = htmlDoc.querySelectorAll('img, image');
+      const foundEntriesInPage = [];
+      const seenInCurrentPage = new Set();
+
+      for (const img of imgs) {
+        const srcAttr = img.getAttribute('src') || img.getAttribute('xlink:href') || img.getAttribute('href');
+        if (srcAttr && !srcAttr.startsWith('http') && !srcAttr.startsWith('data:')) {
+          const cleanSrc = decodeURIComponent(srcAttr.split('#')[0]);
+          const resolved = resolveRelativePath(fullPath, cleanSrc);
+          const imgEntry = zipContent.file(resolved) || zipContent.file(cleanSrc);
+          if (imgEntry) {
+            img.setAttribute('data-zip-path', imgEntry.name);
+            if (!seenInCurrentPage.has(imgEntry.name)) {
+              seenInCurrentPage.add(imgEntry.name);
+              foundEntriesInPage.push(imgEntry);
+            }
+          }
+        }
+      }
+
+      const plainText = (htmlDoc.body?.textContent || '').trim();
+      if (foundEntriesInPage.length > 0 && plainText.length < 60) {
+        imageHeavyCount++;
+        foundEntriesInPage.forEach(ent => {
+          if (!seenGlobalPaths.has(ent.name)) {
+            seenGlobalPaths.add(ent.name);
+            lazyMangaEntries.push({ zipEntry: ent, url: null });
+          }
+        });
+      }
+
+      const chapterHeading = htmlDoc.querySelector('h1, h2, h3, title')?.textContent?.trim()
+        || item.href.split('/').pop().replace(/\.[^.]+$/, '');
+      const bodyHtml = htmlDoc.body ? htmlDoc.body.innerHTML.trim() : rawHtml;
+
+      if (bodyHtml.length > 0) {
+        chapters.push({
+          title: chapterHeading,
+          htmlContent: bodyHtml
+        });
+      }
+    }
+
+    const isMangaEpub = imageHeavyCount > 0 && (imageHeavyCount >= chapters.length * 0.45 || lazyMangaEntries.length >= 6);
+
+    if (isMangaEpub && lazyMangaEntries.length > 0) {
+      const firstBlob = await lazyMangaEntries[0].zipEntry.async('blob');
+      const coverUrl = URL.createObjectURL(firstBlob);
+      lazyMangaEntries[0].url = coverUrl;
+
+      return {
+        id: 'epub_manga_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        type: 'manga',
+        title: bookTitle,
+        cover: coverUrl,
+        coverBlob: firstBlob,
+        pageItems: lazyMangaEntries,
+        pageCount: lazyMangaEntries.length
+      };
+    }
+
+    if (chapters.length === 0) throw new Error('未能提取出有效章节内容');
+
+    let coverUrl = null;
+    let coverBlob = null;
+    if (lazyMangaEntries.length > 0) {
+      coverBlob = await lazyMangaEntries[0].zipEntry.async('blob');
+      coverUrl = URL.createObjectURL(coverBlob);
+    }
+
+    return {
+      id: 'epub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: 'epub',
+      title: bookTitle,
+      cover: coverUrl,
+      coverBlob: coverBlob,
+      zipContent: zipContent,
+      chapters: chapters,
+      pageCount: chapters.length
+    };
+  } catch (err) {
+    console.error(err);
+    showToast('EPUB 解析失败：' + err.message);
+    return null;
+  }
+}
+
+export async function parseCbzFileLazy(file) {
+  try {
+    showToast(`正在快速索引压缩包《${file.name}》...`);
+    const zip = new JSZip();
+    const zipContent = await zip.loadAsync(file);
+    const imgEntries = [];
+
+    zipContent.forEach((relPath, entry) => {
+      if (!entry.dir && /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(relPath) && !relPath.includes('__MACOSX')) {
+        imgEntries.push({ name: relPath, entry });
+      }
+    });
+
+    imgEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    if (imgEntries.length === 0) throw new Error('压缩包内未找到图片');
+
+    const firstBlob = await imgEntries[0].entry.async('blob');
+    const firstUrl = URL.createObjectURL(firstBlob);
+
+    const pageItems = imgEntries.map((item, idx) => ({
+      zipEntry: item.entry,
+      url: idx === 0 ? firstUrl : null
+    }));
+
+    const title = file.name.replace(/\.(cbz|zip)$/i, '');
+    return {
+      id: 'cbz_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: 'manga',
+      title: title,
+      cover: firstUrl,
+      coverBlob: firstBlob,
+      pageItems: pageItems,
+      pageCount: pageItems.length
+    };
+  } catch (err) {
+    console.error(err);
+    showToast('压缩包解析失败：' + err.message);
+    return null;
+  }
+}
+
+export function parseTxtFile(txtFile) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const rawText = e.target.result || '';
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const title = txtFile.name.replace(/\.[^.]+$/, '');
+
+      const chapters = [];
+      let currentChapTitle = title + ' · 开始';
+      let currentParagraphs = [];
+      const chapterRegex = /^(第[0-9零一二三四五六七八九十百千万]+[章节卷回话]|Chapter\s*\d+|序[章言]?|楔子|终章|尾声)/i;
+
+      for (const line of lines) {
+        if (line.length < 40 && chapterRegex.test(line)) {
+          if (currentParagraphs.length > 0) {
+            chapters.push({
+              title: currentChapTitle,
+              htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
+            });
+            currentParagraphs = [];
+          }
+          currentChapTitle = line;
+        } else {
+          currentParagraphs.push(line);
+          if (currentParagraphs.length >= 60) {
+            chapters.push({
+              title: currentChapTitle,
+              htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
+            });
+            currentParagraphs = [];
+          }
+        }
+      }
+      if (currentParagraphs.length > 0) {
+        chapters.push({
+          title: currentChapTitle,
+          htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
+        });
+      }
+      if (chapters.length === 0) {
+        chapters.push({ title, htmlContent: '<p>（空文件）</p>' });
+      }
+
+      resolve({
+        id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        type: 'novel',
+        title: title,
+        cover: null,
+        coverBlob: null,
+        chapters: chapters,
+        pageCount: chapters.length
+      });
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsText(txtFile, 'utf-8');
+  });
+}
+
+// 把散装图片按所在文件夹分组，每组生成一本书
+export function buildImageFolderBooks(imgFiles) {
+  if (!imgFiles || imgFiles.length === 0) return [];
+  const folderGroups = {};
+  imgFiles.forEach(f => {
+    const rel = f.customRelativePath || f.webkitRelativePath || '';
+    const parts = rel.split('/').filter(Boolean);
+    let groupName = '本地漫画图集';
+    if (parts.length >= 2) {
+      groupName = parts[parts.length - 2];
+    } else if (imgFiles.length === 1) {
+      groupName = f.name.replace(/\.[^.]+$/, '');
+    }
+    if (!folderGroups[groupName]) folderGroups[groupName] = [];
+    folderGroups[groupName].push(f);
+  });
+
+  return Object.entries(folderGroups).map(([folderName, groupImgs]) => {
+    groupImgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    const firstCoverUrl = URL.createObjectURL(groupImgs[0]);
+    const pageItems = groupImgs.map((fileObj, idx) => ({
+      file: fileObj,
+      url: idx === 0 ? firstCoverUrl : null
+    }));
+    return {
+      folderName,
+      files: groupImgs,
+      book: {
+        id: 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        type: 'manga',
+        title: folderName,
+        cover: firstCoverUrl,
+        coverBlob: groupImgs[0],
+        pageItems: pageItems,
+        pageCount: pageItems.length
+      }
+    };
+  });
+}

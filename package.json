@@ -5,11 +5,19 @@
   "description": "HOMURA — ACGN GO 本地漫画与轻小说阅读器",
   "scripts": {
     "tauri": "tauri",
-    "prepare:web": "node scripts/prepare-web.mjs",
+    "dev:vite": "vite",
+    "build:vite": "vite build",
     "dev": "tauri dev",
     "build": "tauri build"
   },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.18"
+  },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.9.0"
+    "@tauri-apps/cli": "^2.9.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "vite": "^6.3.5"
   }
 }

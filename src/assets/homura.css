@@ -1,0 +1,253 @@
+    /* ==========================================================================
+       1. Dynamic Theme Accent Colors (Blue / RedGold / Green / Violet)
+       ========================================================================== */
+    :root,
+    html[data-theme="blue"] {
+      --brand-primary: #2563EB;
+      --brand-primary-hover: #1D4ED8;
+      --brand-shadow: #1E40AF;
+      --brand-soft: #EFF6FF;
+      --brand-border: #BFDBFE;
+      --brand-on-primary: #FFFFFF;
+    }
+    html[data-theme="red"] {
+      --brand-primary: #E61919;
+      --brand-primary-hover: #C81010;
+      --brand-shadow: #FFC400;
+      --brand-soft: #FFF7D6;
+      --brand-border: #FDE68A;
+      --brand-on-primary: #FFFFFF;
+    }
+    html[data-theme="green"] {
+      --brand-primary: #059669;
+      --brand-primary-hover: #047857;
+      --brand-shadow: #065F46;
+      --brand-soft: #ECFDF5;
+      --brand-border: #A7F3D0;
+      --brand-on-primary: #FFFFFF;
+    }
+    html[data-theme="violet"] {
+      --brand-primary: #7C3AED;
+      --brand-primary-hover: #6D28D9;
+      --brand-shadow: #5B21B6;
+      --brand-soft: #F5F3FF;
+      --brand-border: #DDD6FE;
+      --brand-on-primary: #FFFFFF;
+    }
+
+    /* ==========================================================================
+       2. Reading Surface Modes (Light / Warm Eye-Care / Dark)
+       ========================================================================== */
+    html[data-mode="light"] {
+      --bg-canvas: #F8FAFC;
+      --bg-subtle: #F1F5F9;
+      --bg-card: #FFFFFF;
+      --bg-reader: #F1F5F9;
+      --fg-main: #0F172A;
+      --fg-muted: #64748B;
+      --border-line: #E2E8F0;
+      --manga-filter: none;
+    }
+
+    /* Warm Eye-Care Mode (Sepia / Warm Paper) */
+    html[data-mode="warm"] {
+      --bg-canvas: #F6EFE2;
+      --bg-subtle: #EDE3D0;
+      --bg-card: #FBF7EE;
+      --bg-reader: #EFE6D5;
+      --fg-main: #3B2F2F;
+      --fg-muted: #7C6A58;
+      --border-line: #DFD1BA;
+      --brand-soft: #EFE4CE;
+      --manga-filter: sepia(0.18) brightness(0.97) contrast(0.98);
+    }
+
+    /* Dark Mode */
+    html[data-mode="dark"] {
+      --bg-canvas: #090D16;
+      --bg-subtle: #0F172A;
+      --bg-card: #111827;
+      --bg-reader: #070B12;
+      --fg-main: #F1F5F9;
+      --fg-muted: #94A3B8;
+      --border-line: #1E293B;
+      --brand-soft: rgba(255, 255, 255, 0.06);
+      --brand-border: rgba(255, 255, 255, 0.14);
+      --manga-filter: brightness(0.92);
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--fg-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色 */
+    html.surface-switching,
+    html.surface-switching *,
+    html.surface-switching *::before,
+    html.surface-switching *::after {
+      transition: none !important;
+    }
+
+    /* 阅读模式切换：旧底色半透明叠在最上层，收缩时保留组件轮廓与配色 */
+    .surface-wipe {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      opacity: 0.6;
+      pointer-events: none;
+      will-change: clip-path;
+    }
+
+    .manga-page-img {
+      filter: var(--manga-filter);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-user-drag: none;
+    }
+
+    /* GPU-Accelerated Double-Buffer Stage Layer */
+    .stage-buffer-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--brand-primary); opacity: 0.35; border-radius: 9999px; }
+
+    /* 隐藏滚动条但保留可滚动能力（窄窗口下的阅读器工具栏） */
+    .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+    /* Uiverse-inspired tactile button */
+    .uiverse-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.9rem;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--fg-main);
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-line);
+      border-radius: 8px;
+      box-shadow: 0 2px 0 0 var(--border-line);
+      transition: all 0.12s cubic-bezier(0.2, 0, 0, 1);
+      cursor: pointer;
+    }
+    .uiverse-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      box-shadow: 0 2px 0 0 var(--brand-primary);
+      transform: translateY(-1px);
+    }
+    .uiverse-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 0px 0 0 var(--brand-primary);
+    }
+
+    /* Primary Theme tactile button */
+    .uiverse-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.45rem 1rem;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--brand-on-primary);
+      background-color: var(--brand-primary);
+      border: 1px solid var(--brand-primary-hover);
+      border-radius: 8px;
+      box-shadow: 0 2px 0 0 var(--brand-shadow);
+      transition: all 0.12s cubic-bezier(0.2, 0, 0, 1);
+      cursor: pointer;
+    }
+    .uiverse-btn-primary:hover {
+      background-color: var(--brand-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 0 0 var(--brand-shadow);
+    }
+    .uiverse-btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 0px 0 0 var(--brand-shadow);
+    }
+
+    /* Editorial Card */
+    .editorial-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-line);
+      border-radius: 12px;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .editorial-card:hover {
+      border-color: var(--brand-primary);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.14);
+    }
+
+    .theme-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      border: 2px solid rgba(255,255,255,0.8);
+    }
+    .theme-swatch:hover {
+      transform: scale(1.15);
+    }
+    .theme-swatch.active-swatch {
+      box-shadow: 0 0 0 2px var(--fg-main);
+      transform: scale(1.12);
+    }
+
+    .book-spine-shadow {
+      background: linear-gradient(90deg,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0.06) 46%,
+        rgba(0,0,0,0.22) 50%,
+        rgba(0,0,0,0.06) 54%,
+        rgba(0,0,0,0) 100%);
+    }
+    html[data-mode="dark"] .book-spine-shadow {
+      background: linear-gradient(90deg,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0.35) 46%,
+        rgba(0,0,0,0.75) 50%,
+        rgba(0,0,0,0.35) 54%,
+        rgba(0,0,0,0) 100%);
+    }
+
+    .epub-content img {
+      max-width: 100%;
+      max-height: 58vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      margin: 0.5rem auto;
+      display: block;
+    }
+    .epub-content p {
+      margin-bottom: 0.75em;
+      text-indent: 2em;
+      line-height: 1.75;
+    }
+    .rtl-slider {
+      direction: rtl;
+    }

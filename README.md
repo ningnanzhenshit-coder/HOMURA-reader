@@ -68,48 +68,39 @@ npm run build    # 打包安装包
 
 构建产物在 `src-tauri/target/release/bundle/`。
 
-> 前端使用 ES Modules，`dist/index.html` 不能直接双击用 `file://` 打开；请用 `npm run dev`，或在 `dist/` 目录下起一个本地静态服务器再访问。
+> 前端经 Vite 构建，`dist/index.html` 不能直接双击用 `file://` 打开；请用 `npm run dev`，或在 `dist/` 目录下起一个本地静态服务器再访问。
 
 常用脚本：
 
 | 命令 | 作用 |
 | --- | --- |
-| `npm run prepare:web` | 把 `src/` 里的入口页、`css/`、`js/` 拷进 `dist/`，生成 Tauri 需要的 `index.html` |
-| `npm run dev` | `prepare:web` + `tauri dev` |
-| `npm run build` | `prepare:web` + `tauri build` |
+| `npm run dev:vite` | 启动 Vite 开发服务器（HMR，端口 5173） |
+| `npm run build:vite` | 用 Vite 把前端打包进 `dist/` |
+| `npm run dev` | `dev:vite` + `tauri dev` |
+| `npm run build` | `build:vite` + `tauri build` |
 
 ## 项目结构
 
 ```text
 homura-reader/
+├── index.html             # Vite 入口（保留防闪白内联脚本与 Tailwind 运行时）
+├── vite.config.js         # Vite 配置（Vue 插件 + 相对路径 base）
 ├── src/
-│   ├── homura-ultra.html  # 前端入口页（页面骨架 + 工具栏）
-│   ├── css/homura.css     # 主题变量、阅读表面、动效
-│   └── js/
-│       ├── main.js            # ES Module 入口：汇总模块并暴露内联事件
-│       ├── storage.js         # IndexedDB 书架存档（books / sources / progress）
-│       ├── core.js            # 全局状态、主题与通用 UI
-│       ├── demo.js            # 示例漫画 / 轻小说
-│       ├── bookshelf.js       # 书架渲染与增删
-│       ├── parsers.js         # EPUB / CBZ / TXT 解析
-│       ├── restore.js         # 存档写入与源文件恢复
-│       ├── progress.js        # 阅读进度记忆（按书保存与回跳）
-│       ├── importer.js        # 文件 / 文件夹 / 拖拽导入
-│       ├── pagination.js      # 图片加载与小说智能分页
-│       ├── reader.js          # 阅读器控制、翻页与快捷键
-│       ├── renderer.js        # 双缓冲翻页渲染引擎
-│       ├── init.js            # 启动初始化
-│       ├── tailwind-config.js # Tailwind 主题配置
-│       └── vendor/            # 内置 Tailwind 与 JSZip，断网也能用
+│   ├── main.js            # createApp + createPinia + 挂载
+│   ├── App.vue            # 总布局：Header / 书架 / ReaderModal / Toast / 分页测量器
+│   ├── assets/homura.css  # 主题变量、阅读表面、动效
+│   ├── stores/            # Pinia：theme（主题色/表面/过渡）、shelf（书架/进度）、reader（阅读器状态与翻页动作）
+│   ├── services/          # 纯逻辑无 DOM：storage（IndexedDB）、parsers（EPUB/CBZ/TXT）、pagination（智能分页）、progress（进度记忆）、restore（存档恢复）、demo（示例书）
+│   ├── composables/       # useImporter（导入）、useShortcuts（键盘/滚轮）、useToast
+│   └── components/        # AppHeader / DropZone / BookShelf / BookCard / ReaderModal / ReaderToolbar / ReaderBottomBar / PaginatedView（双缓冲引擎）/ WebtoonView / NovelCard / AppToast
 ├── scripts/
-│   ├── prepare-web.mjs    # 生成 dist/
 │   └── release-notes.mjs  # 用 Conventional Commits 生成 Release 说明
 ├── src-tauri/             # Tauri 2 壳、图标与打包配置
-├── dist/                  # 构建生成的前端目录（已 gitignore）
+├── dist/                  # Vite 构建产物（已 gitignore）
 └── .github/workflows/     # 三平台自动打包
 ```
 
-技术栈很朴素：原生 HTML/CSS/JavaScript + Tailwind + JSZip，桌面壳用 Tauri 2（Rust）。前端使用浏览器原生 **ES Modules**（`js/main.js` 为唯一入口），没有前端框架，没有构建打包器，`prepare-web` 就是把静态文件复制进 `dist/`。
+技术栈：Vue 3 + Pinia + Vite，UI 保留手写 Tailwind（运行时内置，断网可用）与 CSS 变量主题，JSZip 走 npm 依赖，桌面壳用 Tauri 2（Rust）。双缓冲翻页引擎在 `PaginatedView.vue` 内直操作 ref DOM + Web Animations API，不经过响应式重渲染。
 
 ## 数据与隐私
 

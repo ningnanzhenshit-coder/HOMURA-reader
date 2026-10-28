@@ -4,8 +4,9 @@
   "version": "2.0.4",
   "identifier": "com.homura.reader",
   "build": {
-    "beforeDevCommand": "node scripts/prepare-web.mjs",
-    "beforeBuildCommand": "node scripts/prepare-web.mjs",
+    "beforeDevCommand": "npm run dev:vite",
+    "beforeBuildCommand": "npm run build:vite",
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
   "app": {
