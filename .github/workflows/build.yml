@@ -151,11 +151,11 @@ jobs:
         run: npx tauri android init
 
       # debug 签名，可直接侧载安装，无需 keystore Secrets
-      # 按 ABI 分包并剔除调试符号，单个 APK 约 20~30MB；i686 是早期模拟器架构，不再打包
+      # 只出 arm64-v8a（覆盖绝大多数设备），并剔除调试符号，单个 APK 约 28MB
       - name: Build APK
         env:
           CARGO_PROFILE_DEV_STRIP: debuginfo
-        run: npx tauri android build --apk --debug --split-per-abi -t aarch64 armv7 x86_64
+        run: npx tauri android build --apk --debug --split-per-abi -t aarch64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
