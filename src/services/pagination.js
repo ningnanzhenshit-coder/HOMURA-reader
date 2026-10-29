@@ -87,15 +87,19 @@ export function buildActivePages(book, layoutConfig, measurer) {
   }
 
   const vw = window.innerWidth || 1024;
-  const vh = window.innerHeight || 768;
+  // 用布局视口高度：移动端 window.innerHeight 含地址栏，滚动时会抖动导致重复分页
+  const vh = document.documentElement.clientHeight || window.innerHeight || 768;
+  const compact = vw < 768;
 
-  const isDouble = layoutConfig.spread === 2 && vw >= 768;
+  const isDouble = layoutConfig.spread === 2 && !compact;
   const cardOuterWidth = isDouble
     ? Math.min(540, Math.floor((vw - 64) / 2))
     : Math.min(672, vw - 32);
   const cardHorizontalPadding = vw >= 640 ? 80 : 48;
   const contentWidth = Math.max(220, cardOuterWidth - cardHorizontalPadding);
-  const availableTextHeight = Math.max(180, vh - 92 - 175);
+  // 工具栏（顶 56 + 底 48）与卡片内外边距之和：桌面沿用既有实测值，移动端按紧凑布局
+  const chromeHeight = compact ? 236 : 267;
+  const availableTextHeight = Math.max(160, vh - chromeHeight);
 
   measurer.style.width = contentWidth + 'px';
   measurer.style.fontSize = layoutConfig.fontSize + 'px';

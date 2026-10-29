@@ -26,6 +26,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useImporter } from '../composables/useImporter.js';
+import { canDragImport } from '../services/platform.js';
 import logoUrl from '../assets/logo.png';
 
 const importer = useImporter();
@@ -62,7 +63,9 @@ async function onDrop(e) {
   await importer.handleDrop(e);
 }
 
+// 触屏设备没有可用的拖拽入口，不挂监听，避免拖动页面时误触遮罩
 onMounted(() => {
+  if (!canDragImport) return;
   window.addEventListener('dragenter', onDragEnter);
   window.addEventListener('dragover', onDragOver);
   window.addEventListener('dragleave', onDragLeave);

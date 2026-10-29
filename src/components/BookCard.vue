@@ -21,7 +21,7 @@
       </span>
       <button
         @click.stop="$emit('remove', book.id)"
-        class="absolute top-2.5 right-2.5 w-6 h-6 rounded-md bg-slate-900/75 hover:bg-red-600 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+        class="card-remove-btn absolute top-2 right-2 w-8 h-8 sm:w-6 sm:h-6 rounded-md bg-slate-900/75 hover:bg-red-600 text-white text-xs flex items-center justify-center transition"
         title="从书架移除"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>

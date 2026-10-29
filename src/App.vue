@@ -2,7 +2,7 @@
   <div class="flex flex-1 min-h-0">
     <SideNav />
 
-    <div class="flex-1 min-w-0 flex flex-col">
+    <div class="flex-1 min-w-0 flex flex-col" :class="isPhone ? 'mobile-tabbar-space' : ''">
       <LibraryHeader
         :count="shelf.library.length"
         v-model:query="query"
@@ -12,7 +12,7 @@
         @pick-folder="openFolderPicker"
       />
 
-      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-6 flex flex-col gap-6">
+      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 flex flex-col gap-5 sm:gap-6">
         <ContinueReading @open="reader.openBook" />
         <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
         <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
@@ -20,8 +20,8 @@
     </div>
   </div>
 
-  <input ref="fileInput" type="file" multiple accept=".epub,.cbz,.zip,.txt,.md,image/*" class="hidden" @change="onFileChange" />
-  <input ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
+  <input ref="fileInput" type="file" multiple :accept="fileAccept" class="hidden" @change="onFileChange" />
+  <input v-if="canPickFolder" ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
 
   <DragOverlay />
   <ReaderModal />
@@ -37,8 +37,10 @@ import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
 import { HomuraStore } from './services/storage.js';
+import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
 import { installProgressFlushHooks } from './services/progress.js';
 import { useImporter } from './composables/useImporter.js';
+import { useViewport } from './composables/useViewport.js';
 import { showToast } from './composables/useToast.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
@@ -53,6 +55,7 @@ const theme = useThemeStore();
 const shelf = useShelfStore();
 const reader = useReaderStore();
 const importer = useImporter();
+const { isPhone } = useViewport();
 
 const measurerRef = ref(null);
 const fileInput = ref(null);
@@ -83,7 +86,7 @@ const visibleBooks = computed(() => {
 });
 
 function openFilePicker() {
-  if (window.showOpenFilePicker) {
+  if (hasFileSystemAccess) {
     importer.pickFilesViaFSA();
     return;
   }
@@ -91,6 +94,10 @@ function openFilePicker() {
 }
 
 function openFolderPicker() {
+  if (!canPickFolder) {
+    showToast('当前浏览器不支持文件夹导入，请改用「导入文件」逐个添加');
+    return;
+  }
   if (window.showDirectoryPicker) {
     importer.pickFolderViaFSA();
     return;

@@ -46,6 +46,10 @@ export const useReaderStore = defineStore('reader', () => {
   // 底栏页码与滑条位置由渲染函数回写，BottomBar 响应式读取
   const pageIndicator = ref('1 / 1');
   const sliderValue = ref(0);
+  // 窄屏（<768）强制按单页渲染：双页并排在小屏上不可读
+  const effectiveDouble = ref(false);
+
+  const DOUBLE_SPREAD_MIN_WIDTH = 768;
 
   // 排版配置（纯数据，可安全响应式）
   const layoutConfig = reactive({
@@ -59,12 +63,22 @@ export const useReaderStore = defineStore('reader', () => {
 
   // ---- 纯派生逻辑（原 reader.js 的查询函数） ----
 
+  function canUseDoubleSpread() {
+    return layoutConfig.spread === 2 && (typeof window === 'undefined' || window.innerWidth >= DOUBLE_SPREAD_MIN_WIDTH);
+  }
+
+  // 同步「当前实际是否双页」，供顶栏状态与窗口尺寸变化判断复用
+  function syncEffectiveSpread() {
+    effectiveDouble.value = canUseDoubleSpread();
+    return effectiveDouble.value;
+  }
+
   function getSpreadPair(index) {
     const total = activePages.value.length;
     if (total === 0) return [];
     const clamped = Math.max(0, Math.min(total - 1, index));
 
-    if (layoutConfig.spread === 1) {
+    if (!syncEffectiveSpread()) {
       return [activePages.value[clamped]];
     }
 
@@ -85,13 +99,13 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function getStepSizeForNext() {
-    if (layoutConfig.spread === 1) return 1;
+    if (!syncEffectiveSpread()) return 1;
     if (layoutConfig.coverOffset && currentIndex.value === 0) return 1;
     return 2;
   }
 
   function getStepSizeForPrev() {
-    if (layoutConfig.spread === 1) return 1;
+    if (!syncEffectiveSpread()) return 1;
     if (layoutConfig.coverOffset && currentIndex.value === 1) return 1;
     return 2;
   }
@@ -155,6 +169,8 @@ export const useReaderStore = defineStore('reader', () => {
     currentIndex.value = 0;
     // 先恢复这本书的排版，后续分页与恢复位置都按这套设置计算
     applyLayoutForBook(book);
+    // 打开时先按当前窗口宽度确定单双页，避免首帧按双页渲染窄屏
+    effectiveDouble.value = canUseDoubleSpread();
 
     if (book.type !== 'manga' && book.zipContent && book.chapters) {
       for (const chap of book.chapters) {
@@ -198,6 +214,24 @@ export const useReaderStore = defineStore('reader', () => {
     const lastIdx = Math.max(0, activePages.value.length - 1);
     currentIndex.value = Math.min(lastIdx, Math.max(0, Math.round(ratio * lastIdx)));
     requestRender('none');
+  }
+
+  // 窗口尺寸 / 视口高度变化：漫画只在单双页档位变化时重渲染，小说则重新分页
+  function handleViewportChange() {
+    if (!currentBook.value || layoutConfig.direction === 'vertical') return;
+    clearTimeout(resizeTimer.value);
+    resizeTimer.value = setTimeout(() => {
+      if (!currentBook.value || layoutConfig.direction === 'vertical') return;
+      if (currentBook.value.type === 'manga') {
+        const next = canUseDoubleSpread();
+        if (next !== effectiveDouble.value) {
+          effectiveDouble.value = next;
+          requestRender('none');
+        }
+      } else {
+        recalculateNovelPaginationAndRender();
+      }
+    }, 180);
   }
 
   function setDirection(dir) {
@@ -338,6 +372,7 @@ export const useReaderStore = defineStore('reader', () => {
     pageIndicator,
     sliderValue,
     layoutConfig,
+    effectiveDouble,
     getSpreadPair,
     getStepSizeForNext,
     getStepSizeForPrev,
@@ -347,6 +382,7 @@ export const useReaderStore = defineStore('reader', () => {
     openBook,
     closeReader,
     recalculateNovelPaginationAndRender,
+    handleViewportChange,
     setDirection,
     setSpreadCount,
     toggleCoverOffset,

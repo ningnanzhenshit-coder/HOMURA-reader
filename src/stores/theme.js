@@ -57,6 +57,9 @@ export const useThemeStore = defineStore('theme', () => {
       } else {
         html.classList.remove('dark');
       }
+      // 移动端浏览器地址栏 / 状态栏跟随阅读表面底色
+      const meta = document.getElementById('homuraThemeColor');
+      if (meta) meta.setAttribute('content', SURFACE_CANVAS[modeName] || SURFACE_CANVAS.light);
       try { localStorage.setItem('homura_surface_mode', modeName); } catch (e) {}
     };
 

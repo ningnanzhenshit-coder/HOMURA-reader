@@ -13,19 +13,26 @@
 
   <Transition
     enter-active-class="transition-transform duration-200 ease-out"
-    enter-from-class="translate-x-full"
-    enter-to-class="translate-x-0"
+    :enter-from-class="isPhone ? 'translate-y-full' : 'translate-x-full'"
+    :enter-to-class="isPhone ? 'translate-y-0' : 'translate-x-0'"
     leave-active-class="transition-transform duration-150 ease-in"
-    leave-from-class="translate-x-0"
-    leave-to-class="translate-x-full"
+    :leave-from-class="isPhone ? 'translate-y-0' : 'translate-x-0'"
+    :leave-to-class="isPhone ? 'translate-y-full' : 'translate-x-full'"
   >
     <aside
       v-if="ui.settingsOpen"
-      class="absolute inset-y-0 right-0 z-50 w-[320px] max-w-[88%] h-full bg-[var(--bg-card)] border-l border-[var(--border-line)] shadow-2xl flex flex-col"
+      class="absolute z-50 bg-[var(--bg-card)] shadow-2xl flex flex-col border-[var(--border-line)]"
+      :class="isPhone
+        ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-2xl border-t'
+        : 'inset-y-0 right-0 w-[320px] max-w-[88%] h-full border-l'"
+      :style="isPhone ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
     >
+      <div v-if="isPhone" class="pt-2.5 pb-1 flex justify-center shrink-0">
+        <span class="w-10 h-1 rounded-full bg-[var(--border-line)]"></span>
+      </div>
       <div class="h-14 px-4 flex items-center justify-between border-b border-[var(--border-line)] shrink-0">
         <h3 class="text-sm font-display font-bold tracking-tight">阅读设置</h3>
-        <button @click="ui.closeSettings()" class="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg-main)] hover:bg-[var(--bg-subtle)] transition" title="关闭">
+        <button @click="ui.closeSettings()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg-main)] hover:bg-[var(--bg-subtle)] transition" title="关闭">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
@@ -63,6 +70,12 @@
             <button @click="reader.setSpreadCount(1)" :style="segStyle(!isVertical && config.spread === 1)" class="flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition">单页</button>
             <button @click="reader.setSpreadCount(2)" :style="segStyle(!isVertical && config.spread === 2)" class="flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition">双页</button>
           </div>
+          <p
+            v-if="!isVertical && config.spread === 2 && isPhone"
+            class="w-full text-left px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)] text-[10px] text-[var(--fg-muted)] leading-relaxed"
+          >
+            窄屏会自动按单页显示，改大窗口或横屏后可恢复双页。
+          </p>
           <button
             v-if="!isVertical && config.spread === 2"
             @click="reader.toggleCoverOffset()"
@@ -148,10 +161,12 @@ import { computed } from 'vue';
 import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
 import { useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
+import { useViewport } from '../composables/useViewport.js';
 
 const reader = useReaderStore();
 const theme = useThemeStore();
 const ui = useUiStore();
+const { isPhone } = useViewport();
 const config = reader.layoutConfig;
 
 const isVertical = computed(() => config.direction === 'vertical');

@@ -7,6 +7,9 @@
    progress : 每本书的阅读进度（页码索引 / 总页数 / 比例）
    浏览器禁用 IndexedDB（例如直接 file:// 打开）时自动降级为纯内存模式。
    ========================================================================== */
+
+import { removeBookDir, clearAll } from './opfs.js';
+
 export const HomuraStore = (() => {
   const DB_NAME = 'homura_shelf';
   const DB_VERSION = 2;
@@ -87,6 +90,7 @@ export const HomuraStore = (() => {
   }
 
   function deleteBook(id) {
+    removeBookDir(id).catch(() => {});
     if (disabled) return Promise.resolve();
     return openDb().then(db => new Promise((resolve, reject) => {
       const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
@@ -100,6 +104,7 @@ export const HomuraStore = (() => {
   }
 
   function clear() {
+    clearAll().catch(() => {});
     if (disabled) return Promise.resolve();
     return openDb().then(db => new Promise((resolve, reject) => {
       const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
@@ -110,6 +115,17 @@ export const HomuraStore = (() => {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     }));
+  }
+
+  // 存储用量：usage/quota 来自浏览器估算，用于书架展示与配额预警
+  async function estimateStorage() {
+    try {
+      if (!navigator.storage || !navigator.storage.estimate) return null;
+      const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+      return { usage, quota, ratio: quota > 0 ? usage / quota : 0 };
+    } catch (err) {
+      return null;
+    }
   }
 
   // 申请「持久存储」，避免浏览器清理缓存时把书架一起清掉
@@ -131,6 +147,7 @@ export const HomuraStore = (() => {
     listProgress,
     deleteBook,
     clear,
+    estimateStorage,
     requestPersistence,
     get disabled() {
       return disabled;

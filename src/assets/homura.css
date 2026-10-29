@@ -80,6 +80,68 @@
       background-color: var(--bg-canvas);
       color: var(--fg-main);
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ==========================================================================
+       移动端基础：动态视口高度与安全区
+       ========================================================================== */
+    .app-dvh {
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-top {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    /* 底部标签栏：固定高度 + 安全区，内容区用它做底部留白 */
+    .mobile-tabbar {
+      min-height: 3.5rem;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-tabbar-space {
+      padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    }
+
+    /* 触屏上没有 hover：书架卡片的移除按钮改为常显 */
+    .card-remove-btn {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .group:hover .card-remove-btn {
+      opacity: 1;
+    }
+    @media (hover: none) {
+      .card-remove-btn {
+        opacity: 1;
+      }
+    }
+
+    /* 触屏阅读手势层：翻页模式无需滚动，全部手势交给 JS，避免纵向抖动触发 pointercancel */
+    .reader-gesture-layer {
+      touch-action: none;
+      overscroll-behavior: contain;
+    }
+
+    /* 移动端进度条滑块加大，便于手指拖动 */
+    @media (hover: none) {
+      input[type="range"] {
+        height: 6px;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: var(--brand-primary);
+        border: 2px solid var(--bg-card);
+      }
     }
 
     /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色；
@@ -149,11 +211,13 @@
       transition: all 0.12s cubic-bezier(0.2, 0, 0, 1);
       cursor: pointer;
     }
-    .uiverse-btn:hover {
-      border-color: var(--brand-primary);
-      color: var(--brand-primary);
-      box-shadow: 0 2px 0 0 var(--brand-primary);
-      transform: translateY(-1px);
+    @media (hover: hover) and (pointer: fine) {
+      .uiverse-btn:hover {
+        border-color: var(--brand-primary);
+        color: var(--brand-primary);
+        box-shadow: 0 2px 0 0 var(--brand-primary);
+        transform: translateY(-1px);
+      }
     }
     .uiverse-btn:active {
       transform: translateY(1px);
@@ -178,10 +242,12 @@
       transition: all 0.12s cubic-bezier(0.2, 0, 0, 1);
       cursor: pointer;
     }
-    .uiverse-btn-primary:hover {
-      background-color: var(--brand-primary-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 3px 0 0 var(--brand-shadow);
+    @media (hover: hover) and (pointer: fine) {
+      .uiverse-btn-primary:hover {
+        background-color: var(--brand-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 0 0 var(--brand-shadow);
+      }
     }
     .uiverse-btn-primary:active {
       transform: translateY(1px);
@@ -195,10 +261,12 @@
       border-radius: 12px;
       transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .editorial-card:hover {
-      border-color: var(--brand-primary);
-      transform: translateY(-3px);
-      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.14);
+    @media (hover: hover) and (pointer: fine) {
+      .editorial-card:hover {
+        border-color: var(--brand-primary);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.14);
+      }
     }
 
     .theme-swatch {
@@ -209,8 +277,10 @@
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       border: 2px solid rgba(255,255,255,0.8);
     }
-    .theme-swatch:hover {
-      transform: scale(1.15);
+    @media (hover: hover) and (pointer: fine) {
+      .theme-swatch:hover {
+        transform: scale(1.15);
+      }
     }
     .theme-swatch.active-swatch {
       box-shadow: 0 0 0 2px var(--fg-main);

@@ -12,7 +12,7 @@
         v-for="item in items"
         :key="item.book.id"
         @click="$emit('open', item.book.id)"
-        class="group shrink-0 w-[240px] flex items-stretch gap-3 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-line)] hover:border-[var(--brand-primary)] transition text-left"
+        class="group shrink-0 w-[78vw] max-w-[240px] sm:w-[240px] flex items-stretch gap-3 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-line)] hover:border-[var(--brand-primary)] transition text-left"
       >
         <div class="w-12 h-16 rounded-md overflow-hidden bg-[var(--bg-subtle)] shrink-0">
           <img v-if="item.book.cover" :src="item.book.cover" class="w-full h-full object-cover" loading="lazy" />

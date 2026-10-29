@@ -5,6 +5,8 @@
    ========================================================================== */
 
 import { HomuraStore } from './storage.js';
+import { canUseOPFS } from './platform.js';
+import { putFile, getFile } from './opfs.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, buildImageFolderBooks } from './parsers.js';
 import { showToast } from '../composables/useToast.js';
 
@@ -28,6 +30,42 @@ export function makeFolderSource(folderName, files) {
   };
 }
 
+function basename(path) {
+  return String(path || '').split('/').pop() || 'source';
+}
+
+// 没有原文件句柄时（移动端 / 非 Chromium），把文件本体落到 OPFS，只留路径；
+// OPFS 不可用则原样保留 Blob，由 IndexedDB 兜底。
+async function stageSource(bookId, source) {
+  if (source.handle || !canUseOPFS) return source;
+  try {
+    if (source.kind === 'folder') {
+      const entries = [];
+      const list = source.entries || [];
+      for (let i = 0; i < list.length; i++) {
+        const entry = list[i];
+        if (!entry.blob) {
+          entries.push(entry);
+          continue;
+        }
+        const opfsPath = await putFile(
+          `${bookId}/${String(i + 1).padStart(3, '0')}/${basename(entry.path)}`,
+          entry.blob
+        );
+        entries.push({ path: entry.path, lastModified: entry.lastModified, opfsPath });
+      }
+      return { kind: 'folder', name: source.name, entries };
+    }
+    if (source.blob) {
+      const opfsPath = await putFile(`${bookId}/${source.name || 'source'}`, source.blob);
+      return { kind: 'file', name: source.name, lastModified: source.lastModified, opfsPath };
+    }
+  } catch (err) {
+    console.warn('[HOMURA] OPFS 写入失败，回落到 IndexedDB Blob', err);
+  }
+  return source;
+}
+
 // 失败时抛错，由调用方（shelf store）统一提示
 export async function persistBook(book, source) {
   const meta = {
@@ -38,7 +76,8 @@ export async function persistBook(book, source) {
     addedAt: Date.now(),
     coverBlob: book.coverBlob || null
   };
-  await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, source));
+  const staged = await stageSource(book.id, source);
+  await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
   HomuraStore.requestPersistence();
 }
 
@@ -71,6 +110,14 @@ async function ensureReadPermission(handle) {
 }
 
 async function resolveSourceFile(source) {
+  // 移动端存档路径：直接从 OPFS 取回原文件
+  if (source.opfsPath) {
+    try {
+      return await getFile(source.opfsPath);
+    } catch (err) {
+      return null;
+    }
+  }
   if (source.handle) {
     if (!(await ensureReadPermission(source.handle))) return null;
     try {
@@ -96,7 +143,13 @@ async function resolveFolderFiles(source) {
   const files = [];
   for (const entry of source.entries || []) {
     let file = null;
-    if (entry.handle) {
+    if (entry.opfsPath) {
+      try {
+        file = await getFile(entry.opfsPath);
+      } catch (err) {
+        continue;
+      }
+    } else if (entry.handle) {
       if (!(await ensureReadPermission(entry.handle))) continue;
       try {
         file = await entry.handle.getFile();

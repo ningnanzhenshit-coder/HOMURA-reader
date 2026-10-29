@@ -2,7 +2,10 @@
 <html lang="zh-CN" class="light" data-theme="blue" data-mode="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" id="homuraThemeColor" content="#F8FAFC" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>HOMURA — ACGN GO 本地漫画与轻小说阅读器</title>
   <script>
     // 在首帧渲染前同步恢复主题色与阅读模式，避免启动时从亮色闪到夜间模式
@@ -15,6 +18,11 @@
           document.documentElement.setAttribute('data-mode', mode);
           if (mode === 'dark') document.documentElement.classList.add('dark');
         }
+        // 移动端浏览器地址栏跟随阅读表面底色，避免启动瞬间白条
+        var canvases = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
+        var meta = document.getElementById('homuraThemeColor');
+        if (meta && !mode) meta.setAttribute('content', canvases.light);
+        if (meta && mode && canvases[mode]) meta.setAttribute('content', canvases[mode]);
       } catch (e) {}
     })();
   </script>

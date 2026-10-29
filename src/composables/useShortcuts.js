@@ -67,19 +67,30 @@ export function useShortcuts(reader, viewportRef) {
     }
   }
 
-  // 窗口尺寸变化：小说防抖重排（条漫页不依赖窗口尺寸，跳过重排避免滚动位置丢失）
+  // 窗口尺寸变化：交给 store 判断是重排小说还是单双页档位变化后重渲染
   function onResize() {
-    if (!reader.currentBook || reader.currentBook.type === 'manga') return;
-    if (reader.layoutConfig.direction === 'vertical') return;
-    clearTimeout(reader.resizeTimer);
-    reader.resizeTimer = setTimeout(() => {
-      reader.recalculateNovelPaginationAndRender();
-    }, 180);
+    if (!reader.currentBook) return;
+    reader.handleViewportChange();
+  }
+
+  // 移动端地址栏伸缩只触发 visualViewport resize 且抖动频繁：
+  // 高度变化超过 80px 才视为真正的视口变化，避免阅读中反复重排
+  let lastViewportHeight = 0;
+  function onVisualViewportResize() {
+    const h = window.visualViewport ? window.visualViewport.height : 0;
+    if (!h) return;
+    if (Math.abs(h - lastViewportHeight) < 80) return;
+    lastViewportHeight = h;
+    onResize();
   }
 
   onMounted(() => {
     window.addEventListener('keydown', onKeydown);
     window.addEventListener('resize', onResize);
+    if (window.visualViewport) {
+      lastViewportHeight = window.visualViewport.height;
+      window.visualViewport.addEventListener('resize', onVisualViewportResize);
+    }
     if (viewportRef.value) {
       viewportRef.value.addEventListener('wheel', onWheel, { passive: false });
     }
@@ -88,6 +99,9 @@ export function useShortcuts(reader, viewportRef) {
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', onKeydown);
     window.removeEventListener('resize', onResize);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', onVisualViewportResize);
+    }
     if (viewportRef.value) {
       viewportRef.value.removeEventListener('wheel', onWheel);
     }

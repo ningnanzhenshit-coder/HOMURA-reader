@@ -1,6 +1,7 @@
 <template>
-  <!-- 左侧导航栏：品牌 / 书库 / 外观设置（可收起） -->
+  <!-- 桌面侧栏：品牌 / 书库 / 外观设置（可收起） -->
   <aside
+    v-if="!isPhone"
     class="shrink-0 border-r border-[var(--border-line)] bg-[var(--bg-card)] flex flex-col sticky top-0 h-screen z-30 transition-[width] duration-200 ease-out"
     :class="collapsed ? 'w-16' : 'w-[220px]'"
   >
@@ -88,64 +89,107 @@
       <!-- 外观设置面板：主题色 + 阅读模式（收起时向右浮出） -->
       <div
         v-if="appearanceOpen"
-        class="absolute p-3 rounded-xl border border-[var(--border-line)] bg-[var(--bg-card)] shadow-xl space-y-3 z-40"
+        class="absolute p-3 rounded-xl border border-[var(--border-line)] bg-[var(--bg-card)] shadow-xl z-40"
         :class="collapsed ? 'left-full bottom-0 ml-2 w-[220px]' : 'bottom-full left-3 right-3 mb-2'"
       >
-        <div>
-          <p class="text-[10px] font-semibold text-[var(--fg-muted)] mb-2">主题色</p>
-          <div class="flex items-center gap-2">
-            <button
-              v-for="s in swatches"
-              :key="s.name"
-              @click="theme.setThemeColor(s.name)"
-              :class="['theme-swatch', s.cls, { 'active-swatch': theme.themeColor === s.name }]"
-              :title="s.title"
-            ></button>
-          </div>
-        </div>
-        <div>
-          <p class="text-[10px] font-semibold text-[var(--fg-muted)] mb-2">阅读模式</p>
-          <div class="flex flex-col gap-1.5">
-            <button
-              v-for="m in modes"
-              :key="m.name"
-              @click="theme.setSurfaceMode(m.name)"
-              class="w-full flex items-center gap-1.5 text-left px-2.5 py-1.5 rounded-md text-xs font-semibold transition"
-              :style="modeBtnStyle(m.name)"
-              :title="m.title"
-            >
-              <svg v-if="m.name === 'light'" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="4" stroke-width="2"/>
-                <path stroke-linecap="round" stroke-width="2" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-              </svg>
-              <svg v-else-if="m.name === 'warm'" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20c8 0 16-4 16-16-8 0-16 4-16 16z"/>
-                <path stroke-linecap="round" stroke-width="2" d="M4 20c4-4 8-6 12-8"/>
-              </svg>
-              <svg v-else class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.8A8.5 8.5 0 1111.2 3a6.5 6.5 0 009.8 9.8z"/>
-              </svg>
-              <span>{{ m.label }}</span>
-            </button>
-          </div>
-        </div>
+        <AppearancePanel />
       </div>
     </div>
   </aside>
+
+  <!-- 移动端底部标签栏 -->
+  <nav
+    v-else
+    class="mobile-tabbar fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-line)] bg-[var(--bg-card)] flex items-stretch"
+  >
+    <button
+      @click="onShelfTab"
+      class="flex-1 min-h-[3.5rem] flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold text-[var(--brand-primary)]"
+      title="书架"
+    >
+      <span class="relative">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/>
+        </svg>
+        <span class="absolute -top-1.5 -right-2.5 px-1 rounded-full bg-[var(--brand-primary)] text-[9px] leading-3 font-mono text-white">{{ shelf.library.length }}</span>
+      </span>
+      <span>书架</span>
+    </button>
+    <button
+      @click="appearanceOpen = !appearanceOpen"
+      class="flex-1 min-h-[3.5rem] flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold"
+      :class="appearanceOpen ? 'text-[var(--brand-primary)]' : 'text-[var(--fg-muted)]'"
+      title="外观设置"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
+      </svg>
+      <span>外观</span>
+    </button>
+  </nav>
+
+  <!-- 移动端外观底部弹层 -->
+  <Transition
+    enter-active-class="transition-opacity duration-200"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition-opacity duration-150"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div
+      v-if="isPhone && appearanceOpen"
+      class="fixed inset-0 z-50 bg-black/30"
+      @click="appearanceOpen = false"
+    ></div>
+  </Transition>
+  <Transition
+    enter-active-class="transition-transform duration-200 ease-out"
+    enter-from-class="translate-y-full"
+    enter-to-class="translate-y-0"
+    leave-active-class="transition-transform duration-150 ease-in"
+    leave-from-class="translate-y-0"
+    leave-to-class="translate-y-full"
+  >
+    <div
+      v-if="isPhone && appearanceOpen"
+      class="fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl border-t border-[var(--border-line)] bg-[var(--bg-card)] shadow-2xl px-4 pt-2.5"
+      style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));"
+    >
+      <div class="w-10 h-1 rounded-full bg-[var(--border-line)] mx-auto mb-3"></div>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-display font-bold tracking-tight">外观设置</h3>
+        <button
+          @click="appearanceOpen = false"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-subtle)]"
+          title="关闭"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <AppearancePanel />
+    </div>
+  </Transition>
 </template>
 
 <script setup>
 import { ref, watchEffect } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
-import { useThemeStore } from '../stores/theme.js';
+import { useViewport } from '../composables/useViewport.js';
+import AppearancePanel from './AppearancePanel.vue';
 import logoUrl from '../assets/logo.png';
 
 const shelf = useShelfStore();
-const theme = useThemeStore();
+const { isPhone } = useViewport();
 
 const appearanceOpen = ref(false);
 
-// 侧栏收起状态：本地 UI 偏好，直接持久化到 localStorage
+function onShelfTab() {
+  appearanceOpen.value = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 侧栏收起状态：本地 UI 偏好，直接持久化到 localStorage（仅桌面）
 const SIDEBAR_KEY = 'homura_sidebar_collapsed';
 const collapsed = ref(false);
 try {
@@ -153,8 +197,10 @@ try {
 } catch (e) {}
 
 // 侧栏宽度同步到全局 CSS 变量：toast 等 fixed 元素据此在书架内容区居中
+// 移动端侧栏变成底部标签栏，宽度记为 0
 watchEffect(() => {
-  document.documentElement.style.setProperty('--sidenav-width', collapsed.value ? '4rem' : '220px');
+  const width = isPhone.value ? '0px' : (collapsed.value ? '4rem' : '220px');
+  document.documentElement.style.setProperty('--sidenav-width', width);
 });
 
 function toggleCollapsed() {
@@ -162,24 +208,5 @@ function toggleCollapsed() {
   try {
     localStorage.setItem(SIDEBAR_KEY, collapsed.value ? '1' : '0');
   } catch (e) {}
-}
-
-const swatches = [
-  { name: 'blue', cls: 'bg-[#2563EB]', title: '晴空蓝 (默认)' },
-  { name: 'red', cls: 'bg-[#E61919]', title: '绯红金' },
-  { name: 'green', cls: 'bg-[#059669]', title: '森系绿' },
-  { name: 'violet', cls: 'bg-[#7C3AED]', title: '星夜紫' }
-];
-
-const modes = [
-  { name: 'light', label: '白昼', title: '纯净白昼模式' },
-  { name: 'warm', label: '护眼', title: '暖色调护眼模式（羊皮纸色 + 柔光滤镜）' },
-  { name: 'dark', label: '夜间', title: '深邃夜间模式' }
-];
-
-function modeBtnStyle(name) {
-  return theme.surfaceMode === name
-    ? { backgroundColor: 'var(--brand-primary)', color: '#FFFFFF' }
-    : { backgroundColor: 'var(--bg-subtle)', color: 'var(--fg-muted)' };
 }
 </script>

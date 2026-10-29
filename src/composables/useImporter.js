@@ -5,9 +5,25 @@
    ========================================================================== */
 
 import { useShelfStore } from '../stores/shelf.js';
+import { HomuraStore } from '../services/storage.js';
+import { formatBytes } from '../services/platform.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, buildImageFolderBooks } from '../services/parsers.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
 import { showToast } from './useToast.js';
+
+let quotaWarned = false;
+
+// 移动端原文件会整份落盘，配额比桌面更容易吃满，导入后检查一次
+async function warnIfStorageTight() {
+  if (quotaWarned) return;
+  const info = await HomuraStore.estimateStorage();
+  if (!info || !info.quota) return;
+  const free = info.quota - info.usage;
+  if (info.ratio >= 0.85 || free < 200 * 1024 * 1024) {
+    quotaWarned = true;
+    showToast(`存储空间紧张：已用 ${formatBytes(info.usage)} / ${formatBytes(info.quota)}，建议清理书架或移除不看的作品`);
+  }
+}
 
 export function useImporter() {
   const shelf = useShelfStore();
@@ -53,6 +69,7 @@ export function useImporter() {
 
     if (importedCount > 0) {
       showToast(`已秒速添加 ${importedCount} 部作品到书架`);
+      await warnIfStorageTight();
     } else {
       showToast('未找到支持的漫画或小说格式 (.epub / .cbz / .zip / .txt / 图片)');
     }

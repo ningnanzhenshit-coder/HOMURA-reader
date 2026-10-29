@@ -1,6 +1,9 @@
 <template>
   <!-- 阅读器顶部栏：只保留返回、书名、目录、设置 -->
-  <header class="h-14 shrink-0 px-3 sm:px-5 flex items-center justify-between gap-2 bg-[var(--bg-card)] border-b border-[var(--border-line)]">
+  <header
+    class="min-h-14 shrink-0 px-3 sm:px-5 flex items-center justify-between gap-2 bg-[var(--bg-card)] border-b border-[var(--border-line)]"
+    :style="{ paddingTop: 'env(safe-area-inset-top)' }"
+  >
     <div class="flex items-center gap-2.5 flex-1 min-w-0">
       <button @click="reader.closeReader()" class="uiverse-btn py-1 px-2.5 shrink-0" title="返回书架 (Esc)">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/></svg>
@@ -38,6 +41,6 @@ const subStatus = computed(() => {
   const pos = `${reader.currentIndex + 1} / ${total}`;
   if (reader.layoutConfig.direction === 'vertical') return `纵向长卷 · ${pos}`;
   if (reader.layoutConfig.direction === 'rtl') return `日漫右→左 · ${pos}`;
-  return `左→右 · ${reader.layoutConfig.spread === 2 ? '双页' : '单页'} · ${pos}`;
+  return `左→右 · ${reader.effectiveDouble ? '双页' : '单页'} · ${pos}`;
 });
 </script>

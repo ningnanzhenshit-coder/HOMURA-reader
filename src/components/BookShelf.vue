@@ -1,7 +1,7 @@
 <template>
   <!-- 书架网格 -->
   <section class="space-y-4">
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
       <BookCard
         v-for="book in books"
         :key="book.id"

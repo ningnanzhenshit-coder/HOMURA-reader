@@ -1,6 +1,9 @@
 <template>
   <!-- 阅读器底部栏：只保留翻页与进度 -->
-  <footer class="h-12 shrink-0 px-3 sm:px-6 flex items-center gap-3 bg-[var(--bg-card)] border-t border-[var(--border-line)]">
+  <footer
+    class="min-h-12 shrink-0 px-3 sm:px-6 flex items-center gap-3 bg-[var(--bg-card)] border-t border-[var(--border-line)]"
+    :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }"
+  >
     <button @click="reader.onLeftButtonClick()" :class="leftBtnClass" :title="leftText">
       <span class="text-sm">←</span>
       <span class="hidden sm:inline">{{ leftText }}</span>
@@ -58,9 +61,9 @@ const percentText = computed(() => {
 });
 
 const leftBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn-primary' : 'uiverse-btn') + ' py-1 px-2.5 shrink-0'
+  (inverted.value ? 'uiverse-btn-primary' : 'uiverse-btn') + ' min-h-9 sm:min-h-0 py-1 px-2.5 shrink-0'
 );
 const rightBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn' : 'uiverse-btn-primary') + ' py-1 px-2.5 shrink-0'
+  (inverted.value ? 'uiverse-btn' : 'uiverse-btn-primary') + ' min-h-9 sm:min-h-0 py-1 px-2.5 shrink-0'
 );
 </script>

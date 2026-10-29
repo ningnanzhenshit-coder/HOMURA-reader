@@ -1,4 +1,18 @@
 <template>
+  <!-- 触屏手势层：左 1/3 上一页 / 中 1/3 切换工具栏 / 右 1/3 下一页，横向滑动跟手
+       z-30 必须高于翻页舞台激活层的 z-20，否则指针事件会被图片层吃掉 -->
+  <div
+    v-if="showGestures"
+    ref="gestureEl"
+    class="reader-gesture-layer fixed inset-0 z-30 select-none"
+    @click.stop.prevent
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerCancel"
+    @contextmenu.prevent
+  ></div>
+
   <!-- Hardware-Accelerated Double-Buffer Stage -->
   <div class="relative w-full h-full overflow-hidden">
     <div
@@ -61,14 +75,23 @@
    避免 Vue 重渲染打断进行中的动画。
    ========================================================================== */
 
-import { shallowRef, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { shallowRef, computed, onMounted, onBeforeUnmount, nextTick, ref } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 import { useThemeStore } from '../stores/theme.js';
+import { useUiStore } from '../stores/ui.js';
+import { useViewport } from '../composables/useViewport.js';
 import { ensurePageUrlLoaded, decodeImgIntoElement } from '../services/pagination.js';
 import NovelCard from './NovelCard.vue';
 
 const reader = useReaderStore();
 const theme = useThemeStore();
+const ui = useUiStore();
+const { isTouch, isPhone } = useViewport();
+
+// 触屏或手机宽度都启用手势层：部分 WebView 的 pointer/hover 媒体查询会失真
+const showGestures = computed(() => isTouch.value || isPhone.value);
+
+const gestureEl = ref(null);
 
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
 
@@ -253,6 +276,130 @@ function scheduleIdlePreload() {
   }, 280);
 }
 
+// ---- 触屏手势：横向滑动跟手 + 三段式点击 ----
+const drag = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  startTime: 0,
+  dx: 0,
+  dy: 0,
+  axis: null
+};
+
+function activeStageEl() {
+  return stageEls[reader.activeBufferSlot];
+}
+
+// 拖拽阻尼：前半段跟手，超出后明显变沉，避免整页被拖出屏幕
+function dampedOffset(dx) {
+  const limit = (window.innerWidth || 375) * 0.22;
+  const sign = dx < 0 ? -1 : 1;
+  const abs = Math.abs(dx);
+  if (abs <= limit) return dx * 0.55;
+  return sign * (limit * 0.55 + (abs - limit) * 0.12);
+}
+
+function resetStageTransform() {
+  const el = activeStageEl();
+  if (el) el.style.transform = 'translate3d(0, 0, 0)';
+}
+
+function onPointerDown(e) {
+  if (e.pointerType === 'mouse' || !reader.currentBook) return;
+  // 打断进行中的翻页动画，避免手势与动画争抢同一层的 transform
+  reader.activeTransitionAnims.forEach(anim => {
+    try { anim.cancel(); } catch (err) {}
+  });
+  reader.activeTransitionAnims = [];
+  drag.active = true;
+  drag.pointerId = e.pointerId;
+  drag.startX = e.clientX;
+  drag.startY = e.clientY;
+  drag.startTime = Date.now();
+  drag.dx = 0;
+  drag.dy = 0;
+  drag.axis = null;
+  if (gestureEl.value) {
+    try { gestureEl.value.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+}
+
+function onPointerMove(e) {
+  if (!drag.active || e.pointerId !== drag.pointerId) return;
+  drag.dx = e.clientX - drag.startX;
+  drag.dy = e.clientY - drag.startY;
+  const absX = Math.abs(drag.dx);
+  const absY = Math.abs(drag.dy);
+  if (!drag.axis && (absX > 8 || absY > 8)) {
+    drag.axis = absX >= absY ? 'x' : 'y';
+  }
+  // 手指起始方向常有竖向抖动：横向位移明显占优时改判为横向手势
+  if (drag.axis === 'y' && absX > 16 && absX > absY * 1.4) {
+    drag.axis = 'x';
+  }
+  if (drag.axis === 'x') {
+    const el = activeStageEl();
+    if (el) el.style.transform = `translate3d(${dampedOffset(drag.dx)}px, 0, 0)`;
+  }
+}
+
+function onPointerUp(e) {
+  if (!drag.active || e.pointerId !== drag.pointerId) return;
+  drag.active = false;
+  drag.pointerId = null;
+
+  const dx = drag.dx;
+  const dy = drag.dy;
+  const dt = Math.max(1, Date.now() - drag.startTime);
+  const velocity = Math.abs(dx) / dt;
+  const threshold = Math.max(48, (window.innerWidth || 375) * 0.14);
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+  // 以最终位移比例判定是否横向翻页，避免起始抖动把意图锁死成纵向
+  const horizontal = absX > 24 && absX > absY * 1.2;
+  const el = activeStageEl();
+
+  if (horizontal) {
+    if (absX > threshold || (velocity > 0.45 && absX > 20)) {
+      resetStageTransform();
+      if (dx > 0) reader.onLeftButtonClick();
+      else reader.onRightButtonClick();
+      return;
+    }
+    // 未过阈值：回弹
+    if (el && el.animate) {
+      el.style.transform = 'translate3d(0, 0, 0)';
+      el.animate(
+        [
+          { transform: `translate3d(${dampedOffset(dx)}px, 0, 0)` },
+          { transform: 'translate3d(0, 0, 0)' }
+        ],
+        { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+      );
+    } else {
+      resetStageTransform();
+    }
+    return;
+  }
+
+  // 轻点：左 1/3 上一页，右 1/3 下一页，中间切换工具栏
+  if (absX < 8 && absY < 8 && dt < 350) {
+    const ratio = e.clientX / (window.innerWidth || 1);
+    if (ratio < 0.3) reader.onLeftButtonClick();
+    else if (ratio > 0.7) reader.onRightButtonClick();
+    else ui.toggleChrome();
+  }
+}
+
+function onPointerCancel() {
+  if (!drag.active) return;
+  drag.active = false;
+  drag.pointerId = null;
+  resetStageTransform();
+}
+
 onMounted(() => {
   reader.renderFn = renderReaderViewport;
   // store 动作可能在组件挂载前就已完成分页，这里自检后直接首渲染
@@ -267,5 +414,7 @@ onBeforeUnmount(() => {
     try { anim.cancel(); } catch (e) {}
   });
   reader.activeTransitionAnims = [];
+  const el = activeStageEl();
+  if (el) el.style.transform = 'translate3d(0, 0, 0)';
 });
 </script>

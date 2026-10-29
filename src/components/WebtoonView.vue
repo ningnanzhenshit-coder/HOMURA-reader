@@ -12,8 +12,8 @@
   </div>
 
   <!-- Novel: 长卷连续滚动 -->
-  <div v-else ref="scrollRoot" class="w-full h-full overflow-y-auto py-4 px-2">
-    <div :style="{ fontSize: reader.layoutConfig.fontSize + 'px' }" class="max-w-3xl mx-auto bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-line)] p-6 sm:p-12 space-y-8">
+  <div v-else ref="scrollRoot" class="w-full h-full overflow-y-auto py-4 px-3 sm:px-2">
+    <div :style="{ fontSize: reader.layoutConfig.fontSize + 'px' }" class="max-w-3xl mx-auto bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-line)] p-5 sm:p-12 space-y-8">
       <section
         v-for="p in reader.activePages"
         :key="p.pageNumber"
@@ -46,7 +46,7 @@ const isManga = computed(() => reader.currentBook && reader.currentBook.type ===
 
 const imgFitClass = computed(() => {
   const fit = reader.layoutConfig.webtoonFit;
-  if (fit === 'screen') return 'max-h-[calc(100vh-6rem)] w-auto max-w-full object-contain mx-auto';
+  if (fit === 'screen') return 'max-h-[calc(100dvh-6rem)] w-auto max-w-full object-contain mx-auto';
   if (fit === 'medium') return 'w-full max-w-[720px] h-auto object-contain mx-auto';
   return 'w-full max-w-[1024px] h-auto object-contain mx-auto';
 });

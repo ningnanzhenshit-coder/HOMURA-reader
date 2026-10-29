@@ -8,7 +8,11 @@
     "dev:vite": "vite",
     "build:vite": "vite build",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "android:init": "tauri android init",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build --target aarch64 --apk",
+    "android:build:debug": "tauri android build --debug --target aarch64 --apk"
   },
   "dependencies": {
     "jszip": "^3.10.1",
