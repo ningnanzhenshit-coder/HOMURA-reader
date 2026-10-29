@@ -151,8 +151,11 @@ jobs:
         run: npx tauri android init
 
       # debug 签名，可直接侧载安装，无需 keystore Secrets
+      # 按 ABI 分包并剔除调试符号，单个 APK 约 20~30MB；i686 是早期模拟器架构，不再打包
       - name: Build APK
-        run: npx tauri android build --apk --debug
+        env:
+          CARGO_PROFILE_DEV_STRIP: debuginfo
+        run: npx tauri android build --apk --debug --split-per-abi -t aarch64 armv7 x86_64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -167,5 +170,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -1)
-          gh release upload "${GITHUB_REF_NAME}" "$apk" --clobber
+          find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -exec \
+            gh release upload "${GITHUB_REF_NAME}" {} --clobber \;

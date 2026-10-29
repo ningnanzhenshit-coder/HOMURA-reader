@@ -56,7 +56,7 @@ HOMURA 是一个**本地优先**的桌面 ACGN 阅读器：漫画、轻小说、
 | macOS | `.dmg`（Universal，Apple Silicon + Intel） |
 | Windows | `.msi` 或 NSIS `-setup.exe` |
 | Linux | `.deb` / `.rpm` |
-| Android | `.apk`（debug 签名，需允许安装未知来源应用） |
+| Android | `.apk`（按 ABI 分包，多数手机选 `arm64-v8a`；debug 签名，需允许安装未知来源应用） |
 
 > **macOS 首次打开**：当前包没有 Apple 开发者签名，系统可能提示「无法验证开发者」。右键 `HOMURA.app` → 打开，或执行 `xattr -cr /Applications/HOMURA.app` 即可。
 >
