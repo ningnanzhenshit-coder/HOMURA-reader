@@ -42,7 +42,7 @@ export const canUseOPFS = typeof navigator !== 'undefined'
   && typeof navigator.storage.getDirectory === 'function';
 
 // iOS 不接受未知扩展名的 accept 过滤，会直接置灰文件；这里干脆不做扩展名限制
-export const fileAccept = isIOS ? '' : '.epub,.cbz,.zip,.txt,.md,image/*';
+export const fileAccept = isIOS ? '' : '.epub,.pdf,.cbz,.zip,.txt,.md,image/*';
 
 export function formatBytes(bytes) {
   if (!bytes || bytes < 0) return '0 B';

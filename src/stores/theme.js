@@ -13,7 +13,7 @@ const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
 const THEME_NAMES = { blue: '晴空蓝', red: '绯红金', green: '森系绿', violet: '星夜紫' };
 const MODE_LABELS = {
   light: '白昼清爽模式',
-  warm: '暖色调护眼模式（羊皮纸柔光）',
+  warm: '暖色护眼模式',
   dark: '夜间深邃模式'
 };
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];

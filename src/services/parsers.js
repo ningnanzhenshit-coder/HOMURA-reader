@@ -1,13 +1,14 @@
 /* ============================================================================
    HOMURA · 格式解析
    ----------------------------------------------------------------------------
-   EPUB / CBZ / ZIP / TXT / Markdown 的懒加载解析，统一输出书架可用的书籍对象；
-   以及把散装图片按文件夹分组生成漫画书的 buildImageFolderBooks。
+   EPUB / CBZ / ZIP / TXT / Markdown / PDF 的懒加载解析，统一输出书架可用的
+   书籍对象；以及把散装图片按文件夹分组生成漫画书的 buildImageFolderBooks。
    ========================================================================== */
 
 import JSZip from 'jszip';
 import { showToast } from '../composables/useToast.js';
 import { escapeHtml } from './utils.js';
+import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 
 
 // ---- EPUB 内部相对路径解析 ----
@@ -201,6 +202,42 @@ export async function parseCbzFileLazy(file) {
   } catch (err) {
     console.error(err);
     showToast('压缩包解析失败：' + err.message);
+    return null;
+  }
+}
+
+// ---- PDF：每页按需渲染成位图，直接复用漫画渲染管道 ----
+
+function pdfErrorText(err) {
+  if (err && err.name === 'PasswordException') return '该 PDF 已加密，暂不支持需要密码的文件';
+  if (err && err.name === 'InvalidPDFException') return 'PDF 文件已损坏或格式不合法';
+  return 'PDF 解析失败：' + (err && err.message ? err.message : '未知错误');
+}
+
+export async function parsePdfFileLazy(file) {
+  try {
+    showToast(`正在解析 PDF《${file.name}》...`);
+    const pdfDoc = await openPdfDocument(file);
+    const pageCount = pdfDoc.numPages || 0;
+    if (pageCount === 0) throw new Error('PDF 中没有可显示的页面');
+
+    const coverBlob = await renderPdfCoverBlob(pdfDoc);
+    const coverUrl = URL.createObjectURL(coverBlob);
+
+    return {
+      id: 'pdf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: 'manga',
+      format: 'pdf',
+      title: file.name.replace(/\.pdf$/i, ''),
+      cover: coverUrl,
+      coverBlob: coverBlob,
+      pdfDoc: pdfDoc,
+      pageItems: createPdfPageItems(pdfDoc, pageCount),
+      pageCount: pageCount
+    };
+  } catch (err) {
+    console.error(err);
+    showToast(pdfErrorText(err));
     return null;
   }
 }

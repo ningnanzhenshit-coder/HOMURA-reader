@@ -44,8 +44,8 @@
     </div>
 
     <nav :class="collapsed ? 'flex-1 p-2 flex flex-col items-center gap-2' : 'flex-1 p-3 space-y-1'">
-      <p v-if="!collapsed" class="px-2 pb-2 text-[10px] font-mono font-bold tracking-widest text-[var(--fg-muted)]">书库</p>
       <button
+        @click="appearanceOpen = false"
         class="flex items-center rounded-lg font-semibold bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-[var(--brand-border)]"
         :class="collapsed ? 'w-10 h-10 justify-center' : 'w-full gap-2.5 px-2.5 py-2 text-sm'"
         :title="collapsed ? '书架 · ' + shelf.library.length : '当前书架'"
@@ -58,42 +58,72 @@
           <span class="font-mono text-[10px] opacity-80">{{ shelf.library.length }}</span>
         </template>
       </button>
+
+      <div
+        class="rounded-lg"
+        :class="appearanceOpen && !collapsed ? 'border border-[var(--brand-border)] overflow-hidden' : ''"
+      >
+        <button
+          @click="toggleAppearance"
+          class="flex items-center rounded-lg font-semibold transition"
+          :class="[
+            collapsed ? 'w-10 h-10 justify-center' : 'w-full gap-2.5 px-2.5 py-2 text-sm',
+            appearanceOpen
+              ? (collapsed
+                  ? 'bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-[var(--brand-border)]'
+                  : 'bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-transparent')
+              : 'text-[var(--fg-muted)] hover:text-[var(--fg-main)] border border-transparent'
+          ]"
+          :title="collapsed ? '外观' : ''"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
+          </svg>
+          <template v-if="!collapsed">
+            <span class="flex-1 text-left">外观</span>
+            <svg class="w-3 h-3 shrink-0 transition-transform" :class="{ 'rotate-180': appearanceOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 9l6 6 6-6"/>
+            </svg>
+          </template>
+        </button>
+
+        <!-- 外观抽屉：与按钮同属一个卡片，向下展开 -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-1"
+        >
+          <div
+            v-if="appearanceOpen && !collapsed"
+            class="p-3 border-t border-[var(--brand-border)] bg-[var(--bg-card)] space-y-3"
+          >
+            <AppearancePanel />
+          </div>
+        </Transition>
+      </div>
     </nav>
 
     <div
-      class="border-t border-[var(--border-line)] relative shrink-0"
+      class="border-t border-[var(--border-line)] shrink-0"
       :class="collapsed ? 'p-2 flex justify-center' : 'p-3'"
     >
       <button
-        @click="appearanceOpen = !appearanceOpen"
-        class="flex items-center rounded-lg font-semibold transition"
-        :class="[
-          collapsed ? 'w-10 h-10 justify-center' : 'w-full gap-2.5 px-2.5 py-2 text-sm',
-          appearanceOpen
-            ? 'bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-[var(--brand-border)]'
-            : 'text-[var(--fg-muted)] hover:text-[var(--fg-main)] border border-transparent'
-        ]"
-        :title="collapsed ? '外观' : ''"
+        class="flex items-center rounded-lg font-semibold text-[var(--fg-muted)] border border-transparent cursor-default"
+        :class="collapsed ? 'w-10 h-10 justify-center' : 'w-full gap-2.5 px-2.5 py-2 text-sm'"
+        title="设置（占位）"
       >
         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
+          <circle cx="12" cy="12" r="3" stroke-width="2"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
         </svg>
         <template v-if="!collapsed">
-          <span class="flex-1 text-left">外观</span>
-          <svg class="w-3 h-3 shrink-0 transition-transform" :class="{ 'rotate-180': appearanceOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 9l6 6 6-6"/>
-          </svg>
+          <span class="flex-1 text-left">设置</span>
+          <span class="px-1.5 py-0.5 rounded-full border border-[var(--border-line)] text-[10px] font-medium">占位</span>
         </template>
       </button>
-
-      <!-- 外观设置面板：主题色 + 阅读模式（收起时向右浮出） -->
-      <div
-        v-if="appearanceOpen"
-        class="absolute p-3 rounded-xl border border-[var(--border-line)] bg-[var(--bg-card)] shadow-xl z-40"
-        :class="collapsed ? 'left-full bottom-0 ml-2 w-[220px]' : 'bottom-full left-3 right-3 mb-2'"
-      >
-        <AppearancePanel />
-      </div>
     </div>
   </aside>
 
@@ -203,8 +233,22 @@ watchEffect(() => {
   document.documentElement.style.setProperty('--sidenav-width', width);
 });
 
+function toggleAppearance() {
+  // 收起态下抽屉放不下：先展开侧栏，再展开抽屉
+  if (collapsed.value) {
+    collapsed.value = false;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, '0');
+    } catch (e) {}
+    appearanceOpen.value = true;
+    return;
+  }
+  appearanceOpen.value = !appearanceOpen.value;
+}
+
 function toggleCollapsed() {
   collapsed.value = !collapsed.value;
+  if (collapsed.value) appearanceOpen.value = false;
   try {
     localStorage.setItem(SIDEBAR_KEY, collapsed.value ? '1' : '0');
   } catch (e) {}

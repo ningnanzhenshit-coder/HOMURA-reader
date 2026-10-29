@@ -1,11 +1,16 @@
+#[cfg(desktop)]
 use std::sync::mpsc;
+#[cfg(desktop)]
 use std::time::{Duration, Instant};
 
+#[cfg(desktop)]
 use tauri::{Manager, WindowEvent};
 
 // 全屏退出（macOS 的 Space 切换动画、Windows 的窗口样式重设）会让 WebView 丢掉键盘焦点，
 // 导致 F 键失灵。这里用一个常驻工作线程监听窗口尺寸变化：每次「全屏 → 窗口」后持续 2s
 // 把焦点塞回 WebView。状态是逐帧采样的，连续快速切换也不会漏掉过渡。
+// 仅在桌面端编译：移动端没有键盘焦点与全屏窗口概念
+#[cfg(desktop)]
 fn spawn_focus_worker(window: tauri::WebviewWindow) {
     let (tx, rx) = mpsc::channel::<()>();
     window.on_window_event(move |event| {
@@ -78,18 +83,28 @@ fn spawn_focus_worker(window: tauri::WebviewWindow) {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            if let Some(window) = app.get_webview_window("main") {
-                spawn_focus_worker(window);
+            #[cfg(desktop)]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    spawn_focus_worker(window);
+                }
             }
+            #[cfg(not(desktop))]
+            let _ = app;
             Ok(())
         })
         // 窗口在配置里以不可见状态创建，等页面首帧渲染完成后再显示，避免启动时先黑屏
         .on_page_load(|webview, payload| {
-            if payload.event() == tauri::webview::PageLoadEvent::Finished {
-                if let Err(err) = webview.window().show() {
-                    eprintln!("显示主窗口失败: {err}");
+            #[cfg(desktop)]
+            {
+                if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                    if let Err(err) = webview.window().show() {
+                        eprintln!("显示主窗口失败: {err}");
+                    }
                 }
             }
+            #[cfg(not(desktop))]
+            let _ = (webview, payload);
         })
         .run(tauri::generate_context!())
         .expect("error while running HOMURA");

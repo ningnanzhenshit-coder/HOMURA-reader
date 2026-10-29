@@ -22,6 +22,16 @@ export async function ensurePageUrlLoaded(pageObj) {
     pageObj.url = URL.createObjectURL(blob);
     return pageObj.url;
   }
+  // PDF 等需要现场渲染的页面：同一页并发请求共用一次渲染任务
+  if (pageObj.render) {
+    if (!pageObj.renderTask) pageObj.renderTask = pageObj.render();
+    try {
+      pageObj.url = await pageObj.renderTask;
+    } finally {
+      pageObj.renderTask = null;
+    }
+    return pageObj.url || '';
+  }
   return '';
 }
 

@@ -4,7 +4,7 @@
     <div
       v-if="toast.message"
       class="homura-toast"
-      :style="viewportCentered ? { left: '50%' } : null"
+      :style="toastStyle"
       role="status"
       aria-live="polite"
     >
@@ -22,15 +22,17 @@ import { useReaderStore } from '../stores/reader.js';
 const toast = useToast();
 const reader = useReaderStore();
 
-// 书架页按内容区（侧栏右侧）居中；阅读器整屏铺满时回到窗口居中
-const viewportCentered = computed(() => !!reader.currentBook);
+// 书架页按内容区（侧栏右侧）居中；阅读器整屏铺满时回到窗口居中，并让开顶部工具栏
+const toastStyle = computed(() =>
+  reader.currentBook ? { left: '50%', top: '4.5rem' } : null
+);
 </script>
 
 <style scoped>
 .homura-toast {
   position: fixed;
   left: calc(50% + var(--sidenav-width, 220px) / 2);
-  bottom: 1.5rem;
+  top: 1.5rem;
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -52,7 +54,9 @@ const viewportCentered = computed(() => !!reader.currentBook);
     0 2px 8px rgba(15, 23, 42, 0.16);
   filter: blur(0px);
   transform: translate(-50%, 0) scale(1);
-  transition: left 0.2s ease-out;
+  transition:
+    left 0.2s ease-out,
+    top 0.2s ease-out;
   pointer-events: none;
   will-change: opacity, transform, filter;
 }
@@ -72,7 +76,7 @@ const viewportCentered = computed(() => !!reader.currentBook);
   overflow-wrap: anywhere;
 }
 
-/* 淡入：从下方更远处上浮 + 缩放回弹 + 去模糊，节奏放慢更醒目 */
+/* 淡入：从上方落下 + 缩放回弹 + 去模糊，节奏放慢更醒目 */
 .toast-fade-enter-active {
   transition:
     opacity 0.34s ease-out,
@@ -80,7 +84,7 @@ const viewportCentered = computed(() => !!reader.currentBook);
     filter 0.34s ease-out;
 }
 
-/* 淡出：加速下落并轻微模糊，干脆收尾 */
+/* 淡出：加速上收并轻微模糊，干脆收尾 */
 .toast-fade-leave-active {
   transition:
     opacity 0.24s ease-in,
@@ -91,13 +95,13 @@ const viewportCentered = computed(() => !!reader.currentBook);
 .toast-fade-enter-from {
   opacity: 0;
   filter: blur(8px);
-  transform: translate(-50%, 28px) scale(0.88);
+  transform: translate(-50%, -28px) scale(0.88);
 }
 
 .toast-fade-leave-to {
   opacity: 0;
   filter: blur(5px);
-  transform: translate(-50%, 18px) scale(0.94);
+  transform: translate(-50%, -18px) scale(0.94);
 }
 
 /* 尊重系统的「减少动态效果」设置：只保留纯淡入淡出 */

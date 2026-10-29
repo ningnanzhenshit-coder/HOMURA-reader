@@ -144,7 +144,11 @@ export const useReaderStore = defineStore('reader', () => {
     const shelf = useShelfStore();
     const rec = shelf.progressMap[book.id];
     const saved = rec && rec.layout;
-    if (!saved) return;
+    // PDF 版式固定、字号小，双页并排会挤成一团：首次打开默认单页
+    if (!saved) {
+      if (book.format === 'pdf') layoutConfig.spread = 1;
+      return;
+    }
 
     if (LAYOUT_DIRECTIONS.includes(saved.direction)) layoutConfig.direction = saved.direction;
     if (saved.spread === 1 || saved.spread === 2) layoutConfig.spread = saved.spread;

@@ -56,7 +56,7 @@ const swatches = [
 
 const modes = [
   { name: 'light', label: '白昼', title: '纯净白昼模式' },
-  { name: 'warm', label: '护眼', title: '暖色调护眼模式（羊皮纸色 + 柔光滤镜）' },
+  { name: 'warm', label: '护眼', title: '暖色护眼模式' },
   { name: 'dark', label: '夜间', title: '深邃夜间模式' }
 ];
 

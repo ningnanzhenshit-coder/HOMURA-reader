@@ -52,9 +52,10 @@ const props = defineProps({
 
 defineEmits(['open', 'remove']);
 
-const badgeText = computed(() =>
-  props.book.type === 'manga' ? '漫画' : (props.book.type === 'epub' ? 'EPUB' : '小说')
-);
+const badgeText = computed(() => {
+  if (props.book.format === 'pdf') return 'PDF';
+  return props.book.type === 'manga' ? '漫画' : (props.book.type === 'epub' ? 'EPUB' : '小说');
+});
 
 const subInfo = computed(() =>
   props.book.type === 'manga'
