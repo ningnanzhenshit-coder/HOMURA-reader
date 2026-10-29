@@ -1,7 +1,7 @@
 <template>
   <!-- Reader Fullscreen Modal · 沉浸式：工具栏浮在画布上，默认自动隐藏 -->
   <div v-show="!!reader.currentBook" class="fixed inset-0 bg-[var(--bg-reader)] z-50 flex flex-col transition-colors duration-200">
-    <div ref="viewportRef" class="relative flex-1 min-h-0 overflow-hidden select-text" @mousemove="onMouseMove">
+    <div ref="viewportRef" class="relative flex-1 min-h-0 overflow-hidden select-text" @mousemove="onMouseMove" @click="ui.showChrome()">
       <template v-if="reader.currentBook">
         <WebtoonView
           v-if="reader.layoutConfig.direction === 'vertical'"
@@ -46,7 +46,7 @@
    HOMURA · 阅读器整屏遮罩
    ----------------------------------------------------------------------------
    画布铺满窗口，顶部/底部工具栏以浮层形式出现并自动隐藏；
-   鼠标靠近上/下边缘或按 Esc 唤出，3 秒无操作淡出。
+   鼠标靠近上/下边缘、点击画布或按 Esc 唤出，1 秒无操作淡出。
    设置与目录改为左右抽屉，不再占用顶栏。
    ========================================================================== */
 

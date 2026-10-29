@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
@@ -103,6 +103,40 @@ async function onFileChange(e) {
   e.target.value = '';
 }
 
+// 全屏：走 Tauri 原生窗口全屏（Windows 的 WebView2 不接管网页全屏）；浏览器调试环境回退标准 Fullscreen API
+// 切换后的窗口焦点由 Rust 端监听窗口事件恢复，见 src-tauri/src/lib.rs
+let fullscreenBusy = false;
+
+async function toggleWindowFullscreen() {
+  const tauriWindow = window.__TAURI__ && window.__TAURI__.window;
+  if (tauriWindow && typeof tauriWindow.getCurrentWindow === 'function') {
+    if (fullscreenBusy) return;
+    fullscreenBusy = true;
+    const win = tauriWindow.getCurrentWindow();
+    try {
+      await win.setFullscreen(!(await win.isFullscreen()));
+    } catch (err) {
+      console.warn('[HOMURA] 切换全屏失败', err);
+    } finally {
+      fullscreenBusy = false;
+    }
+    return;
+  }
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+}
+
+function onFullscreenKeydown(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key.toLowerCase() !== 'f') return;
+  if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  e.preventDefault();
+  toggleWindowFullscreen();
+}
+
 onMounted(async () => {
   let savedTheme = 'blue';
   let savedMode = 'light';
@@ -115,6 +149,7 @@ onMounted(async () => {
   theme.setSurfaceMode(savedMode, true);
 
   reader.measurerEl = measurerRef.value;
+  window.addEventListener('keydown', onFullscreenKeydown);
   // 关窗 / 切后台时兜底刷写进度，防止防抖窗口内的最后一次翻页丢失
   installProgressFlushHooks(reader, shelf);
 
@@ -124,5 +159,9 @@ onMounted(async () => {
   if (HomuraStore.disabled) {
     showToast('提示：当前环境无法保存书架，请通过本地服务器打开页面');
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onFullscreenKeydown);
 });
 </script>

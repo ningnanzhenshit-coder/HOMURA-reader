@@ -6,6 +6,9 @@
     "core:default",
     "core:window:allow-set-theme",
     "core:window:allow-set-background-color",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-set-focus",
     "core:webview:allow-set-webview-background-color"
   ]
 }

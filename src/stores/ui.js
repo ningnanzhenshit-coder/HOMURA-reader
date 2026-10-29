@@ -7,7 +7,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-const AUTO_HIDE_DELAY = 3000;
+const AUTO_HIDE_DELAY = 1000;
 
 export const useUiStore = defineStore('ui', () => {
   const readerChromeVisible = ref(true);

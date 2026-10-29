@@ -1,16 +1,4 @@
 <template>
-  <!-- Left & Right Click Tap Zones -->
-  <div @click="reader.onLeftButtonClick()" class="fixed inset-y-12 left-0 w-[14%] z-30 cursor-pointer group flex items-center justify-start pl-3" title="点击翻页">
-    <div style="background-color: var(--brand-primary);" class="opacity-0 group-hover:opacity-95 transition text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg pointer-events-none">
-      {{ reader.isNavigationInverted() ? '← 下一页' : '← 上一页' }}
-    </div>
-  </div>
-  <div @click="reader.onRightButtonClick()" class="fixed inset-y-12 right-0 w-[14%] z-30 cursor-pointer group flex items-center justify-end pr-3" title="点击翻页">
-    <div style="background-color: var(--brand-primary);" class="opacity-0 group-hover:opacity-95 transition text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg pointer-events-none">
-      {{ reader.isNavigationInverted() ? '上一页 →' : '下一页 →' }}
-    </div>
-  </div>
-
   <!-- Hardware-Accelerated Double-Buffer Stage -->
   <div class="relative w-full h-full overflow-hidden">
     <div
