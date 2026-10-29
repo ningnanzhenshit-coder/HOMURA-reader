@@ -1,16 +1,120 @@
 <template>
-  <div
-    v-if="toast.message"
-    :key="toast.token"
-    style="background-color: var(--brand-primary);"
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] text-white px-4 py-2 rounded-xl shadow-xl text-xs font-bold tracking-wide pointer-events-none"
-  >
-    {{ toast.message }}
-  </div>
+  <!-- 全局轻提示：品牌色渐变胶囊 + 淡入 / 淡出过渡 -->
+  <transition name="toast-fade">
+    <div
+      v-if="toast.message"
+      class="homura-toast"
+      :style="viewportCentered ? { left: '50%' } : null"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="homura-toast__mark" aria-hidden="true"></span>
+      <span class="homura-toast__text">{{ toast.message }}</span>
+    </div>
+  </transition>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useToast } from '../composables/useToast.js';
+import { useReaderStore } from '../stores/reader.js';
 
 const toast = useToast();
+const reader = useReaderStore();
+
+// 书架页按内容区（侧栏右侧）居中；阅读器整屏铺满时回到窗口居中
+const viewportCentered = computed(() => !!reader.currentBook);
 </script>
+
+<style scoped>
+.homura-toast {
+  position: fixed;
+  left: calc(50% + var(--sidenav-width, 220px) / 2);
+  bottom: 1.5rem;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: min(88vw, 34rem);
+  padding: 0.6rem 1.1rem 0.6rem 0.9rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.55;
+  text-align: center;
+  background-image: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-hover) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 28px -12px var(--brand-primary),
+    0 2px 8px rgba(15, 23, 42, 0.16);
+  filter: blur(0px);
+  transform: translate(-50%, 0) scale(1);
+  transition: left 0.2s ease-out;
+  pointer-events: none;
+  will-change: opacity, transform, filter;
+}
+
+/* 左侧呼吸点，给静态文案一点活气 */
+.homura-toast__mark {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
+}
+
+.homura-toast__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 淡入：从下方更远处上浮 + 缩放回弹 + 去模糊，节奏放慢更醒目 */
+.toast-fade-enter-active {
+  transition:
+    opacity 0.34s ease-out,
+    transform 0.52s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.34s ease-out;
+}
+
+/* 淡出：加速下落并轻微模糊，干脆收尾 */
+.toast-fade-leave-active {
+  transition:
+    opacity 0.24s ease-in,
+    transform 0.3s cubic-bezier(0.4, 0, 1, 1),
+    filter 0.24s ease-in;
+}
+
+.toast-fade-enter-from {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translate(-50%, 28px) scale(0.88);
+}
+
+.toast-fade-leave-to {
+  opacity: 0;
+  filter: blur(5px);
+  transform: translate(-50%, 18px) scale(0.94);
+}
+
+/* 尊重系统的「减少动态效果」设置：只保留纯淡入淡出 */
+@media (prefers-reduced-motion: reduce) {
+  .homura-toast {
+    transition: none;
+  }
+
+  .toast-fade-enter-active,
+  .toast-fade-leave-active {
+    transition: opacity 0.14s linear;
+  }
+
+  .toast-fade-enter-from,
+  .toast-fade-leave-to {
+    filter: none;
+    transform: translate(-50%, 0);
+  }
+}
+</style>

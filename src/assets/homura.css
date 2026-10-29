@@ -82,11 +82,12 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色 */
+    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色；
+       toast 例外，否则它的淡入淡出会被一起掐掉 */
     html.surface-switching,
-    html.surface-switching *,
-    html.surface-switching *::before,
-    html.surface-switching *::after {
+    html.surface-switching *:not(.homura-toast),
+    html.surface-switching *:not(.homura-toast)::before,
+    html.surface-switching *:not(.homura-toast)::after {
       transition: none !important;
     }
 

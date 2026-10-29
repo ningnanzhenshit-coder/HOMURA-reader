@@ -83,12 +83,13 @@ export const useThemeStore = defineStore('theme', () => {
     applyMode();
     // 标题栏与窗口底色在动画开始时就切到新色，和新内容一致
     applyNativeWindowChrome(modeName);
+    // 模式已经在 applyMode() 里落地，提示立即给出，不等 1s 擦除动画结束
+    showToast(`已切换：${MODE_LABELS[modeName]}`);
 
     const finish = () => {
       if (token !== surfaceWipeToken) return;
       wipe.remove();
       html.classList.remove('surface-switching');
-      showToast(`已切换：${MODE_LABELS[modeName]}`);
     };
 
     if (typeof wipe.animate === 'function') {

@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { useThemeStore } from '../stores/theme.js';
 import logoUrl from '../assets/logo.png';
@@ -151,6 +151,11 @@ const collapsed = ref(false);
 try {
   collapsed.value = localStorage.getItem(SIDEBAR_KEY) === '1';
 } catch (e) {}
+
+// 侧栏宽度同步到全局 CSS 变量：toast 等 fixed 元素据此在书架内容区居中
+watchEffect(() => {
+  document.documentElement.style.setProperty('--sidenav-width', collapsed.value ? '4rem' : '220px');
+});
 
 function toggleCollapsed() {
   collapsed.value = !collapsed.value;
