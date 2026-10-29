@@ -116,14 +116,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
+      # 直接复用 runner 预装的 Android SDK：setup-android v3 会执行已下线的
+      # `sdkmanager tools` 导致失败（Failed to find package 'tools'）
+      - name: Setup Android SDK and NDK
         run: |
-          sdkmanager --install "ndk;27.0.12077973"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER=$(find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f | head -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          NDK_DIR=$(ls -d "$SDK_ROOT"/ndk/* 2>/dev/null | sort -V | tail -1)
+          if [ -z "$NDK_DIR" ]; then
+            "$SDKMANAGER" --install "ndk;27.0.12077973"
+            NDK_DIR="$SDK_ROOT/ndk/27.0.12077973"
+          fi
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$NDK_DIR" >> "$GITHUB_ENV"
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
