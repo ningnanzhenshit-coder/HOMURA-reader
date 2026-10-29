@@ -12,7 +12,7 @@
         style="background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));"
         class="w-full h-full p-4 flex flex-col justify-between text-white"
       >
-        <span class="text-[10px] font-mono font-bold tracking-widest opacity-80">ACGN·GO</span>
+        <span class="text-[10px] font-mono font-bold tracking-widest opacity-80">HOMURA</span>
         <div class="font-display font-bold text-sm line-clamp-3 leading-snug text-white">{{ book.title }}</div>
         <span class="text-[10px] opacity-80 font-mono">{{ subInfo }}</span>
       </div>

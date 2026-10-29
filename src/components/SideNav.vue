@@ -10,19 +10,12 @@
       :class="collapsed ? 'h-11 justify-center' : 'h-16 px-3 gap-2.5'"
     >
       <template v-if="!collapsed">
-        <div class="w-9 h-9 rounded-xl bg-[#E61919] flex items-center justify-center shadow-md shadow-red-500/15 border border-red-600/30 shrink-0">
-          <svg class="w-7 h-7" viewBox="0 0 120 115" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(10, 3)">
-              <path d="M10 20 C10 18, 16 18, 20 19 L20 62 C26 63, 35 66, 44 71 L44 75 C33 69, 20 66, 10 65 Z" fill="#FFC400"/>
-              <path d="M18 14 C18 12, 24 12, 28 13 L28 56 C33 57, 40 60, 46 65 L46 69 C37 63, 26 60, 18 59 Z" fill="#FFC400"/>
-              <path d="M29 7 C37 8, 44 13, 48 20 L48 65 C43 58, 36 54, 29 52 Z" fill="#FFC400"/>
-              <path d="M84 7 C68 8, 56 13, 51 20 L51 64 C59 56, 71 52, 84 52 L84 40 L76 40 C73 40, 72 36, 75 34 L84 27 Z" fill="#FFC400"/>
-              <path d="M51 69 C61 60, 72 57, 83 57 L78 63 C76 66, 79 70, 83 67 L95 54 C97 52, 97 49, 95 47 L83 34 C79 31, 76 35, 78 38 L83 44 C70 44, 59 49, 51 59 Z" fill="#FFC400"/>
-            </g>
-            <text x="60" y="92" font-family="sans-serif" font-size="17" font-weight="900" fill="#FFFFFF" text-anchor="middle">ACGN</text>
-            <text x="60" y="109" font-family="sans-serif" font-size="16" font-weight="900" fill="#FFFFFF" text-anchor="middle">GO</text>
-          </svg>
-        </div>
+        <img
+          :src="logoUrl"
+          alt="HOMURA"
+          class="w-9 h-9 shrink-0 select-none pointer-events-none"
+          draggable="false"
+        />
         <div class="min-w-0 flex-1">
           <h1 class="font-display font-extrabold text-base leading-tight tracking-tight truncate">HOMURA</h1>
           <span class="text-[10px] font-mono font-bold tracking-wider text-[var(--brand-primary)]">ACGN·GO</span>
@@ -145,6 +138,7 @@
 import { ref } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { useThemeStore } from '../stores/theme.js';
+import logoUrl from '../assets/logo.png';
 
 const shelf = useShelfStore();
 const theme = useThemeStore();
