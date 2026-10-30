@@ -630,6 +630,113 @@
       text-indent: 2em;
       line-height: 1.75;
     }
+
+    /* Markdown 元素：标题 / 列表 / 引用 / 代码 / 表格 */
+    .epub-content h1,
+    .epub-content h2,
+    .epub-content h3,
+    .epub-content h4,
+    .epub-content h5,
+    .epub-content h6 {
+      margin: 1.2em 0 0.6em;
+      text-indent: 0;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--md-on-surface);
+    }
+    .epub-content h1 { font-size: 1.5em; }
+    .epub-content h2 { font-size: 1.3em; }
+    .epub-content h3 { font-size: 1.15em; }
+    .epub-content h4,
+    .epub-content h5,
+    .epub-content h6 { font-size: 1em; }
+    .epub-content ul,
+    .epub-content ol {
+      margin: 0.35em 0 0.9em;
+      padding-left: 1.4em;
+      text-indent: 0;
+    }
+    .epub-content ul { list-style: disc; }
+    .epub-content ol { list-style: decimal; }
+    .epub-content li {
+      margin-bottom: 0.25em;
+      line-height: 1.75;
+    }
+    .epub-content li p {
+      margin-bottom: 0.35em;
+      text-indent: 0;
+    }
+    .epub-content .task-list-item {
+      list-style: none;
+      margin-left: -1.1em;
+    }
+    .epub-content .task-list-item input {
+      margin-right: 0.45em;
+    }
+    .epub-content blockquote {
+      margin: 0.8em 0;
+      padding: 0.4em 0.9em;
+      border-left: 3px solid var(--md-primary);
+      border-radius: 0.35rem;
+      color: var(--md-on-surface-variant);
+      background: color-mix(in oklab, var(--md-surface-high) 70%, transparent);
+    }
+    .epub-content blockquote p {
+      margin-bottom: 0.35em;
+      text-indent: 0;
+    }
+    .epub-content code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.86em;
+      padding: 0.12em 0.35em;
+      border-radius: 0.3em;
+      background: color-mix(in oklab, var(--md-on-surface) 10%, transparent);
+    }
+    .epub-content pre {
+      margin: 0.8em 0;
+      padding: 0.75em 0.9em;
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      text-indent: 0;
+      background: color-mix(in oklab, var(--md-on-surface) 7%, transparent);
+    }
+    .epub-content pre code {
+      padding: 0;
+      background: none;
+      font-size: 0.85em;
+      line-height: 1.6;
+    }
+    .epub-content table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      margin: 0.8em 0;
+      border-collapse: collapse;
+      font-size: 0.92em;
+    }
+    .epub-content th,
+    .epub-content td {
+      padding: 0.4em 0.6em;
+      border: 1px solid var(--md-outline-variant);
+      text-align: left;
+      text-indent: 0;
+      line-height: 1.6;
+    }
+    .epub-content th {
+      font-weight: 600;
+      background: color-mix(in oklab, var(--md-surface-high) 75%, transparent);
+    }
+    .epub-content a {
+      color: var(--md-primary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .epub-content hr {
+      margin: 1.4em 0;
+      border: 0;
+      border-top: 1px solid var(--md-outline-variant);
+    }
     .rtl-slider {
       direction: rtl;
     }

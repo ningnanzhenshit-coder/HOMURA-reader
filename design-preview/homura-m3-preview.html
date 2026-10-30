@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+<title>HOMURA · Material Design 3 — UI 效果图</title>
+<style>
+  /* ==========================================================================
+     HOMURA · Material Design 3
+     效果图 —— 1440 × 900 画板，无外部图片
+     色板：品牌朱红 seed → M3 tonal roles（可在设置中切换蓝/绿/紫）
+     ========================================================================== */
+  :root {
+    --sans: "Roboto", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #100b0a; }
+  body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  .artboard {
+    position: relative; width: 1440px; height: 900px; overflow: hidden; display: none;
+    color: var(--on-surface);
+    /* M3 · light (red seed) */
+    --primary: #b3261e;
+    --on-primary: #ffffff;
+    --primary-container: #ffdad5;
+    --on-primary-container: #410e0b;
+    --secondary: #775652;
+    --on-secondary: #ffffff;
+    --secondary-container: #ffdad6;
+    --on-secondary-container: #2c1512;
+    --tertiary: #6c5e2d;
+    --tertiary-container: #f6e2a0;
+    --on-tertiary-container: #241a00;
+    --surface: #fff8f6;
+    --surface-low: #fff0ed;
+    --surface-container: #fcebe8;
+    --surface-high: #f6e5e2;
+    --surface-highest: #f0dfdc;
+    --on-surface: #221a19;
+    --variant: #534341;
+    --outline: #857371;
+    --outline-variant: #d8c2bf;
+    --inverse: #382e2d;
+    --on-inverse: #ffedeb;
+    --scrim: rgba(20, 8, 6, 0.4);
+    --e1: 0 1px 2px rgba(60, 30, 25, 0.10), 0 1px 3px 1px rgba(60, 30, 25, 0.06);
+    --e2: 0 2px 6px 2px rgba(60, 30, 25, 0.08), 0 1px 2px rgba(60, 30, 25, 0.12);
+    --e3: 0 6px 16px 4px rgba(60, 30, 25, 0.10), 0 2px 4px rgba(60, 30, 25, 0.14);
+  }
+  .artboard.active { display: block; }
+  body.overview { padding: 24px 0; background: #100b0a; }
+  body.overview .artboard { display: block; margin: 0 auto 24px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
+
+  .artboard.dark {
+    --primary: #ffb4ab;
+    --on-primary: #690005;
+    --primary-container: #93000a;
+    --on-primary-container: #ffdad6;
+    --secondary: #e7bdb8;
+    --on-secondary: #442925;
+    --secondary-container: #5d3f3b;
+    --on-secondary-container: #ffdad6;
+    --tertiary: #d9c58a;
+    --tertiary-container: #524600;
+    --on-tertiary-container: #fff1b8;
+    --surface: #1a1110;
+    --surface-low: #221a19;
+    --surface-container: #261d1c;
+    --surface-high: #312826;
+    --surface-highest: #3c3231;
+    --on-surface: #f1dfdc;
+    --variant: #d8c2bf;
+    --outline: #a08c89;
+    --outline-variant: #534341;
+    --inverse: #f1dfdc;
+    --on-inverse: #221a19;
+    --scrim: rgba(0, 0, 0, 0.5);
+    --e1: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --e2: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --e3: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ---------- 通用 M3 组件 ---------- */
+  .m3-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px; padding: 0 20px; border: 0; border-radius: 20px;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; letter-spacing: 0.01em;
+    cursor: pointer; white-space: nowrap;
+  }
+  .m3-btn svg { width: 18px; height: 18px; flex: 0 0 18px; }
+  .m3-btn.filled { background: var(--primary); color: var(--on-primary); box-shadow: none; }
+  .m3-btn.filled:hover { box-shadow: var(--e1); }
+  .m3-btn.tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .m3-btn.text { background: transparent; color: var(--primary); padding: 0 12px; }
+  .m3-btn.outlined { background: transparent; color: var(--on-surface); border: 1px solid var(--outline); }
+  .icon-btn {
+    width: 40px; height: 40px; flex: 0 0 40px;
+    display: grid; place-items: center;
+    border: 0; border-radius: 50%;
+    background: transparent; color: var(--on-surface); cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--surface-high); }
+  .icon-btn.filled { background: var(--primary); color: var(--on-primary); }
+  .icon-btn.tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .icon-btn svg { width: 22px; height: 22px; }
+
+  /* ==========================================================================
+     书 架
+     ========================================================================== */
+  .shelf-shell { height: 100%; display: flex; }
+  .rail {
+    width: 248px; flex: 0 0 248px; height: 100%;
+    background: var(--surface-low);
+    padding: 16px 12px 18px;
+    display: flex; flex-direction: column;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 8px 8px 22px; }
+  .brand-mark {
+    width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px;
+    background: var(--primary); color: var(--on-primary);
+    display: grid; place-items: center;
+  }
+  .brand-mark svg { width: 24px; height: 24px; }
+  .brand h1 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: 0.02em; line-height: 1.15; }
+  .brand p { margin: 4px 0 0; font-size: 11px; letter-spacing: 0.08em; color: var(--variant); }
+  .nav-label { margin: 6px 12px 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--variant); }
+  .nav-item {
+    height: 48px; width: 100%;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px; margin-bottom: 2px;
+    border: 0; border-radius: 24px;
+    background: transparent; color: var(--on-surface);
+    font-family: var(--sans); font-size: 14px; font-weight: 400; text-align: left; cursor: pointer;
+  }
+  .nav-item:hover { background: var(--surface-container); }
+  .nav-item svg { width: 22px; height: 22px; flex: 0 0 22px; opacity: 0.82; }
+  .nav-item .cnt { margin-left: auto; font-size: 12px; color: var(--variant); }
+  .nav-item.active { background: var(--primary-container); color: var(--on-primary-container); font-weight: 500; }
+  .nav-item.active svg { opacity: 1; }
+  .nav-item.active .cnt { color: var(--on-primary-container); font-weight: 500; }
+  .rail-gap { height: 18px; }
+  .nav-item .soon {
+    margin-left: auto; font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+    color: var(--variant); border: 1px solid var(--outline-variant); border-radius: 8px; padding: 2px 6px;
+  }
+  .rail-bottom { margin-top: auto; padding: 0 6px; }
+  .mode-label { font-size: 11px; color: var(--variant); margin: 0 6px 8px; }
+  .mode-row { display: flex; gap: 4px; margin-bottom: 18px; }
+  .mode-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center;
+    border: 0; background: transparent; cursor: pointer;
+  }
+  .mode-btn svg { width: 20px; height: 20px; }
+  .mode-btn.on { background: var(--primary-container); color: var(--on-primary-container); }
+  .mode-btn:not(.on) { color: var(--variant); }
+  .storage-card { background: var(--surface-container); border-radius: 12px; padding: 12px 14px; color: var(--variant); }
+  .storage-top { display: flex; justify-content: space-between; font-size: 11px; }
+  .storage-top b { color: var(--on-surface); font-weight: 500; }
+  .storage-track { height: 4px; border-radius: 2px; background: var(--surface-highest); margin-top: 9px; overflow: hidden; }
+  .storage-track i { display: block; width: 38%; height: 100%; background: var(--primary); border-radius: 2px; }
+  .rail-ver { margin: 14px 6px 0; font-size: 10px; letter-spacing: 0.08em; color: var(--variant); display: flex; justify-content: space-between; }
+
+  .main { flex: 1; min-width: 0; padding: 28px 40px 20px; display: flex; flex-direction: column; background: var(--surface); }
+  .title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .title-block { display: flex; align-items: baseline; gap: 14px; }
+  .title-block h2 { margin: 0; font-size: 40px; font-weight: 500; letter-spacing: -0.025em; line-height: 1.12; }
+  .title-block p { margin: 0; font-size: 13px; color: var(--variant); }
+  .title-block p b { color: var(--primary); font-weight: 500; }
+  .head-actions { display: flex; gap: 10px; padding-bottom: 2px; }
+
+  .search-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+  .search-bar {
+    width: 340px; height: 56px; flex: 0 0 340px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px 0 18px; border-radius: 28px;
+    background: var(--surface-high); color: var(--variant);
+  }
+  .search-bar svg { width: 22px; height: 22px; flex: 0 0 22px; }
+  .search-bar input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+    font-family: var(--sans); font-size: 15px; color: var(--on-surface);
+  }
+  .search-bar input::placeholder { color: var(--variant); }
+  .search-bar .kbd {
+    height: 24px; padding: 0 8px; display: inline-flex; align-items: center;
+    border: 1px solid var(--outline-variant); border-radius: 8px;
+    font-family: var(--sans); font-size: 11px; color: var(--variant);
+  }
+  .chip-row { display: flex; align-items: center; gap: 8px; }
+  .fchip {
+    height: 32px; padding: 0 12px; border-radius: 16px;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--outline-variant); background: transparent; color: var(--on-surface);
+    font-family: var(--sans); font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .fchip svg { width: 16px; height: 16px; }
+  .fchip b { font-weight: 400; color: var(--variant); font-size: 11px; }
+  .fchip.on { background: var(--secondary-container); border-color: transparent; color: var(--on-secondary-container); }
+  .fchip.on b { color: var(--on-secondary-container); }
+  .tools-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .sort-btn {
+    height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--outline-variant); border-radius: 20px;
+    background: transparent; color: var(--on-surface);
+    font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .sort-btn b { font-weight: 500; }
+  .sort-btn svg { width: 18px; height: 18px; color: var(--variant); }
+  .view-seg { display: flex; height: 40px; border: 1px solid var(--outline-variant); border-radius: 20px; overflow: hidden; }
+  .view-seg button { width: 44px; border: 0; background: transparent; color: var(--variant); display: grid; place-items: center; cursor: pointer; }
+  .view-seg button + button { border-left: 1px solid var(--outline-variant); }
+  .view-seg button.on { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .view-seg svg { width: 18px; height: 18px; }
+
+  .hero {
+    height: 164px; flex: 0 0 164px; margin-top: 18px;
+    border-radius: 24px; background: var(--surface-low);
+    display: flex; align-items: center; gap: 20px; padding: 16px 24px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; right: -40px; top: -90px; width: 280px; height: 280px;
+    border-radius: 50%; background: var(--primary); opacity: 0.055; pointer-events: none;
+  }
+  .hero-cover {
+    position: relative; width: 90px; height: 120px; flex: 0 0 90px;
+    border-radius: 12px; overflow: hidden; box-shadow: var(--e2);
+    background: linear-gradient(160deg, #4a3627 0%, #6d5038 58%, #8f6c4a 100%);
+  }
+  .hero-cover .shelf, .hero-cover .b1, .hero-cover .b2, .hero-cover .b3, .hero-cover .moon { position: absolute; }
+  .hero-cover .shelf { left: 0; right: 0; bottom: 0; height: 40%; background: #2e2118; }
+  .hero-cover .b1 { left: 12px; bottom: 12%; width: 10px; height: 42px; background: #d9c7a8; border-radius: 2px; }
+  .hero-cover .b2 { left: 26px; bottom: 12%; width: 10px; height: 52px; background: #b08b5d; border-radius: 2px; }
+  .hero-cover .b3 { left: 40px; bottom: 12%; width: 10px; height: 36px; background: #7f5c3a; border-radius: 2px; }
+  .hero-cover .moon { right: 12px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: #f3dfba; opacity: 0.9; }
+  .hero-cover .hc-title {
+    position: absolute; left: 12px; right: 8px; bottom: 12px;
+    font-family: var(--sans); font-size: 12px; font-weight: 500; line-height: 1.35; color: #fbf1df;
+  }
+  .hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+  .hero-label { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; color: var(--primary); }
+  .hero-title { margin: 3px 0 0; font-size: 24px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; }
+  .hero-meta { margin: 3px 0 0; font-size: 12.5px; color: var(--variant); }
+  .hero-progress { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+  .hero-track { width: 280px; max-width: 55%; height: 4px; border-radius: 2px; background: var(--surface-highest); }
+  .hero-track i { display: block; height: 100%; width: 46%; border-radius: 2px; background: var(--primary); }
+  .hero-progress span { font-size: 11.5px; color: var(--variant); }
+  .hero-actions { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+  .hero-actions .m3-btn { height: 36px; font-size: 13px; padding: 0 18px; }
+  .hero-ring {
+    flex: 0 0 104px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding-right: 6px;
+  }
+  .ring-wrap { position: relative; width: 76px; height: 76px; }
+  .ring-wrap svg { width: 76px; height: 76px; }
+  .ring-wrap span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 17px; font-weight: 500; }
+  .hero-ring p { margin: 0; font-size: 11px; color: var(--variant); }
+
+  .grid-head { flex: 0 0 auto; display: flex; align-items: baseline; justify-content: space-between; margin-top: 18px; height: 30px; }
+  .grid-head h3 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.005em; }
+  .grid-head p { margin: 0; font-size: 12px; color: var(--variant); }
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 16px; margin-top: 10px; align-content: start; }
+  .mcard {
+    background: var(--surface-low); border-radius: 20px; padding: 6px;
+    cursor: pointer; transition: background 0.16s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  }
+  .mcard:hover, .mcard.is-hover { background: var(--surface-container); box-shadow: var(--e2); transform: translateY(-2px); }
+  .cover {
+    position: relative; height: 174px; border-radius: 14px; overflow: hidden;
+    background: var(--surface-high); box-shadow: var(--e1);
+  }
+  .cover .kind {
+    position: absolute; left: 8px; top: 8px; z-index: 5;
+    height: 20px; padding: 0 8px; border-radius: 10px;
+    display: inline-flex; align-items: center;
+    background: rgba(26, 17, 16, 0.58); color: #fff8f6;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .cover .hover-actions {
+    position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 8;
+    display: flex; align-items: center; gap: 6px;
+    opacity: 0; transform: translateY(6px); transition: 0.18s ease;
+  }
+  .mcard.is-hover .hover-actions { opacity: 1; transform: translateY(0); }
+  .hover-actions .go {
+    flex: 1; height: 30px; border: 0; border-radius: 15px;
+    background: var(--primary); color: var(--on-primary);
+    font-family: var(--sans); font-size: 11px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .hover-actions .more {
+    width: 30px; height: 30px; flex: 0 0 30px; border: 0; border-radius: 50%;
+    background: var(--surface-high); color: var(--on-surface); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .hover-actions svg { width: 15px; height: 15px; }
+  .mcard-info { padding: 9px 6px 5px; }
+  .mcard-title {
+    font-size: 14px; font-weight: 500; letter-spacing: 0.005em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mcard.is-hover .mcard-title { color: var(--primary); }
+  .mcard-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--variant); }
+  .mcard-meta .pct { color: var(--primary); font-weight: 500; }
+  .mcard-ind { height: 3px; border-radius: 2px; background: var(--surface-highest); margin-top: 6px; overflow: hidden; }
+  .mcard-ind i { display: block; height: 100%; background: var(--primary); border-radius: 2px; }
+  .mcard-ind.empty { background: transparent; }
+
+  /* ---------- 封面美术 ---------- */
+  .cover-art { position: absolute; inset: 0; z-index: 1; }
+  .cover .ct {
+    position: absolute; left: 12px; right: 10px; top: 36px; z-index: 4;
+    font-size: 14px; font-weight: 500; line-height: 1.35; letter-spacing: 0.02em; color: #fff8f6;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.22);
+  }
+  .cover .ct.vertical { writing-mode: vertical-rl; left: auto; right: 12px; top: 34px; bottom: 16px; letter-spacing: 0.1em; }
+  .cover .ct.long { font-size: 12.5px; line-height: 1.4; letter-spacing: 0.01em; }
+  .cover .ct small { display: block; font-size: 7px; letter-spacing: 0.14em; opacity: 0.68; margin-top: 4px; font-weight: 400; }
+
+  .c-fog { background: linear-gradient(160deg, #8d9a84 0%, #cdd5c1 55%, #e8e8d8 100%); }
+  .c-fog .sun { position: absolute; width: 84px; height: 84px; border-radius: 50%; left: 44%; top: 48%; background: radial-gradient(circle, rgba(255,255,255,0.92), rgba(255,255,255,0.18) 62%, transparent 70%); }
+  .c-fog .ridge { position: absolute; left: -10%; right: -10%; bottom: 0; height: 46%; background: linear-gradient(165deg, #55614e 0%, #74806b 50%, #93a08a 100%); clip-path: polygon(0 58%, 18% 40%, 36% 52%, 55% 28%, 74% 48%, 92% 34%, 100% 52%, 100% 100%, 0 100%); }
+  .c-fog .ct { color: #24301f; text-shadow: none; }
+
+  .c-summer { background: linear-gradient(180deg, #dc4a2e 0%, #ec7448 45%, #f3b15c 100%); }
+  .c-summer .sun { position: absolute; width: 112px; height: 112px; border-radius: 50%; right: -26px; top: 36%; background: #f9e7c0; box-shadow: 0 0 50px rgba(255, 235, 190, 0.55); }
+  .c-summer .horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: #c8472c; }
+  .c-summer .wave { position: absolute; left: 0; right: 0; bottom: 32%; height: 24px; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.55) 0 2px, transparent 2px 7px); opacity: 0.55; }
+
+  .c-train { background: linear-gradient(180deg, #191a20 0%, #262832 52%, #3a3c48 100%); }
+  .c-train .line { position: absolute; left: 0; right: 0; height: 1px; background: rgba(210, 220, 240, 0.26); }
+  .c-train .lamp { position: absolute; width: 46px; height: 46px; border-radius: 50%; left: 14px; top: 44px; background: radial-gradient(circle, rgba(232, 242, 255, 0.9), rgba(160, 190, 230, 0.16) 60%, transparent 70%); }
+  .c-train .redbar { position: absolute; left: 0; top: 0; width: 100%; height: 4px; background: #cf3a28; }
+
+  .c-sea { background: linear-gradient(180deg, #f2e4c4 0%, #f6eed8 46%, #8fb6c2 100%); }
+  .c-sea .sea { position: absolute; left: 0; right: 0; bottom: 0; height: 54%; background: #4f7f92; }
+  .c-sea .arc { position: absolute; left: 50%; top: 43%; width: 156px; height: 78px; transform: translate(-50%, 0); border-radius: 50% 50% 0 0; background: #f6eed8; }
+  .c-sea .bowl { position: absolute; left: 50%; bottom: 24%; width: 64px; height: 30px; transform: translateX(-50%); background: #f6eed8; border-radius: 0 0 32px 32px; }
+  .c-sea .steam { position: absolute; left: 54%; bottom: 40%; width: 2px; height: 18px; background: rgba(255,255,255,0.7); box-shadow: 10px -3px 0 rgba(255,255,255,0.5), -9px 2px 0 rgba(255,255,255,0.4); }
+  .c-sea .ct { color: #233d48; text-shadow: none; }
+
+  .c-stars { background: linear-gradient(160deg, #241f38 0%, #3b2f57 58%, #5a4374 100%); }
+  .c-stars .star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #f8e9c8; box-shadow: 0 0 4px rgba(248, 233, 200, 0.9); }
+  .c-stars .planet { position: absolute; width: 72px; height: 72px; border-radius: 50%; right: -16px; bottom: 22%; background: radial-gradient(circle at 34% 30%, #e3c487, #8e6f43 60%, #5c472c 100%); }
+
+  .c-cat { background: linear-gradient(160deg, #4a3627 0%, #6d5038 58%, #8f6c4a 100%); }
+  .c-cat .shelf { position: absolute; left: 0; right: 0; bottom: 0; height: 44%; background: #2e2118; }
+  .c-cat .b1, .c-cat .b2, .c-cat .b3 { position: absolute; bottom: 12%; width: 12px; border-radius: 2px; }
+  .c-cat .b1 { left: 14px; height: 50px; background: #d9c7a8; }
+  .c-cat .b2 { left: 31px; height: 60px; background: #b08b5d; }
+  .c-cat .b3 { left: 48px; height: 44px; background: #7f5c3a; }
+  .c-cat .moon { position: absolute; right: 14px; top: 26px; width: 36px; height: 36px; border-radius: 50%; background: #f3dfba; opacity: 0.85; }
+
+  .c-rain { background: linear-gradient(180deg, #46505e 0%, #68757f 55%, #97a1a5 100%); }
+  .c-rain .rain { position: absolute; inset: -20% -10%; background: repeating-linear-gradient(76deg, rgba(240, 246, 255, 0.22) 0 1px, transparent 1px 9px); }
+  .c-rain .umbrella { position: absolute; left: 50%; bottom: 20%; width: 84px; height: 40px; transform: translateX(-50%); background: #d94b36; border-radius: 84px 84px 0 0; }
+  .c-rain .body { position: absolute; left: 50%; bottom: 0; width: 7px; height: 38%; transform: translateX(-50%); background: #232830; border-radius: 2px; }
+
+  .c-flower { background: linear-gradient(180deg, #efe2a8 0%, #f3d776 52%, #d9a63e 100%); }
+  .c-flower .petal { position: absolute; left: 50%; top: 42%; width: 64px; height: 64px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, #7a4a18 0 18%, #c8871f 19% 30%, #f6e3a1 31% 70%, transparent 71%); box-shadow: 0 0 0 10px rgba(230, 170, 50, 0.25); }
+  .c-flower .stem { position: absolute; left: 50%; top: 54%; width: 3px; height: 46%; background: #5f6b3c; }
+  .c-flower .ct { color: #4a3410; text-shadow: none; }
+
+  .c-night { background: linear-gradient(180deg, #101725 0%, #1b2c44 58%, #2f4a64 100%); }
+  .c-night .hull { position: absolute; left: 50%; bottom: 20%; width: 96px; height: 21px; transform: translateX(-50%) skewX(-12deg); background: #e8d8b6; border-radius: 2px 12px 9px 4px; }
+  .c-night .mast { position: absolute; left: 50%; bottom: 25%; width: 3px; height: 40%; background: #e8d8b6; }
+  .c-night .moon { position: absolute; right: 16px; top: 24px; width: 32px; height: 32px; border-radius: 50%; background: #f5e7c6; }
+
+  .c-blue { background: linear-gradient(180deg, #2e5f8a 0%, #4f8bb0 52%, #9cc6d3 100%); }
+  .c-blue .big { position: absolute; left: -12px; top: 18%; width: 104px; height: 104px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); }
+  .c-blue .big2 { position: absolute; right: -20px; bottom: -26px; width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,0.16); }
+
+  .c-cafe { background: linear-gradient(160deg, #3f2e28 0%, #6c4f3e 55%, #a37b58 100%); }
+  .c-cafe .win { position: absolute; left: 14px; right: 14px; top: 14px; height: 50%; border: 2px solid rgba(245, 228, 200, 0.46); }
+  .c-cafe .win::before, .c-cafe .win::after { content: ""; position: absolute; background: rgba(245, 228, 200, 0.46); }
+  .c-cafe .win::before { left: 50%; top: 0; bottom: 0; width: 2px; }
+  .c-cafe .win::after { top: 50%; left: 0; right: 0; height: 2px; }
+  .c-cafe .cup { position: absolute; left: 50%; bottom: 16%; width: 30px; height: 23px; transform: translateX(-50%); background: #f6e8cf; border-radius: 0 0 14px 14px; }
+
+  .c-mountain { background: linear-gradient(180deg, #cfd7cf 0%, #e7e5d4 54%, #f4ecd7 100%); }
+  .c-mountain .peak { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; background: #5f6a5a; clip-path: polygon(0 44%, 26% 10%, 48% 38%, 66% 18%, 100% 48%, 100% 100%, 0 100%); }
+  .c-mountain .peak2 { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: #3f4a3d; clip-path: polygon(0 66%, 20% 34%, 44% 58%, 74% 28%, 100% 62%, 100% 100%, 0 100%); }
+
+  .c-galaxy { background: radial-gradient(120% 90% at 20% 0%, #6d3d78 0%, #35205a 42%, #141127 100%); }
+  .c-galaxy .band { position: absolute; left: -20%; right: -20%; top: 34%; height: 80px; transform: rotate(-14deg); background: linear-gradient(90deg, transparent, rgba(248, 218, 180, 0.4), transparent); filter: blur(6px); }
+  .c-galaxy .dot { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #ffe9c9; }
+  .c-galaxy .store { position: absolute; left: 50%; bottom: 16%; width: 74px; height: 36px; transform: translateX(-50%); background: rgba(248, 232, 200, 0.86); border-radius: 4px; }
+
+  /* ==========================================================================
+     阅 读 器（M3 dark）
+     ========================================================================== */
+  .reader {
+    background: var(--surface);
+    color: var(--on-surface);
+  }
+  .r-bg { position: absolute; inset: 0; background: radial-gradient(90% 70% at 50% 0%, var(--surface-low) 0%, var(--surface) 60%); }
+  .r-appbar {
+    position: absolute; left: 0; right: 0; top: 0; height: 64px; z-index: 20;
+    display: flex; align-items: center; gap: 6px; padding: 0 12px;
+    background: var(--surface-low); box-shadow: var(--e1);
+  }
+  .r-appbar .divider { width: 1px; height: 24px; background: var(--outline-variant); margin: 0 6px; }
+  .r-title { min-width: 0; padding: 0 4px; }
+  .r-title h2 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -0.005em; color: var(--on-surface); white-space: nowrap; }
+  .r-title p { margin: 2px 0 0; font-size: 11.5px; color: var(--variant); white-space: nowrap; }
+  .r-appbar .grow { flex: 1; }
+  .assist-chip {
+    height: 32px; padding: 0 12px; border-radius: 16px;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-high); color: var(--variant);
+    font-size: 11.5px; font-weight: 500; white-space: nowrap;
+  }
+  .assist-chip b { color: var(--on-surface); font-weight: 500; }
+  .page-count { font-size: 12px; color: var(--variant); white-space: nowrap; padding: 0 4px; }
+  .page-count b { color: var(--on-surface); font-weight: 500; }
+
+  .r-stage {
+    position: absolute; inset: 64px 0 0 0;
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    padding-bottom: 26px;
+  }
+  .manga-page {
+    position: relative; width: 374px; height: 540px; flex: 0 0 374px;
+    border-radius: 12px; overflow: hidden; background: #f7f2e7;
+    box-shadow: var(--e3);
+  }
+  .manga-page svg { display: block; width: 100%; height: 100%; }
+  .page-no { position: absolute; right: 12px; bottom: 7px; font-size: 9px; color: #8d8678; font-weight: 500; }
+  .r-hint {
+    position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%);
+    font-size: 11px; color: var(--variant); white-space: nowrap;
+  }
+  .r-zone { position: absolute; top: 50%; transform: translateY(-50%); width: 88px; height: 320px; display: grid; place-items: center; color: var(--on-surface); opacity: 0.22; }
+  .r-zone.left { left: 4px; }
+  .r-zone.right { right: 4px; }
+  .r-zone svg { width: 26px; height: 26px; }
+
+  .r-chapters {
+    position: absolute; right: 16px; top: 96px; width: 168px; z-index: 12;
+    background: var(--surface-low); border-radius: 20px; padding: 10px 8px;
+    box-shadow: var(--e1);
+  }
+  .r-chapters h4 { margin: 4px 10px 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: var(--variant); }
+  .chap {
+    height: 34px; border-radius: 17px; padding: 0 10px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; color: var(--variant);
+  }
+  .chap .num { width: 16px; font-size: 10.5px; color: var(--variant); }
+  .chap .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chap.on { background: var(--primary-container); color: var(--on-primary-container); font-weight: 500; }
+  .chap.on .num { color: var(--on-primary-container); }
+
+  .r-bottom {
+    position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+    width: 748px; height: 64px; z-index: 20;
+    display: flex; align-items: center; gap: 12px; padding: 0 12px;
+    background: var(--surface-high); border-radius: 32px; box-shadow: var(--e2);
+  }
+  .r-bottom .icon-btn { background: var(--surface-container); color: var(--on-surface); }
+  .r-bottom .icon-btn.filled { background: var(--primary); color: var(--on-primary); }
+  .r-slider { flex: 1; position: relative; height: 40px; display: flex; align-items: center; padding: 0 6px; }
+  .r-track { position: relative; width: 100%; height: 4px; border-radius: 2px; background: var(--surface-highest); }
+  .r-track i { display: block; height: 100%; width: 6.1%; border-radius: 2px; background: var(--primary); }
+  .r-thumb {
+    position: absolute; left: 6.1%; top: 50%; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  .r-track .tick { position: absolute; top: -4px; width: 1px; height: 12px; background: var(--outline); }
+  .r-value {
+    position: absolute; left: 6.1%; bottom: 32px; transform: translateX(-50%);
+    height: 26px; padding: 0 8px; border-radius: 8px;
+    background: var(--inverse); color: var(--on-inverse);
+    font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; white-space: nowrap;
+  }
+  .r-pages { font-size: 12px; color: var(--variant); white-space: nowrap; }
+  .r-pages b { color: var(--on-surface); font-weight: 500; }
+
+  /* 设置 · M3 side sheet */
+  .r-scrim { position: absolute; inset: 0; z-index: 30; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+  .r-sheet {
+    position: absolute; top: 16px; right: 16px; bottom: 16px; width: 376px; z-index: 40;
+    background: var(--surface-low); border-radius: 24px; box-shadow: var(--e3);
+    display: flex; flex-direction: column; overflow: hidden;
+    transform: translateX(calc(100% + 32px)); transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .reader.settings-open .r-scrim { opacity: 1; }
+  .reader.settings-open .r-sheet { transform: translateX(0); }
+  .sheet-head {
+    height: 64px; flex: 0 0 64px; padding: 0 12px 0 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sheet-head h3 { margin: 0; flex: 1; font-size: 22px; font-weight: 500; letter-spacing: -0.005em; }
+  .sheet-head p { display: none; }
+  .sheet-body { flex: 1; overflow: hidden; padding: 4px 24px 24px; display: flex; flex-direction: column; gap: 20px; }
+  .sec { }
+  .sec-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .sec-title h4 { margin: 0; font-size: 14px; font-weight: 500; }
+  .sec-title span { font-size: 11px; color: var(--variant); }
+  .seg { display: flex; height: 40px; border: 1px solid var(--outline-variant); border-radius: 20px; overflow: hidden; }
+  .seg button { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--on-surface); font-family: var(--sans); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--outline-variant); }
+  .seg button svg { width: 16px; height: 16px; }
+  .seg button.on { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; height: 40px; }
+  .toggle-row label { font-size: 13px; color: var(--on-surface); }
+  .switch { width: 40px; height: 22px; border-radius: 11px; background: var(--surface-highest); position: relative; }
+  .switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--outline); transition: 0.2s; }
+  .switch.on { background: var(--primary-container); }
+  .switch.on::after { left: 20px; background: var(--primary); }
+  .type-row { display: flex; align-items: center; gap: 10px; }
+  .type-btn { width: 40px; height: 40px; flex: 0 0 40px; border: 1px solid var(--outline-variant); border-radius: 20px; background: transparent; color: var(--on-surface); font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; }
+  .slider-wrap { flex: 1; position: relative; height: 40px; display: flex; align-items: center; }
+  .m3-track { width: 100%; height: 4px; border-radius: 2px; background: var(--surface-highest); position: relative; }
+  .m3-track i { display: block; width: 46%; height: 100%; background: var(--primary); border-radius: 2px; }
+  .m3-thumb { position: absolute; left: 46%; top: 50%; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); transform: translate(-50%, -50%); box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 14%, transparent); }
+  .type-value { font-size: 12px; color: var(--variant); width: 46px; text-align: right; }
+  .surface-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .surface-card { height: 92px; border: 1px solid var(--outline-variant); border-radius: 16px; overflow: hidden; position: relative; cursor: pointer; }
+  .surface-card .paper { position: absolute; inset: 0 0 24px; display: flex; flex-direction: column; justify-content: center; padding: 0 10px; gap: 5px; }
+  .surface-card .paper i { display: block; height: 2px; background: currentColor; opacity: 0.3; }
+  .surface-card .paper i:nth-child(1) { width: 70%; opacity: 0.55; }
+  .surface-card .paper i:nth-child(2) { width: 92%; }
+  .surface-card .paper i:nth-child(3) { width: 56%; }
+  .surface-card .cap { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  .surface-card.light .paper { background: #fff8f6; color: #221a19; }
+  .surface-card.light .cap { background: #f6e5e2; color: #534341; }
+  .surface-card.warm .paper { background: #e8d7b9; color: #4a3a28; }
+  .surface-card.warm .cap { background: #ddc9a6; color: #55432c; }
+  .surface-card.dark .paper { background: #1a1110; color: #f1dfdc; }
+  .surface-card.dark .cap { background: #312826; color: #d8c2bf; }
+  .surface-card.on { border: 2px solid var(--primary); }
+  .surface-card.on .cap { padding-right: 6px; }
+  .color-row { display: flex; align-items: center; gap: 10px; }
+  .pc { position: relative; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; border: 2px solid transparent; cursor: pointer; }
+  .pc i { width: 24px; height: 24px; border-radius: 50%; display: block; }
+  .pc.on { border-color: var(--on-surface); }
+  .pc.on svg { width: 14px; height: 14px; color: #fff; position: absolute; }
+  .pc.blue i { background: #0b57d0; }
+  .pc.red i { background: #b3261e; }
+  .pc.green i { background: #00696b; }
+  .pc.purple i { background: #6750a4; }
+  .pc-label { margin-left: auto; font-size: 12px; color: var(--variant); }
+  .trans-chips { display: flex; gap: 8px; }
+  .trans-chips .fchip { height: 32px; }
+  .sheet-foot {
+    flex: 0 0 64px; padding: 0 16px 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--outline-variant);
+  }
+  .sheet-foot span { font-size: 11px; color: var(--variant); }
+</style>
+</head>
+<body>
+
+<!-- =========================================================================
+     1 · 书架 · 亮色
+     ========================================================================= -->
+<section class="artboard active" id="ab-shelf">
+  <div class="shelf-shell">
+    <aside class="rail">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 5.5c2.6-1 6-1 8 .5 2-1.5 5.4-1.5 8-.5v13c-2.6-1-6-1-8 .5-2-1.5-5.4-1.5-8-.5z"/><path d="M12 6v13"/></svg>
+        </span>
+        <div>
+          <h1>HOMURA</h1>
+          <p>ACGN · GO</p>
+        </div>
+      </div>
+
+      <p class="nav-label">书库</p>
+      <button class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="6" height="16" rx="1"/><rect x="14" y="6" width="6" height="14" rx="1"/><path d="M10 8h4"/></svg>
+        全部作品 <span class="cnt">12</span>
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 5.5c2.5-1 5.5-1 8 .5 2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/></svg>
+        漫画 <span class="cnt">7</span>
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h7M8 14h7M8 18h4"/></svg>
+        轻小说 <span class="cnt">4</span>
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h10l6 6v10H4z"/><path d="M14 4v6h6"/></svg>
+        EPUB <span class="cnt">1</span>
+      </button>
+
+      <div class="rail-gap"></div>
+      <p class="nav-label">工作台</p>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="8.6" cy="9.6" r="1.2"/><circle cx="12" cy="7.8" r="1.2"/><circle cx="15.4" cy="9.6" r="1.2"/><path d="M14.5 14.6c1 .2 1.6.9 1.5 1.8-.5 1-2 1.5-4 1.5-2.4 0-4.4-.9-4.4-2.3 0-.9.7-1.6 1.9-1.9"/></svg>
+        外观设置
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+        设置 <span class="soon">SOON</span>
+      </button>
+
+      <div class="rail-bottom">
+        <p class="mode-label">显示模式</p>
+        <div class="mode-row">
+          <button class="mode-btn on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5l1.5 1.5M17 17l1.5 1.5M18.5 5.5L17 7M7 17l-1.5 1.5"/></svg>
+          </button>
+          <button class="mode-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M5 9h14M6 15h12"/></svg>
+          </button>
+          <button class="mode-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>
+          </button>
+        </div>
+        <div class="storage-card">
+          <div class="storage-top"><b>本地存储</b><span>3.2 / 8 GB</span></div>
+          <div class="storage-track"><i></i></div>
+        </div>
+        <div class="rail-ver"><span>HOMURA v2.1</span><span>OFFLINE</span></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="title-row">
+        <div class="title-block">
+          <h2>书架</h2>
+          <p><b>12</b> 部作品 · 3 部在读</p>
+        </div>
+        <div class="head-actions">
+          <button class="m3-btn tonal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            文件夹
+          </button>
+          <button class="m3-btn filled">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            导入文件
+          </button>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m15.8 15.8 4.2 4.2"/></svg>
+          <input type="text" placeholder="搜索书名、作者、标签" />
+          <span class="kbd">⌘K</span>
+        </div>
+        <div class="chip-row">
+          <button class="fchip on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 12 5 5L19 7"/></svg>
+            全部 <b>12</b>
+          </button>
+          <button class="fchip">漫画 <b>7</b></button>
+          <button class="fchip">小说 <b>4</b></button>
+          <button class="fchip">EPUB <b>1</b></button>
+        </div>
+        <div class="tools-right">
+          <button class="sort-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7 4v16M7 20l-3-3M7 20l3-3M13 6h7M13 11h5M13 16h3"/></svg>
+            <b>最近阅读</b>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg>
+          </button>
+          <div class="view-seg">
+            <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button>
+            <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-cover c-cat">
+          <div class="cover-art"><span class="shelf"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="moon"></span></div>
+          <span class="hc-title">猫与旧书店</span>
+        </div>
+        <div class="hero-body">
+          <p class="hero-label">继续阅读</p>
+          <h3 class="hero-title">猫与旧书店</h3>
+          <p class="hero-meta">第 12 话 · 雨季的访客 &nbsp;·&nbsp; 轻小说 · 共 24 话</p>
+          <div class="hero-progress">
+            <div class="hero-track"><i></i></div>
+            <span>46% · 还剩约 38 分钟</span>
+          </div>
+          <div class="hero-actions">
+            <button class="m3-btn filled">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5v14l12-7z"/></svg>
+              继续阅读
+            </button>
+            <button class="m3-btn text">详情</button>
+          </div>
+        </div>
+        <div class="hero-ring">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 76 76" fill="none">
+              <circle cx="38" cy="38" r="31" stroke="var(--surface-highest)" stroke-width="6"/>
+              <circle cx="38" cy="38" r="31" stroke="var(--primary)" stroke-width="6" stroke-linecap="round" stroke-dasharray="89.6 194.8" transform="rotate(-90 38 38)"/>
+            </svg>
+            <span>46%</span>
+          </div>
+          <p>本周在读 3 部</p>
+        </div>
+      </section>
+
+      <div class="grid-head">
+        <h3>全部作品</h3>
+        <p>最近更新 · 2 小时前</p>
+      </div>
+
+      <div class="grid">
+        <article class="mcard">
+          <div class="cover c-cat">
+            <div class="cover-art"><span class="shelf"></span><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="moon"></span></div>
+            <span class="kind">轻小说</span>
+            <div class="ct">猫与旧书店</div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">猫与旧书店</div>
+            <div class="mcard-meta"><span>轻小说 · 24 话</span><span class="pct">46%</span></div>
+            <div class="mcard-ind"><i style="width:46%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard is-hover">
+          <div class="cover c-summer">
+            <div class="cover-art"><span class="sun"></span><span class="horizon"></span><span class="wave"></span></div>
+            <span class="kind">漫画</span>
+            <div class="ct vertical">夏日回声</div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">夏日回声</div>
+            <div class="mcard-meta"><span>漫画 · 18 话</span><span class="pct">72%</span></div>
+            <div class="mcard-ind"><i style="width:72%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-train">
+            <div class="cover-art"><span class="line" style="top:34%"></span><span class="line" style="top:58%"></span><span class="line" style="top:82%"></span><span class="lamp"></span><span class="redbar"></span></div>
+            <span class="kind">漫画</span>
+            <div class="ct">终末列车<small>LAST TRAIN</small></div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">终末列车</div>
+            <div class="mcard-meta"><span>漫画 · 9 话</span><span class="pct">12%</span></div>
+            <div class="mcard-ind"><i style="width:12%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-sea">
+            <div class="cover-art"><span class="sea"></span><span class="arc"></span><span class="bowl"></span><span class="steam"></span></div>
+            <span class="kind">轻小说</span>
+            <div class="ct">海街食堂<small>SEASIDE DINER</small></div>
+            <div class="hover-actions"><button class="go">开始阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">海街食堂</div>
+            <div class="mcard-meta"><span>轻小说 · 31 话</span><span>未读</span></div>
+            <div class="mcard-ind empty"></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-stars">
+            <div class="cover-art">
+              <span class="star" style="left:18px;top:38px"></span><span class="star" style="left:58px;top:70px"></span><span class="star" style="left:102px;top:48px"></span><span class="star" style="left:34px;top:108px"></span><span class="star" style="left:84px;top:136px"></span><span class="star" style="left:122px;top:102px"></span>
+              <span class="planet"></span>
+            </div>
+            <span class="kind">EPUB</span>
+            <div class="ct">星屑邮便局<small>STARDUST POST</small></div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">星屑邮便局</div>
+            <div class="mcard-meta"><span>EPUB · 12 章</span><span class="pct">88%</span></div>
+            <div class="mcard-ind"><i style="width:88%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-fog">
+            <div class="cover-art"><span class="sun"></span><span class="ridge"></span></div>
+            <span class="kind">漫画</span>
+            <div class="ct">雾之国的芙洛拉</div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">雾之国的芙洛拉</div>
+            <div class="mcard-meta"><span>漫画 · 42 话</span><span class="pct">31%</span></div>
+            <div class="mcard-ind"><i style="width:31%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-flower">
+            <div class="cover-art"><span class="stem"></span><span class="petal"></span></div>
+            <span class="kind">轻小说</span>
+            <div class="ct long">向日葵不开的夏天</div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">向日葵不开的夏天</div>
+            <div class="mcard-meta"><span>轻小说 · 16 话</span><span class="pct">64%</span></div>
+            <div class="mcard-ind"><i style="width:64%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-rain">
+            <div class="cover-art"><span class="rain"></span><span class="umbrella"></span><span class="body"></span></div>
+            <span class="kind">漫画</span>
+            <div class="ct">雨停之后</div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">雨停之后</div>
+            <div class="mcard-meta"><span>漫画 · 21 话</span><span class="pct">55%</span></div>
+            <div class="mcard-ind"><i style="width:55%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-night">
+            <div class="cover-art"><span class="moon"></span><span class="mast"></span><span class="hull"></span></div>
+            <span class="kind">轻小说</span>
+            <div class="ct">夜航船<small>NIGHT VOYAGE</small></div>
+            <div class="hover-actions"><button class="go">开始阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">夜航船</div>
+            <div class="mcard-meta"><span>轻小说 · 28 话</span><span>未读</span></div>
+            <div class="mcard-ind empty"></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-blue">
+            <div class="cover-art"><span class="big"></span><span class="big2"></span></div>
+            <span class="kind">EPUB</span>
+            <div class="ct">蓝色星期天<small>BLUE SUNDAY</small></div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">蓝色星期天</div>
+            <div class="mcard-meta"><span>EPUB · 8 章</span><span class="pct">20%</span></div>
+            <div class="mcard-ind"><i style="width:20%"></i></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-cafe">
+            <div class="cover-art"><span class="win"></span><span class="cup"></span></div>
+            <span class="kind">漫画</span>
+            <div class="ct">猫町咖啡馆</div>
+            <div class="hover-actions"><button class="go">开始阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">猫町咖啡馆</div>
+            <div class="mcard-meta"><span>漫画 · 14 话</span><span>未读</span></div>
+            <div class="mcard-ind empty"></div>
+          </div>
+        </article>
+
+        <article class="mcard">
+          <div class="cover c-galaxy">
+            <div class="cover-art"><span class="band"></span><span class="dot" style="left:24px;top:90px"></span><span class="dot" style="left:68px;top:54px"></span><span class="dot" style="left:114px;top:80px"></span><span class="dot" style="left:38px;top:32px"></span><span class="store"></span></div>
+            <span class="kind">轻小说</span>
+            <div class="ct long">银河尽头的便利店<small>END OF GALAXY</small></div>
+            <div class="hover-actions"><button class="go">继续阅读</button><button class="more">×</button></div>
+          </div>
+          <div class="mcard-info">
+            <div class="mcard-title">银河尽头的便利店</div>
+            <div class="mcard-meta"><span>轻小说 · 11 话</span><span class="pct">8%</span></div>
+            <div class="mcard-ind"><i style="width:8%"></i></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================
+     2 · 阅读器 · M3 dark
+     ========================================================================= -->
+<section class="artboard reader dark" id="ab-reader">
+  <div class="r-bg"></div>
+
+  <header class="r-appbar">
+    <button class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+    </button>
+    <span class="divider"></span>
+    <div class="r-title">
+      <h2>雨停之后</h2>
+      <p>第 03 话 · 雨、あと</p>
+    </div>
+    <div class="grow"></div>
+    <span class="assist-chip"><b>双页</b> · 右→左</span>
+    <span class="page-count"><b>012</b> / 198</span>
+    <button class="icon-btn" title="目录">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h9"/></svg>
+    </button>
+    <button class="icon-btn" title="收藏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.5c-1.8-2-5.5-1.4-5.5 2 0 3 5.5 6 5.5 6s5.5-3 5.5-6c0-3.4-3.7-4-5.5-2z"/></svg>
+    </button>
+    <button class="icon-btn" title="阅读设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h7M15 7h5M4 17h5M13 17h7"/><circle cx="13" cy="7" r="2.2"/><circle cx="10.5" cy="17" r="2.2"/></svg>
+    </button>
+  </header>
+
+  <div class="r-zone left">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M15 5 8 12l7 7"/></svg>
+  </div>
+  <div class="r-zone right">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>
+  </div>
+
+  <aside class="r-chapters">
+    <h4>章节 · 7</h4>
+    <div class="chap"><span class="num">01</span><span class="name">序章</span></div>
+    <div class="chap"><span class="num">02</span><span class="name">雨的声音</span></div>
+    <div class="chap on"><span class="num">03</span><span class="name">雨停之后</span></div>
+    <div class="chap"><span class="num">04</span><span class="name">旧唱片</span></div>
+    <div class="chap"><span class="num">05</span><span class="name">夏日祭</span></div>
+    <div class="chap"><span class="num">06</span><span class="name">回声</span></div>
+    <div class="chap"><span class="num">07</span><span class="name">终章</span></div>
+  </aside>
+
+  <div class="r-stage">
+    <!-- PAGE 012 -->
+    <div class="manga-page">
+      <svg viewBox="0 0 374 540" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.15" fill="#17171a" opacity="0.5"/></pattern>
+          <pattern id="dotsSoft" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r="1.1" fill="#17171a" opacity="0.28"/></pattern>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8d3c2"/><stop offset="1" stop-color="#f2eddf"/></linearGradient>
+          <linearGradient id="street" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfc9b7"/><stop offset="1" stop-color="#e9e3d3"/></linearGradient>
+        </defs>
+        <rect width="374" height="540" fill="#f7f2e7"/>
+        <rect width="374" height="540" fill="url(#dotsSoft)" opacity="0.16"/>
+        <rect x="12" y="12" width="350" height="194" fill="url(#sky)" stroke="#17171a" stroke-width="1.5"/>
+        <rect x="12" y="12" width="350" height="194" fill="url(#dots)" opacity="0.2"/>
+        <path d="M12 154 C70 144 120 160 180 152 C240 144 300 158 362 150 L362 206 L12 206 Z" fill="#b9b4a2"/>
+        <path d="M12 176 C80 168 140 182 210 174 C270 168 320 178 362 172 L362 206 L12 206 Z" fill="#9a9584"/>
+        <circle cx="118" cy="102" r="12.5" fill="#17171a"/>
+        <path d="M118 115 L118 158 M118 128 L104 144 M118 128 L132 143 M118 158 L108 186 M118 158 L128 186" stroke="#17171a" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M108 104 C110 96 126 96 128 104" stroke="#17171a" stroke-width="2.4" fill="none"/>
+        <ellipse cx="242" cy="62" rx="62" ry="25" fill="#fbf7ec" stroke="#17171a" stroke-width="1.4"/>
+        <path d="M208 82 L200 96 L218 87" fill="#fbf7ec" stroke="#17171a" stroke-width="1.2"/>
+        <text x="242" y="68" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="13" fill="#17171a">「雨，终于停了。」</text>
+        <text x="30" y="34" font-family="Roboto, sans-serif" font-size="7" letter-spacing="2" fill="#17171a" opacity="0.55">CHAPTER 03 — AFTER THE RAIN</text>
+
+        <rect x="12" y="218" width="168" height="160" fill="#f1ebdc" stroke="#17171a" stroke-width="1.5"/>
+        <rect x="12" y="218" width="168" height="160" fill="url(#dots)" opacity="0.16"/>
+        <path d="M30 300 C66 260 126 260 160 300 C126 332 66 332 30 300 Z" fill="#fbf7ec" stroke="#17171a" stroke-width="1.7"/>
+        <circle cx="96" cy="296" r="25" stroke="#17171a" stroke-width="1.6" fill="#e7e1d2"/>
+        <circle cx="96" cy="296" r="13" fill="#17171a"/>
+        <circle cx="89" cy="288" r="4.2" fill="#fbf7ec"/>
+        <path d="M34 296 l-9 -5 M42 282 l-6 -8 M150 282 l7 -8 M160 296 l10 -5" stroke="#17171a" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M54 322 C78 336 118 336 142 322" stroke="#17171a" stroke-width="1" opacity="0.5"/>
+        <text x="24" y="232" font-family="Roboto, sans-serif" font-size="6.5" letter-spacing="1.6" fill="#17171a" opacity="0.5">01 / STILL</text>
+
+        <rect x="192" y="218" width="170" height="160" fill="#f7f2e7" stroke="#17171a" stroke-width="1.5"/>
+        <g stroke="#17171a" stroke-width="0.9" opacity="0.5">
+          <line x1="200" y1="228" x2="292" y2="312"/><line x1="214" y1="226" x2="304" y2="306"/><line x1="232" y1="226" x2="318" y2="300"/><line x1="250" y1="226" x2="330" y2="288"/><line x1="270" y1="226" x2="342" y2="278"/><line x1="290" y1="226" x2="352" y2="262"/>
+          <line x1="352" y1="228" x2="262" y2="312"/><line x1="344" y1="246" x2="254" y2="326"/><line x1="344" y1="270" x2="256" y2="348"/><line x1="344" y1="296" x2="270" y2="360"/>
+        </g>
+        <line x1="196" y1="330" x2="330" y2="244" stroke="#b3261e" stroke-width="2.4" opacity="0.85"/>
+        <circle cx="258" cy="296" r="8" fill="#17171a"/>
+        <path d="M258 304 L258 334 M258 314 L246 328 M258 314 L270 328 M258 334 L250 356 M258 334 L268 356" stroke="#17171a" stroke-width="2.6" stroke-linecap="round"/>
+        <text x="200" y="376" font-family="Roboto, sans-serif" font-size="6.5" letter-spacing="1.6" fill="#17171a" opacity="0.5">02 / RUN</text>
+
+        <rect x="12" y="392" width="350" height="134" fill="url(#street)" stroke="#17171a" stroke-width="1.5"/>
+        <rect x="12" y="392" width="350" height="134" fill="url(#dots)" opacity="0.2"/>
+        <path d="M28 392 L28 478 L84 478 L84 392 Z M96 392 L96 462 L142 462 L142 392 Z M154 392 L154 486 L204 486 L204 392 Z M222 392 L222 466 L276 466 L276 392 Z M288 392 L288 480 L344 480 L344 392 Z" fill="#b7b19e" opacity="0.6"/>
+        <path d="M146 470 L146 456 L160 450 L174 456 L174 470 Z" fill="#17171a"/>
+        <circle cx="160" cy="440" r="5.5" fill="#17171a"/>
+        <path d="M176 456 C182 456 188 460 188 468 L188 482 M176 462 L188 462" stroke="#17171a" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M244 474 L244 461 L256 456 L268 461 L268 474 Z" fill="#17171a"/>
+        <circle cx="256" cy="448" r="5" fill="#17171a"/>
+        <path d="M14 392 L14 526 M50 392 L50 522 M296 392 L296 518 M334 392 L334 514" stroke="#f7f2e7" stroke-width="1.6" opacity="0.6"/>
+        <text x="24" y="522" font-family="PingFang SC, sans-serif" font-size="9" fill="#17171a" opacity="0.65">雨后的街道，空无一人。</text>
+      </svg>
+      <span class="page-no">012</span>
+    </div>
+
+    <!-- PAGE 013 -->
+    <div class="manga-page">
+      <svg viewBox="0 0 374 540" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots2" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.3" fill="#17171a" opacity="0.42"/></pattern>
+          <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fbf6e8"/><stop offset="0.62" stop-color="#f2ead6"/><stop offset="1" stop-color="#e2d9c1"/></radialGradient>
+        </defs>
+        <rect width="374" height="540" fill="#f7f2e7"/>
+        <g stroke="#17171a" stroke-width="0.8" opacity="0.36">
+          <line x1="0" y1="270" x2="374" y2="270"/>
+          <line x1="20" y1="40" x2="330" y2="376"/><line x1="0" y1="90" x2="290" y2="420"/><line x1="0" y1="150" x2="250" y2="460"/><line x1="0" y1="220" x2="220" y2="500"/>
+          <line x1="354" y1="40" x2="44" y2="376"/><line x1="374" y1="90" x2="84" y2="420"/><line x1="374" y1="150" x2="124" y2="460"/><line x1="374" y1="220" x2="154" y2="500"/>
+        </g>
+        <rect x="12" y="12" width="350" height="516" fill="none" stroke="#17171a" stroke-width="1.6"/>
+        <circle cx="187" cy="246" r="132" fill="url(#sun)" stroke="#17171a" stroke-width="1.2"/>
+        <circle cx="187" cy="246" r="132" fill="url(#dots2)" opacity="0.35"/>
+        <path d="M12 350 C80 330 140 352 200 342 C260 332 312 350 362 340 L362 430 L12 430 Z" fill="#8f8a79"/>
+        <path d="M12 386 C90 370 160 390 240 380 C300 372 330 384 362 378 L362 470 L12 470 Z" fill="#17171a"/>
+        <path d="M187 342 C196 354 202 366 202 380 L187 380 Z" fill="#17171a"/>
+        <circle cx="187" cy="330" r="8" fill="#17171a"/>
+        <path d="M170 360 C182 352 192 352 204 360" stroke="#17171a" stroke-width="2" fill="none"/>
+        <circle cx="187" cy="246" r="10" fill="#b3261e"/>
+        <text x="30" y="42" font-family="PingFang SC, sans-serif" font-size="12" letter-spacing="2" fill="#17171a" opacity="0.8">第 03 话 / 雨、あと</text>
+        <text x="30" y="60" font-family="Roboto, sans-serif" font-size="6.5" letter-spacing="2" fill="#17171a" opacity="0.45">SILENCE AFTER THE RAIN</text>
+        <text x="187" y="486" text-anchor="middle" font-family="PingFang SC, sans-serif" font-size="11" fill="#17171a" opacity="0.75">—— 世界安静得，只剩呼吸声。</text>
+        <text x="356" y="502" text-anchor="end" font-family="Roboto, sans-serif" font-size="7" letter-spacing="1.4" fill="#17171a" opacity="0.4">HOMURA / 013</text>
+      </svg>
+      <span class="page-no">013</span>
+    </div>
+  </div>
+
+  <p class="r-hint">左右滑动翻页 · 轻点中央呼出工具栏 · ESC 退出</p>
+
+  <footer class="r-bottom">
+    <button class="icon-btn tonal" title="上一页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5 8 12l7 7"/></svg>
+    </button>
+    <div class="r-slider">
+      <span class="r-value">012 · 第 03 话</span>
+      <div class="r-track">
+        <i></i>
+        <span class="r-thumb"></span>
+        <span class="tick" style="left:18%"></span>
+        <span class="tick" style="left:33%"></span>
+        <span class="tick" style="left:49%"></span>
+        <span class="tick" style="left:66%"></span>
+        <span class="tick" style="left:83%"></span>
+      </div>
+    </div>
+    <span class="r-pages"><b>012</b> / 198</span>
+    <button class="icon-btn filled" title="下一页">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </footer>
+
+  <div class="r-scrim"></div>
+  <aside class="r-sheet">
+    <div class="sheet-head">
+      <h3>阅读设置</h3>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body">
+      <section class="sec">
+        <div class="sec-title"><h4>阅读方向</h4><span>DIRECTION</span></div>
+        <div class="seg">
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 12h16M15 7l5 5-5 5"/></svg>
+            左→右
+          </button>
+          <button class="on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20 12H4M9 7 4 12l5 5"/></svg>
+            右→左
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 4v16M7 15l5 5 5-5"/></svg>
+            上→下
+          </button>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-title"><h4>翻页布局</h4><span>SPREAD</span></div>
+        <div class="seg">
+          <button>单页</button>
+          <button class="on">双页</button>
+        </div>
+        <div class="toggle-row">
+          <label>首页单排显示</label>
+          <div class="switch on"></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-title"><h4>字号</h4><span>TYPE SCALE</span></div>
+        <div class="type-row">
+          <button class="type-btn">A−</button>
+          <div class="slider-wrap">
+            <div class="m3-track"><i></i><span class="m3-thumb"></span></div>
+          </div>
+          <button class="type-btn">A+</button>
+          <span class="type-value">18 px</span>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-title"><h4>阅读表面</h4><span>SURFACE</span></div>
+        <div class="surface-grid">
+          <div class="surface-card light">
+            <div class="paper"><i></i><i></i><i></i></div>
+            <div class="cap">白昼</div>
+          </div>
+          <div class="surface-card warm">
+            <div class="paper"><i></i><i></i><i></i></div>
+            <div class="cap">护眼</div>
+          </div>
+          <div class="surface-card dark on">
+            <div class="paper"><i></i><i></i><i></i></div>
+            <div class="cap">夜间</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-title"><h4>主题色</h4><span>DYNAMIC COLOR</span></div>
+        <div class="color-row">
+          <span class="pc blue"><i></i></span>
+          <span class="pc red on"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m5 12 5 5L19 7"/></svg></span>
+          <span class="pc green"><i></i></span>
+          <span class="pc purple"><i></i></span>
+          <span class="pc-label">朱红 · 默认</span>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-title"><h4>翻页过渡</h4><span>MOTION</span></div>
+        <div class="trans-chips">
+          <button class="fchip on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 12 5 5L19 7"/></svg>
+            丝滑平移
+          </button>
+          <button class="fchip">淡入</button>
+          <button class="fchip">无动画</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="sheet-foot">
+      <button class="m3-btn text">恢复默认</button>
+      <button class="m3-btn filled">完成</button>
+    </div>
+  </aside>
+</section>
+
+<script>
+  (function () {
+    if (!location.hash) {
+      document.body.classList.add('overview');
+      var shelf = document.getElementById('ab-shelf');
+      var shelfDark = shelf.cloneNode(true);
+      shelfDark.id = 'ab-shelf-dark';
+      shelfDark.classList.add('dark');
+      shelf.after(shelfDark);
+      var reader = document.getElementById('ab-reader');
+      var readerSettings = reader.cloneNode(true);
+      readerSettings.id = 'ab-reader-settings';
+      readerSettings.classList.add('settings-open');
+      readerSettings.querySelector('.r-sheet').style.transition = 'none';
+      readerSettings.querySelector('.r-scrim').style.transition = 'none';
+      reader.after(readerSettings);
+      return;
+    }
+    var hash = location.hash.replace('#', '');
+    var map = { 'shelf': 'ab-shelf', 'shelf-dark': 'ab-shelf', 'reader': 'ab-reader', 'reader-settings': 'ab-reader' };
+    var target = map[hash] || 'ab-shelf';
+    document.querySelectorAll('.artboard').forEach(function (a) {
+      a.classList.toggle('active', a.id === target);
+    });
+    if (target === 'ab-shelf') {
+      document.getElementById('ab-shelf').classList.toggle('dark', hash === 'shelf-dark');
+    }
+    if (hash === 'reader-settings') {
+      var reader = document.getElementById('ab-reader');
+      reader.classList.add('settings-open');
+      reader.querySelector('.r-sheet').style.transition = 'none';
+      reader.querySelector('.r-scrim').style.transition = 'none';
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+<title>HOMURA · M3 移动端 — UI 效果图</title>
+<style>
+  /* ==========================================================================
+     HOMURA · Material Design 3 · Mobile
+     画板 390 × 844，无外部图片，封面全部 CSS 生成
+     ========================================================================== */
+  :root { --sans: "Roboto", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: #0d0807; }
+  body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+  .artboard {
+    position: relative; width: 390px; height: 844px; overflow: hidden;
+    display: none; color: var(--on-surface); background: var(--surface);
+    /* M3 light · red seed */
+    --primary: #b3261e;
+    --on-primary: #ffffff;
+    --primary-container: #ffdad5;
+    --on-primary-container: #410e0b;
+    --secondary-container: #ffdad6;
+    --on-secondary-container: #2c1512;
+    --surface: #fff8f6;
+    --surface-low: #fff0ed;
+    --surface-container: #fcebe8;
+    --surface-high: #f6e5e2;
+    --surface-highest: #f0dfdc;
+    --on-surface: #221a19;
+    --variant: #534341;
+    --outline: #857371;
+    --outline-variant: #d8c2bf;
+    --e1: 0 1px 2px rgba(60,30,25,.10), 0 1px 3px 1px rgba(60,30,25,.06);
+    --e2: 0 2px 6px 2px rgba(60,30,25,.08), 0 1px 2px rgba(60,30,25,.12);
+    --e3: 0 6px 16px 4px rgba(60,30,25,.10), 0 2px 4px rgba(60,30,25,.14);
+  }
+  .artboard.dark {
+    --primary: #ffb4ab;
+    --on-primary: #690005;
+    --primary-container: #93000a;
+    --on-primary-container: #ffdad6;
+    --secondary-container: #5d3f3b;
+    --on-secondary-container: #ffdad6;
+    --surface: #1a1110;
+    --surface-low: #221a19;
+    --surface-container: #261d1c;
+    --surface-high: #312826;
+    --surface-highest: #3c3231;
+    --on-surface: #f1dfdc;
+    --variant: #d8c2bf;
+    --outline: #a08c89;
+    --outline-variant: #534341;
+    --e1: 0 1px 3px rgba(0,0,0,.5);
+    --e2: 0 2px 8px rgba(0,0,0,.5);
+    --e3: 0 8px 24px rgba(0,0,0,.6);
+  }
+  .artboard.active { display: block; }
+  body.overview { padding: 24px 0; }
+  body.overview .artboard { display: block; margin: 0 auto 26px; border-radius: 26px; box-shadow: 0 0 0 1px rgba(255,255,255,.16); }
+
+  /* ---------- 基础 M3 控件 ---------- */
+  .ibtn {
+    width: 40px; height: 40px; flex: 0 0 40px; border: 0; border-radius: 50%;
+    display: grid; place-items: center; background: transparent;
+    color: var(--on-surface); cursor: pointer;
+  }
+  .ibtn svg { width: 22px; height: 22px; }
+  .ibtn.on { background: var(--primary-container); color: var(--on-primary-container); }
+  .seg {
+    display: flex; height: 40px; padding: 3px; border-radius: 20px;
+    background: var(--surface-container);
+  }
+  .seg button {
+    flex: 1; border: 0; border-radius: 17px; background: transparent;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--on-surface); cursor: pointer;
+  }
+  .seg button.on { background: var(--primary); color: var(--on-primary); }
+
+  /* ---------- 状态栏 ---------- */
+  .status {
+    height: 44px; padding: 0 26px 0 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 500; letter-spacing: .02em; color: var(--on-surface);
+  }
+  .status .r { display: flex; align-items: center; gap: 5px; }
+  .status svg { width: 17px; height: 17px; opacity: .9; }
+
+  /* ==========================================================================
+     书 架
+     ========================================================================== */
+  .appbar { height: 56px; padding: 0 10px 0 18px; display: flex; align-items: center; gap: 10px; }
+  .appbar h1 { margin: 0; font-size: 24px; font-weight: 500; letter-spacing: -.01em; flex: 1; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: 0 0 34px;
+    background: var(--primary-container); color: var(--on-primary-container);
+    display: grid; place-items: center; font-size: 13px; font-weight: 500;
+  }
+
+  .searchbar {
+    margin: 4px 16px 0; height: 56px; border-radius: 28px;
+    background: var(--surface-high); display: flex; align-items: center; gap: 12px; padding: 0 14px 0 18px;
+    color: var(--variant);
+  }
+  .searchbar svg { width: 22px; height: 22px; flex: 0 0 22px; }
+  .searchbar span { flex: 1; font-size: 15px; color: var(--variant); }
+  .searchbar .mic { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-highest); display: grid; place-items: center; }
+  .searchbar .mic svg { width: 18px; height: 18px; }
+
+  .chips { display: flex; gap: 8px; padding: 12px 16px 0; overflow: hidden; }
+  .chip {
+    height: 32px; padding: 0 13px; border-radius: 16px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--outline-variant); color: var(--on-surface);
+    font-size: 12px; font-weight: 500;
+  }
+  .chip b { font-weight: 400; font-size: 11px; color: var(--variant); }
+  .chip.on { background: var(--secondary-container); border-color: transparent; color: var(--on-secondary-container); }
+  .chip.on b { color: var(--on-secondary-container); }
+
+  .sec { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 8px; }
+  .sec h2 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: .01em; }
+  .sec .more { font-size: 12px; font-weight: 500; color: var(--primary); }
+  .sec .sub { font-size: 11.5px; color: var(--variant); }
+
+  /* 继续阅读 */
+  .hero {
+    margin: 0 16px; height: 96px; border-radius: 20px; padding: 10px 12px;
+    background: var(--surface-container);
+    display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden;
+  }
+  .hero .mini-cover { width: 56px; height: 76px; border-radius: 10px; flex: 0 0 56px; overflow: hidden; }
+  .hero .info { flex: 1; min-width: 0; }
+  .hero .info .kicker { font-size: 10.5px; letter-spacing: .08em; color: var(--variant); }
+  .hero .info h3 { margin: 3px 0 0; font-size: 16px; font-weight: 500; letter-spacing: -.01em; }
+  .hero .info p { margin: 3px 0 0; font-size: 11.5px; color: var(--variant); }
+  .hero .track { height: 3px; border-radius: 2px; background: var(--surface-highest); margin-top: 9px; overflow: hidden; }
+  .hero .track i { display: block; height: 100%; width: 46%; background: var(--primary); border-radius: 2px; }
+  .hero .go {
+    width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%;
+    background: var(--primary); color: var(--on-primary); display: grid; place-items: center;
+  }
+  .hero .go svg { width: 22px; height: 22px; }
+
+  /* 书籍网格 */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; padding: 4px 16px 0; }
+  .bcard { min-width: 0; }
+  .bcard .cover {
+    height: 132px; border-radius: 12px; overflow: hidden; position: relative;
+    background: var(--surface-highest);
+  }
+  .bcard .cover .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0,0,0,.28); }
+  .bcard .cover .bar i { display: block; height: 100%; background: var(--primary); }
+  .bcard .t { margin: 7px 0 0; font-size: 12.5px; font-weight: 500; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bcard .m { margin: 2px 0 0; font-size: 10.5px; color: var(--variant); }
+
+  /* 底部导航 */
+  .bnav {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 80px;
+    background: var(--surface-container); padding: 8px 6px 12px;
+    display: flex; align-items: center;
+  }
+  .bnav .item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 11px; color: var(--variant); letter-spacing: .01em;
+  }
+  .bnav .item svg { width: 24px; height: 24px; }
+  .bnav .item.on { color: var(--primary); font-weight: 500; }
+  .bnav .item.on svg { transform: translateY(-1px); }
+
+  /* ==========================================================================
+     封 面（CSS 生成）
+     ========================================================================== */
+  .cover-art { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; position: relative; }
+  .cover-art .ct { font-size: 11px; font-weight: 700; line-height: 1.25; letter-spacing: .01em; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .cover-art .cs { font-size: 7px; letter-spacing: .16em; color: rgba(255,255,255,.72); margin-top: 3px; }
+  .cover-art .shape { position: absolute; border-radius: 50%; }
+
+  .cover-art.c1 { background: linear-gradient(160deg, #7b4b33 0%, #b3704c 45%, #e2a87c 100%); }
+  .c1 .shape { width: 70px; height: 70px; right: -18px; top: -16px; background: rgba(255,241,222,.28); }
+  .cover-art.c2 { background: linear-gradient(155deg, #1f4f73 0%, #3f7f9c 46%, #9ad0cf 100%); }
+  .c2 .shape { width: 54px; height: 54px; left: -12px; top: 16px; background: rgba(255,255,255,.22); }
+  .cover-art.c3 { background: linear-gradient(150deg, #2c2a3a 0%, #4b4260 48%, #8b6f8f 100%); }
+  .c3 .shape { width: 90px; height: 3px; left: 8px; top: 44px; border-radius: 2px; background: rgba(255,255,255,.5); }
+  .cover-art.c4 { background: linear-gradient(160deg, #a03b2c 0%, #d97444 50%, #f2c078 100%); }
+  .c4 .shape { width: 46px; height: 46px; right: 10px; top: 12px; background: rgba(255,248,235,.35); }
+  .cover-art.c5 { background: linear-gradient(165deg, #1b2a45 0%, #3c5578 45%, #86a3c6 100%); }
+  .c5 .shape { width: 3px; height: 80px; right: 22px; top: 18px; border-radius: 2px; background: rgba(255,255,255,.4); }
+  .cover-art.c6 { background: linear-gradient(150deg, #4a5a3c 0%, #7d9265 48%, #c4cf9e 100%); }
+  .c6 .shape { width: 62px; height: 62px; left: -16px; bottom: 22px; background: rgba(255,255,255,.20); }
+
+  /* ==========================================================================
+     阅 读 器
+     ========================================================================== */
+  .reader-bg { position: absolute; inset: 0; background: radial-gradient(circle at 50% 38%, #2a1d1b 0%, #150e0d 62%, #0d0807 100%); }
+  .r-status { position: absolute; top: 0; left: 0; right: 0; height: 44px; padding: 0 26px 0 30px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; color: #f1dfdc; z-index: 3; }
+  .r-status svg { width: 17px; height: 17px; opacity: .85; }
+  .r-status .r { display: flex; gap: 5px; }
+
+  .r-bar {
+    position: absolute; top: 44px; left: 0; right: 0; height: 60px; z-index: 3;
+    display: flex; align-items: center; gap: 8px; padding: 0 8px 0 8px;
+    background: linear-gradient(180deg, rgba(21,14,13,.92) 0%, rgba(21,14,13,.55) 72%, rgba(21,14,13,0) 100%);
+  }
+  .r-bar .ibtn { color: #f1dfdc; }
+  .r-bar .titles { flex: 1; min-width: 0; padding-left: 2px; }
+  .r-bar .titles h3 { margin: 0; font-size: 14px; font-weight: 500; color: #f1dfdc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .r-bar .titles p { margin: 2px 0 0; font-size: 10.5px; color: #b8a29f; }
+
+  /* 漫画页 */
+  .page-slot { position: absolute; top: 112px; left: 0; right: 0; bottom: 176px; display: grid; place-items: center; z-index: 2; }
+  .mpage {
+    width: 310px; height: 100%; max-height: 466px; background: #fbf7f0;
+    border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 7px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.55);
+  }
+  .panel { position: relative; overflow: hidden; border: 2px solid #17130f; border-radius: 2px; flex: 1; }
+  .p1 { flex: 1.45; background: linear-gradient(180deg, #fdfaf3 0%, #dfe7ee 62%, #c3d0da 100%); }
+  .p1 .sun { position: absolute; right: 34px; top: 26px; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #fff8e3 30%, rgba(255,255,255,0) 72%); border: 1.5px solid #17130f; }
+  .p1 .hill { position: absolute; left: -10%; right: -10%; bottom: -26px; height: 70px; border-top: 2px solid #17130f; border-radius: 50% 50% 0 0; background: repeating-linear-gradient(115deg, #3d4a52 0 2px, #6d7d86 2px 7px); opacity: .85; }
+  .p1 .bird { position: absolute; left: 60px; top: 34px; width: 16px; height: 8px; border-top: 2px solid #17130f; border-radius: 50%; }
+  .bubble {
+    position: absolute; left: 14px; bottom: 14px; background: #fbf7f0; border: 1.5px solid #17130f;
+    border-radius: 14px; padding: 6px 10px; font-size: 11px; color: #17130f; line-height: 1.35;
+    box-shadow: 2px 2px 0 #17130f;
+  }
+  .prow { display: flex; gap: 7px; flex: 1; }
+  .p2 { background: linear-gradient(200deg, #f6efe4 0%, #cfc2ae 100%); }
+  .p2 .fig { position: absolute; left: 22px; bottom: 0; width: 40px; height: 56px; background: #1b1713; border-radius: 46% 46% 4px 4px; }
+  .p2 .fig::before { content: ""; position: absolute; left: 50%; top: -16px; width: 24px; height: 24px; transform: translateX(-50%); border-radius: 50%; background: #1b1713; }
+  .p3 { background: #fbf7f0; }
+  .p3 .speed { position: absolute; inset: 0; background: repeating-conic-gradient(from 0deg at 60% 50%, #17130f 0deg .5deg, transparent .5deg 5deg); opacity: .5; }
+  .p3 .sfx { position: absolute; right: 14px; bottom: 8px; font-size: 24px; font-weight: 700; color: #17130f; transform: rotate(-8deg); }
+  .p4 { flex: .95; background: linear-gradient(160deg, #efe6d8 0%, #c9b8a3 100%); }
+  .p4 .win { position: absolute; left: 16px; right: 16px; top: 14px; height: 40%; background: #9fb2c0; border: 2px solid #17130f; }
+  .p4 .win::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #17130f; }
+  .p4 .desk { position: absolute; left: 22px; right: 22px; bottom: 12px; height: 26px; background: #6b5544; border: 2px solid #17130f; }
+
+  /* 手势提示 */
+  .hint {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 190px; z-index: 3;
+    height: 30px; padding: 0 14px; border-radius: 15px;
+    background: rgba(241,223,220,.12); color: #e8d6d3; font-size: 10.5px; letter-spacing: .02em;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    border: 1px solid rgba(241,223,220,.14);
+  }
+  .hint svg { width: 13px; height: 13px; opacity: .8; }
+
+  /* 章节快速跳 */
+  .chtab {
+    position: absolute; right: 0; top: 210px; z-index: 3;
+    width: 30px; height: 132px; border-radius: 15px 0 0 15px;
+    background: rgba(241,223,220,.10); border: 1px solid rgba(241,223,220,.14); border-right: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    color: #d8c2bf;
+  }
+  .chtab svg { width: 16px; height: 16px; }
+  .chtab span { font-size: 9px; writing-mode: vertical-rl; letter-spacing: .14em; }
+
+  /* 底部控制浮层 */
+  .r-controls {
+    position: absolute; left: 12px; right: 12px; bottom: 18px; z-index: 4;
+    border-radius: 28px; background: rgba(49,40,38,.92); backdrop-filter: blur(12px);
+    border: 1px solid rgba(241,223,220,.10); padding: 10px 12px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.55);
+  }
+  .r-controls .top { display: flex; align-items: center; justify-content: space-between; padding: 0 6px; }
+  .r-controls .chap-pill {
+    height: 24px; padding: 0 10px; border-radius: 12px; background: rgba(255,180,171,.14);
+    color: #ffb4ab; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .r-controls .chap-pill svg { width: 13px; height: 13px; }
+  .r-controls .num { font-size: 12px; color: #d8c2bf; font-variant-numeric: tabular-nums; }
+  .r-controls .num b { color: #f1dfdc; font-weight: 500; font-size: 13px; }
+  .slider { height: 26px; display: flex; align-items: center; padding: 0 8px; position: relative; }
+  .slider .rail { position: relative; flex: 1; height: 4px; border-radius: 2px; background: rgba(241,223,220,.18); }
+  .slider .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; border-radius: 2px; background: #ffb4ab; }
+  .slider .thumb {
+    position: absolute; left: 46%; top: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%);
+    border-radius: 50%; background: #ffb4ab; box-shadow: 0 0 0 7px rgba(255,180,171,.16);
+  }
+  .r-controls .btns { display: flex; align-items: center; padding: 2px 2px 0; }
+  .r-controls .btns .ibtn { color: #f1dfdc; width: 44px; height: 44px; flex: 0 0 44px; }
+  .r-controls .btns .ibtn svg { width: 20px; height: 20px; }
+  .r-controls .btns .mid { flex: 1; text-align: center; font-size: 11px; color: #b8a29f; letter-spacing: .04em; }
+
+  /* ==========================================================================
+     阅 读 设 置（Bottom Sheet）
+     ========================================================================== */
+  .sheet-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.52); z-index: 6; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+    height: 648px; border-radius: 28px 28px 0 0;
+    background: var(--surface-low);
+    padding: 0 20px 18px; color: var(--on-surface);
+    display: flex; flex-direction: column;
+    box-shadow: 0 -8px 32px rgba(0,0,0,.5);
+  }
+  .handle { width: 32px; height: 4px; border-radius: 2px; background: var(--outline-variant); margin: 8px auto 2px; }
+  .sheet-head { display: flex; align-items: center; padding: 6px 0 2px; }
+  .sheet-head h3 { margin: 0; flex: 1; font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+  .sheet-head .ibtn { color: var(--variant); }
+
+  .sblock { padding-top: 14px; }
+  .sblock .lab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .sblock .lab span { font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--variant); }
+  .sblock .lab b { font-size: 12px; font-weight: 500; color: var(--primary); }
+
+  /* 字号滑杆 */
+  .font-row { display: flex; align-items: center; gap: 12px; }
+  .font-row .a { font-weight: 500; color: var(--variant); }
+  .font-row .a.sm { font-size: 13px; }
+  .font-row .a.lg { font-size: 18px; }
+  .font-slider { flex: 1; height: 32px; display: flex; align-items: center; position: relative; }
+  .font-slider .rail { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--surface-highest); }
+  .font-slider .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 55%; border-radius: 2px; background: var(--primary); }
+  .font-slider .thumb {
+    position: absolute; left: 55%; top: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%);
+    border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 16%, transparent);
+  }
+  .font-slider .val {
+    position: absolute; left: 55%; top: -16px; transform: translateX(-50%);
+    font-size: 10px; padding: 2px 7px; border-radius: 8px; background: var(--surface-highest); color: var(--on-surface);
+  }
+
+  /* 阅读表面缩略 */
+  .surfaces { display: flex; gap: 10px; }
+  .surf {
+    flex: 1; height: 68px; border-radius: 12px; position: relative; overflow: hidden;
+    display: flex; align-items: flex-end; padding: 6px;
+    border: 1px solid transparent;
+  }
+  .surf span { font-size: 10px; }
+  .surf.s1 { background: #fffaf4; border-color: var(--outline-variant); }
+  .surf.s1 span { color: #40342f; }
+  .surf.s2 { background: #f2e6cf; border-color: var(--outline-variant); }
+  .surf.s2 span { color: #473a2c; }
+  .surf.s3 { background: #171211; }
+  .surf.s3 span { color: #e9dad5; }
+  .surf .pick {
+    position: absolute; right: 6px; top: 6px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); color: var(--on-primary); display: grid; place-items: center;
+  }
+  .surf .pick svg { width: 12px; height: 12px; }
+
+  /* 主题色 */
+  .swatches { display: flex; gap: 14px; align-items: center; }
+  .sw { width: 30px; height: 30px; border-radius: 50%; position: relative; }
+  .sw.on::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 50%;
+    border: 2px solid var(--on-surface);
+  }
+  .sw.on svg { position: absolute; inset: 0; margin: auto; width: 15px; height: 15px; color: #fff; }
+  .sw.blue { background: #2f6bd8; }
+  .sw.red { background: #b3261e; }
+  .sw.green { background: #2e7d5b; }
+  .sw.purple { background: #7a4bd0; }
+  .swatches .cap { margin-left: auto; font-size: 11px; color: var(--variant); }
+
+  /* 过渡 chips */
+  .tchips { display: flex; gap: 8px; }
+  .tchip { height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid var(--outline-variant); font-size: 12px; color: var(--on-surface); display: inline-flex; align-items: center; }
+  .tchip.on { background: var(--secondary-container); border-color: transparent; color: var(--on-secondary-container); font-weight: 500; }
+
+  .sheet-foot { margin-top: auto; display: flex; gap: 10px; padding-top: 14px; }
+  .btn { height: 44px; border-radius: 22px; border: 0; font-family: var(--sans); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn.text { flex: 1; background: transparent; color: var(--primary); }
+  .btn.filled { flex: 1.3; background: var(--primary); color: var(--on-primary); }
+</style>
+</head>
+<body>
+
+<!-- ============================ 书架 · 亮色 ============================ -->
+<section class="artboard" id="m-shelf">
+  <div class="status">
+    <span>9:41</span>
+    <div class="r">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8.5a14 14 0 0 1 20 0M6 12.5a9 9 0 0 1 12 0M9.5 16.5a4 4 0 0 1 5 0"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="10" rx="3"/><rect x="4" y="9" width="12" height="6" rx="1.6" fill="currentColor"/><path d="M22 10.5v3"/></svg>
+    </div>
+  </div>
+
+  <div class="appbar">
+    <h1>书架</h1>
+    <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M7 12h10M10 17h4"/></svg></div>
+    <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/></svg></div>
+    <div class="avatar">猫</div>
+  </div>
+
+  <div class="searchbar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8 20 20"/></svg>
+    <span>搜索书名、作者</span>
+    <div class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></div>
+  </div>
+
+  <div class="chips">
+    <div class="chip on">全部 <b>12</b></div>
+    <div class="chip">漫画 <b>8</b></div>
+    <div class="chip">轻小说 <b>4</b></div>
+    <div class="chip">最近</div>
+  </div>
+
+  <div class="sec"><h2>继续阅读</h2><span class="more">全部</span></div>
+  <div class="hero">
+    <div class="mini-cover cover-art c1">
+      <div class="shape"></div>
+      <div class="ct">猫与<br>旧书店</div>
+      <div class="cs">NEKO</div>
+    </div>
+    <div class="info">
+      <div class="kicker">第 12 话 · 雨天的客人</div>
+      <h3>猫与旧书店</h3>
+      <p>上次读到 46% · 2 小时前</p>
+      <div class="track"><i></i></div>
+    </div>
+    <div class="go"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6c0 .8.9 1.3 1.5.8l9.4-6.8a1 1 0 0 0 0-1.6L9.5 4.4A1 1 0 0 0 8 5.2z"/></svg></div>
+  </div>
+
+  <div class="sec"><h2>全部书籍</h2><span class="sub">12 本 · 按最近打开</span></div>
+  <div class="grid">
+    <div class="bcard">
+      <div class="cover cover-art c1"><div class="shape"></div><div class="ct">猫与旧书店</div><div class="cs">NEKO BOOKSTORE</div><div class="bar"><i style="width:46%"></i></div></div>
+      <p class="t">猫与旧书店</p>
+      <p class="m">漫画 · 46%</p>
+    </div>
+    <div class="bcard">
+      <div class="cover cover-art c2"><div class="shape"></div><div class="ct">夏日回声</div><div class="cs">SUMMER ECHO</div><div class="bar"><i style="width:22%"></i></div></div>
+      <p class="t">夏日回声</p>
+      <p class="m">漫画 · 22%</p>
+    </div>
+    <div class="bcard">
+      <div class="cover cover-art c3"><div class="shape"></div><div class="ct">终末列车</div><div class="cs">LAST TRAIN</div><div class="bar"><i style="width:70%"></i></div></div>
+      <p class="t">终末列车</p>
+      <p class="m">漫画 · 70%</p>
+    </div>
+    <div class="bcard">
+      <div class="cover cover-art c4"><div class="shape"></div><div class="ct">海街食堂</div><div class="cs">SEASIDE</div><div class="bar"><i style="width:0%"></i></div></div>
+      <p class="t">海街食堂</p>
+      <p class="m">轻小说 · 未读</p>
+    </div>
+    <div class="bcard">
+      <div class="cover cover-art c5"><div class="shape"></div><div class="ct">星屑邮便局</div><div class="cs">STARDUST</div><div class="bar"><i style="width:64%"></i></div></div>
+      <p class="t">星屑邮便局</p>
+      <p class="m">漫画 · 64%</p>
+    </div>
+    <div class="bcard">
+      <div class="cover cover-art c6"><div class="shape"></div><div class="ct">雾之国的<br>芙洛拉</div><div class="cs">FLORA</div><div class="bar"><i style="width:31%"></i></div></div>
+      <p class="t">雾之国的芙洛拉</p>
+      <p class="m">漫画 · 31%</p>
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <div class="item on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5c0-.8.7-1.5 1.5-1.5H10v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H14v16h4.5c.8 0 1.5-.7 1.5-1.5z" fill="currentColor" fill-opacity=".18"/></svg>
+      书架
+    </div>
+    <div class="item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3 2"/></svg>
+      最近
+    </div>
+    <div class="item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19s-7.2-4.2-7.2-9.2A3.9 3.9 0 0 1 12 7.3a3.9 3.9 0 0 1 7.2 2.5c0 5-7.2 9.2-7.2 9.2z"/></svg>
+      收藏
+    </div>
+    <div class="item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M7 12h10M10 17h4"/><circle cx="4" cy="7" r="1.6" fill="currentColor"/><circle cx="7" cy="12" r="1.6" fill="currentColor"/></svg>
+      设置
+    </div>
+  </nav>
+</section>
+
+<!-- ============================ 阅读器 ============================ -->
+<section class="artboard dark" id="m-reader">
+  <div class="reader-bg"></div>
+
+  <div class="r-status">
+    <span>9:41</span>
+    <div class="r">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8.5a14 14 0 0 1 20 0M6 12.5a9 9 0 0 1 12 0M9.5 16.5a4 4 0 0 1 5 0"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="10" rx="3"/><rect x="4" y="9" width="12" height="6" rx="1.6" fill="currentColor"/><path d="M22 10.5v3"/></svg>
+    </div>
+  </div>
+
+  <div class="r-bar">
+    <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></div>
+    <div class="titles">
+      <h3>猫与旧书店</h3>
+      <p>第 12 话 · 雨天的客人</p>
+    </div>
+    <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/></svg></div>
+    <div class="ibtn on" style="background:rgba(255,180,171,.14); color:#ffb4ab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h10M4 12h7M4 17h12"/><circle cx="17.5" cy="7" r="2.2"/><circle cx="15" cy="17" r="2.2"/></svg></div>
+  </div>
+
+  <div class="page-slot">
+    <div class="mpage">
+      <div class="panel p1">
+        <div class="sun"></div>
+        <div class="bird"></div>
+        <div class="hill"></div>
+        <div class="bubble">「……今天也开门了。」</div>
+      </div>
+      <div class="prow">
+        <div class="panel p2">
+          <div class="fig"></div>
+        </div>
+        <div class="panel p3">
+          <div class="speed"></div>
+          <div class="sfx">咚</div>
+        </div>
+      </div>
+      <div class="panel p4">
+        <div class="win"></div>
+        <div class="desk"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11V5.5a2 2 0 0 1 4 0V11M13 10V4.5a2 2 0 0 1 4 0V12M17 12V7a2 2 0 0 1 4 0v7a8 8 0 0 1-8 8h-1.2a7 7 0 0 1-5.3-2.4L3 15.4a2 2 0 0 1 3.2-2.4L9 16"/></svg>
+    轻点左侧上一页 · 右侧下一页 · 中间唤出工具栏
+  </div>
+
+  <div class="chtab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>章节 12 / 24</span>
+  </div>
+
+  <div class="r-controls">
+    <div class="top">
+      <div class="chap-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h11a3 3 0 0 1 3 3v13l-5.5-3-5.5 3z"/></svg>
+        第 12 话
+      </div>
+      <div class="num"><b>12</b> / 24</div>
+    </div>
+    <div class="slider">
+      <div class="rail"><i></i><div class="thumb"></div></div>
+    </div>
+    <div class="btns">
+      <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M14.5 5 7.5 12l7 7"/></svg></div>
+      <div class="mid">单页 · 右→左</div>
+      <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9.5 5l7 7-7 7"/></svg></div>
+    </div>
+  </div>
+</section>
+
+<!-- 设置抽屉模板 -->
+<template id="sheet-tpl">
+  <div class="sheet-scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-head">
+      <h3>阅读设置</h3>
+      <div class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 6l12 12M18 6l-12 12"/></svg></div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>阅读方向</span></div>
+      <div class="seg">
+        <button>左→右</button>
+        <button class="on">右→左</button>
+        <button>上→下</button>
+      </div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>页面布局</span><b>单页</b></div>
+      <div class="seg">
+        <button class="on">单页</button>
+        <button>双页</button>
+      </div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>字号</span><b>17 pt</b></div>
+      <div class="font-row">
+        <span class="a sm">A</span>
+        <div class="font-slider">
+          <div class="val">17</div>
+          <div class="rail"><i></i><div class="thumb"></div></div>
+        </div>
+        <span class="a lg">A</span>
+      </div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>阅读表面</span></div>
+      <div class="surfaces">
+        <div class="surf s1"><span>白昼</span></div>
+        <div class="surf s2"><span>护眼</span></div>
+        <div class="surf s3"><span>夜间</span>
+          <div class="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>主题色</span></div>
+      <div class="swatches">
+        <div class="sw blue"></div>
+        <div class="sw red on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <div class="sw green"></div>
+        <div class="sw purple"></div>
+        <div class="cap">跟随封面取色</div>
+      </div>
+    </div>
+
+    <div class="sblock">
+      <div class="lab"><span>翻页过渡</span></div>
+      <div class="tchips">
+        <div class="tchip">无</div>
+        <div class="tchip on">滑动</div>
+        <div class="tchip">淡入</div>
+      </div>
+    </div>
+
+    <div class="sheet-foot">
+      <button class="btn text">恢复默认</button>
+      <button class="btn filled">完成</button>
+    </div>
+  </div>
+</template>
+
+<script>
+(function () {
+  var body = document.body;
+  function withSheet(ab) {
+    var frag = document.getElementById('sheet-tpl').content.cloneNode(true);
+    ab.appendChild(frag);
+    ab.classList.add('settings-open');
+    var sheet = ab.querySelector('.sheet');
+    var scrim = ab.querySelector('.sheet-scrim');
+    if (sheet) sheet.style.transition = 'none';
+    if (scrim) scrim.style.transition = 'none';
+    return ab;
+  }
+
+  if (!location.hash) {
+    body.classList.add('overview');
+    var shelf = document.getElementById('m-shelf');
+    var shelfDark = shelf.cloneNode(true);
+    shelfDark.id = 'm-shelf-dark';
+    shelfDark.classList.add('dark');
+    shelf.after(shelfDark);
+
+    var reader = document.getElementById('m-reader');
+    var settings = withSheet(reader.cloneNode(true));
+    settings.id = 'm-settings';
+    reader.after(settings);
+    return;
+  }
+
+  var hash = location.hash.replace('#', '');
+  var map = {
+    shelf: 'm-shelf',
+    'shelf-dark': 'm-shelf',
+    reader: 'm-reader',
+    settings: 'm-reader'
+  };
+  var target = map[hash] || 'm-shelf';
+  document.querySelectorAll('.artboard').forEach(function (a) {
+    a.classList.toggle('active', a.id === target);
+  });
+  if (target === 'm-shelf') {
+    document.getElementById('m-shelf').classList.toggle('dark', hash === 'shelf-dark');
+  }
+  if (hash === 'settings') {
+    withSheet(document.getElementById('m-reader'));
+  }
+})();
+</script>
+</body>
+</html>

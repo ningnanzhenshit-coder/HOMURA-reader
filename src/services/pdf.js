@@ -76,10 +76,18 @@ async function renderPageBlob(pdfDoc, pageIndex, targetWidth) {
 export async function openPdfDocument(file) {
   const pdfjs = await loadPdfjs();
   const data = await file.arrayBuffer();
+  // CMap / 标准字体 / wasm 解码器由 vite-static-copy 放在 dist/pdfjs 下：
+  // 缺了它们，CJK 非嵌入字体和 JPX/JBIG2 扫描页都会渲染成空白
+  const assetBase = new URL('pdfjs/', document.baseURI).href;
   return pdfjs.getDocument({
     data,
     // 关掉 eval 渲染路径，降低恶意 PDF 注入脚本的风险
-    isEvalSupported: false
+    isEvalSupported: false,
+    cMapUrl: assetBase + 'cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: assetBase + 'standard_fonts/',
+    wasmUrl: assetBase + 'wasm/',
+    iccUrl: assetBase + 'iccs/'
   }).promise;
 }
 
