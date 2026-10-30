@@ -6,7 +6,7 @@
    ========================================================================== */
 
 import { Marked } from 'marked';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, isSafeLinkUrl } from './utils.js';
 
 const marked = new Marked({
   gfm: true,
@@ -15,16 +15,6 @@ const marked = new Marked({
   async: false
 });
 
-function isSafeUrl(url) {
-  const value = (url || '').trim();
-  if (!value) return false;
-  // 去掉可能藏在协议前的空白/控制字符，再判断协议
-  const probe = value.replace(/[\u0000-\u0020]/g, '');
-  const match = probe.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
-  if (!match) return true; // 相对路径、锚点
-  return ['http', 'https', 'mailto', 'tel'].includes(match[1].toLowerCase());
-}
-
 marked.use({
   renderer: {
     // 原始 HTML 一律转义展示，不交给浏览器执行
@@ -32,12 +22,12 @@ marked.use({
       return escapeHtml(text);
     },
     link({ href, title, text }) {
-      if (!isSafeUrl(href)) return text;
+      if (!isSafeLinkUrl(href)) return text;
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       return `<a href="${escapeHtml(href)}"${titleAttr}>${text}</a>`;
     },
     image({ href, text }) {
-      if (!isSafeUrl(href)) return escapeHtml(text || '');
+      if (!isSafeLinkUrl(href)) return escapeHtml(text || '');
       const titleAttr = text ? ` alt="${escapeHtml(text)}"` : '';
       return `<img src="${escapeHtml(href)}"${titleAttr}>`;
     }

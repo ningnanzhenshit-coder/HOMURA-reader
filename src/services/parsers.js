@@ -9,6 +9,7 @@ import JSZip from 'jszip';
 import { showToast } from '../composables/useToast.js';
 import { escapeHtml } from './utils.js';
 import { renderMarkdown } from './markdown.js';
+import { sanitizeEpubHtml } from './sanitize.js';
 import { parseMobiBuffer, mobiErrorText } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 
@@ -113,7 +114,7 @@ export async function parseEpubFileLazy(file) {
 
       const chapterHeading = htmlDoc.querySelector('h1, h2, h3, title')?.textContent?.trim()
         || item.href.split('/').pop().replace(/\.[^.]+$/, '');
-      const bodyHtml = htmlDoc.body ? htmlDoc.body.innerHTML.trim() : rawHtml;
+      const bodyHtml = sanitizeEpubHtml(htmlDoc.body ? htmlDoc.body.innerHTML : rawHtml);
 
       if (bodyHtml.length > 0) {
         chapters.push({
@@ -133,6 +134,7 @@ export async function parseEpubFileLazy(file) {
       return {
         id: 'epub_manga_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         type: 'manga',
+        format: 'epub',
         title: bookTitle,
         cover: coverUrl,
         coverBlob: firstBlob,
@@ -153,6 +155,7 @@ export async function parseEpubFileLazy(file) {
     return {
       id: 'epub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       type: 'epub',
+      format: 'epub',
       title: bookTitle,
       cover: coverUrl,
       coverBlob: coverBlob,
@@ -195,6 +198,7 @@ export async function parseCbzFileLazy(file) {
     return {
       id: 'cbz_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       type: 'manga',
+      format: 'cbz',
       title: title,
       cover: firstUrl,
       coverBlob: firstBlob,
@@ -291,6 +295,7 @@ export function parseTxtFile(txtFile) {
       resolve({
         id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         type: 'novel',
+        format: 'txt',
         title: title,
         cover: null,
         coverBlob: null,
@@ -361,6 +366,7 @@ export function parseMarkdownFile(mdFile) {
       resolve({
         id: 'md_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         type: 'novel',
+        format: 'markdown',
         title: title,
         cover: null,
         coverBlob: null,
@@ -429,6 +435,7 @@ export function buildImageFolderBooks(imgFiles) {
       book: {
         id: 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         type: 'manga',
+        format: 'images',
         title: folderName,
         cover: firstCoverUrl,
         coverBlob: groupImgs[0],
