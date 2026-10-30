@@ -1,6 +1,6 @@
 [package]
 name = "homura-reader"
-version = "2.1.1"
+version = "2.1.2"
 description = "HOMURA — ACGN GO 本地漫画与轻小说阅读器"
 authors = ["HOMURA"]
 edition = "2021"
