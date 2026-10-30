@@ -7,7 +7,7 @@
 import { useShelfStore } from '../stores/shelf.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
-import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from '../services/parsers.js';
+import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from '../services/parsers.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
 import { showToast } from './useToast.js';
 
@@ -59,6 +59,12 @@ export function useImporter() {
       if (book) addBook(book, makeFileSource(archiveFile));
     }
 
+    const mobiFiles = files.filter(f => /\.(mobi|prc|azw)$/i.test(f.name));
+    for (const mobiFile of mobiFiles) {
+      const book = await parseMobiFileLazy(mobiFile);
+      if (book) addBook(book, makeFileSource(mobiFile));
+    }
+
     const mdFiles = files.filter(f => /\.md$/i.test(f.name));
     for (const mdFile of mdFiles) {
       const book = await parseMarkdownFile(mdFile);
@@ -83,7 +89,7 @@ export function useImporter() {
       showToast(`已秒速添加 ${importedCount} 部作品到书架`);
       await warnIfStorageTight();
     } else {
-      showToast('未找到支持的漫画或小说格式 (.epub / .pdf / .cbz / .zip / .txt / .md / 图片)');
+      showToast('未找到支持的漫画或小说格式 (.epub / .pdf / .mobi / .cbz / .zip / .txt / .md / 图片)');
     }
   }
 

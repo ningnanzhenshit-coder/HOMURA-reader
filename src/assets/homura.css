@@ -737,6 +737,26 @@
       border: 0;
       border-top: 1px solid var(--md-outline-variant);
     }
+
+    /* MOBI：旧式 <font size> 标题与居中段落 */
+    .epub-content p[align="center"] {
+      text-indent: 0;
+      text-align: center;
+    }
+    .epub-content font[size="5"],
+    .epub-content font[size="6"],
+    .epub-content font[size="7"] {
+      font-size: 1.35em;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .epub-content font[size="4"] {
+      font-size: 1.15em;
+      font-weight: 600;
+    }
+    .epub-content font[size="3"] {
+      font-size: 1em;
+    }
     .rtl-slider {
       direction: rtl;
     }

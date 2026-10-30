@@ -13,7 +13,9 @@ export const useUiStore = defineStore('ui', () => {
   const readerChromeVisible = ref(true);
   const settingsOpen = ref(false);
   const tocOpen = ref(false);
+  const fullscreen = ref(false);
   let hideTimer = null;
+  let fullscreenBusy = false;
 
   function clearHideTimer() {
     if (hideTimer) {
@@ -76,10 +78,42 @@ export const useUiStore = defineStore('ui', () => {
     readerChromeVisible.value = true;
   }
 
+  // 全屏：Tauri 下走原生窗口全屏（WebView2 不接管网页全屏），浏览器调试环境回退 Fullscreen API
+  async function toggleFullscreen() {
+    const tauriWindow = window.__TAURI__ && window.__TAURI__.window;
+    if (tauriWindow && typeof tauriWindow.getCurrentWindow === 'function') {
+      if (fullscreenBusy) return;
+      fullscreenBusy = true;
+      try {
+        const win = tauriWindow.getCurrentWindow();
+        const next = !(await win.isFullscreen());
+        await win.setFullscreen(next);
+        fullscreen.value = next;
+      } catch (err) {
+        console.warn('[HOMURA] 切换全屏失败', err);
+      } finally {
+        fullscreenBusy = false;
+      }
+      return;
+    }
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+    } else {
+      await document.documentElement.requestFullscreen().catch(() => {});
+    }
+    fullscreen.value = !!document.fullscreenElement;
+  }
+
+  // 浏览器内 Esc 退出全屏时同步图标状态
+  document.addEventListener('fullscreenchange', () => {
+    fullscreen.value = !!document.fullscreenElement;
+  });
+
   return {
     readerChromeVisible,
     settingsOpen,
     tocOpen,
+    fullscreen,
     showChrome,
     hideChrome,
     toggleChrome,
@@ -87,6 +121,7 @@ export const useUiStore = defineStore('ui', () => {
     closeSettings,
     openToc,
     closeToc,
-    resetReaderUi
+    resetReaderUi,
+    toggleFullscreen
   };
 });

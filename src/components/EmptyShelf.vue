@@ -16,6 +16,7 @@
         <span class="px-2 py-0.5 rounded-md bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] font-semibold">.EPUB</span>
         <span class="px-2 py-0.5 rounded-md bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] font-semibold">.CBZ / .ZIP</span>
         <span class="px-2 py-0.5 rounded-md bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] font-semibold">.TXT / .MD</span>
+        <span class="px-2 py-0.5 rounded-md bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] font-semibold">.MOBI</span>
         <span class="px-2 py-0.5 rounded-md bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] border border-[var(--md-outline-variant)] font-semibold">图片文件夹</span>
       </div>
       <div class="flex items-center gap-2.5 pt-1">

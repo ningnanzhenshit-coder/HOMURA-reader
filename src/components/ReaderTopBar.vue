@@ -20,6 +20,27 @@
     </div>
 
     <div class="flex items-center gap-0.5 shrink-0">
+      <!-- 全屏切换：桌面专属，移动端窗口本身即全屏，不占位 -->
+      <button
+        @click="ui.toggleFullscreen()"
+        class="hidden min-[900px]:grid w-10 h-10 rounded-full place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+        :title="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
+        :aria-label="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
+        :aria-pressed="ui.fullscreen"
+      >
+        <svg v-if="ui.fullscreen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
+        </svg>
+        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+        </svg>
+      </button>
       <button
         @click="ui.openToc()"
         class="w-10 h-10 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"

@@ -1,0 +1,212 @@
+/* ============================================================================
+   HOMURA · 阅读器全屏按钮提案 · 预览样式
+   预览外壳：暗色；画板内部：按 MD3 token 渲染 reader 顶栏
+   ========================================================================== */
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: #0b0c0f; color: #e8e8ee; padding: 40px 0 56px;
+  font-family: "Plus Jakarta Sans", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(760px 420px at 14% -6%, rgba(124,124,168,.18), transparent 70%),
+              radial-gradient(700px 420px at 90% 0%, rgba(71,112,94,.14), transparent 72%);
+}
+.page { position: relative; width: min(1240px, calc(100% - 64px)); margin: 0 auto; }
+
+/* ---------- 画板 token：深海蓝 · 白昼 / 护眼 / 夜间 ---------- */
+body {
+  --primary: #0061A4; --on-primary: #FFFFFF;
+  --primary-container: #D1E4FF; --on-primary-container: #001D36;
+  --surface: #F8FAFC; --surface-low: #F1F4F8; --surface-container: #EBEFF4;
+  --surface-high: #E4E9EF; --surface-highest: #DDE3EA;
+  --on-surface: #111827; --on-surface-variant: #475569;
+  --outline: #6B7280; --outline-variant: #CBD5E1;
+}
+body[data-mode="warm"] {
+  --surface: #FAF6EE; --surface-low: #F5F0E5; --surface-container: #EFE9DC;
+  --surface-high: #E8E1D2; --surface-highest: #E1D9C8;
+  --on-surface: #221E17; --on-surface-variant: #57503F;
+  --outline: #8A7F68; --outline-variant: #D8CDB6;
+}
+body[data-mode="dark"] {
+  --primary: #A6C8FF; --on-primary: #003258;
+  --primary-container: #00497D; --on-primary-container: #D1E4FF;
+  --surface: #0F1115; --surface-low: #14171C; --surface-container: #1A1E24;
+  --surface-high: #20252C; --surface-highest: #272C34;
+  --on-surface: #E2E6EC; --on-surface-variant: #B9C2CE;
+  --outline: #8B95A3; --outline-variant: #3A424C;
+}
+
+/* ---------- 提案页 ---------- */
+.hero { position: relative; display: flex; align-items: flex-end; gap: 40px; padding-bottom: 22px; border-bottom: 1px solid rgba(255,255,255,.10); }
+.kicker { display: flex; gap: 10px; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .22em; color: rgba(255,255,255,.45); }
+.kicker i { width: 22px; height: 1px; background: rgba(255,255,255,.34); }
+.hero h1 { margin: 16px 0 10px; font-family: "Instrument Serif", "Songti SC", serif; font-size: 46px; line-height: 1.04; font-weight: 400; }
+.hero h1 em { font-style: italic; color: #b7b0dd; }
+.hero p { max-width: 600px; margin: 0; font-size: 12.5px; line-height: 1.85; color: rgba(255,255,255,.48); }
+.hero p .hl { color: #d7d0ff; font-weight: 600; }
+.hero-r { margin-left: auto; text-align: right; font-family: "JetBrains Mono", monospace; font-size: 10px; line-height: 2; color: rgba(255,255,255,.32); letter-spacing: .06em; }
+.hero-r div { display: flex; justify-content: flex-end; gap: 12px; }
+.hero-r b { color: rgba(255,255,255,.74); font-weight: 500; }
+
+.order { display: flex; gap: 22px; margin-top: 16px; }
+.order-row { display: flex; align-items: center; gap: 6px; font: 500 9px/1 "JetBrains Mono", monospace; letter-spacing: .1em; color: rgba(255,255,255,.32); }
+.order-row > span { margin-right: 4px; }
+.chip { padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11); font-size: 10px; font-weight: 600; letter-spacing: 0; color: rgba(255,255,255,.62); }
+.chip.new { color: #d7d0ff; background: rgba(124,108,246,.16); border-color: rgba(124,108,246,.45); }
+
+/* ---------- 工具栏 ---------- */
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 18px 0; flex-wrap: wrap; }
+.toolbar .lab { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .18em; color: rgba(255,255,255,.30); margin-right: 2px; }
+.seg {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 13px; border-radius: 999px;
+  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.66); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  transition: background .2s cubic-bezier(.2,0,0,1), border-color .2s cubic-bezier(.2,0,0,1), color .2s;
+}
+.seg:hover { background: rgba(255,255,255,.09); }
+.seg.on { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.42); color: #fff; }
+.sep { width: 1px; height: 16px; background: rgba(255,255,255,.14); margin: 0 6px; }
+
+/* ---------- 画板 ---------- */
+.board-wrap { overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; }
+.board {
+  width: 1120px; height: 720px; margin: 0 auto;
+  border-radius: 20px; overflow: hidden; position: relative;
+  box-shadow: 0 40px 100px -50px #000, 0 0 0 1px rgba(255,255,255,.09);
+  background: var(--surface-low);
+  transition: background-color .2s cubic-bezier(.2,0,0,1);
+}
+body[data-view="mobile"] .board { width: 390px; height: 844px; }
+.reader { display: flex; flex-direction: column; height: 100%; }
+
+/* 顶栏 */
+.topbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  min-height: 64px; padding: 0 18px;
+  background: var(--surface); border-bottom: 1px solid var(--outline-variant);
+  transition: background-color .2s cubic-bezier(.2,0,0,1), border-color .2s cubic-bezier(.2,0,0,1);
+}
+body[data-view="mobile"] .topbar { min-height: 56px; padding: 0 6px; }
+.title { min-width: 0; flex: 1; }
+.title h2 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title p { margin: 0; font-family: "JetBrains Mono", monospace; font-size: 8.5px; line-height: 1.5; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+
+/* ---------- 图标按钮配方 ---------- */
+.md-icon-btn {
+  width: 40px; height: 40px; border: 0; padding: 0; border-radius: 999px;
+  display: grid; place-items: center; background: transparent; color: var(--on-surface);
+  cursor: pointer; font: inherit;
+  transition: background-color .2s cubic-bezier(.2,0,0,1), color .2s cubic-bezier(.2,0,0,1);
+}
+.md-icon-btn:hover, .md-icon-btn.force-hover { background: var(--surface-container); }
+.md-icon-btn .ic { width: 20px; height: 20px; display: block; }
+.md-icon-btn .ic-out { display: none; }
+.md-icon-btn.on .ic-in, .md-icon-btn.force-on .ic-in { display: none; }
+.md-icon-btn.on .ic-out, .md-icon-btn.force-on .ic-out { display: block; }
+.md-icon-btn.next { background: var(--primary); color: var(--on-primary); }
+
+/* 新增按钮标注（预览辅助层，不属于设计） */
+.slot { position: relative; display: flex; }
+/* 移动端不排布全屏按钮：窗口本身即全屏 */
+body[data-view="mobile"] .slot { display: none; }
+.annot-box {
+  position: absolute; inset: -5px; border: 1.5px dashed rgba(124,108,246,.55);
+  border-radius: 14px; pointer-events: none;
+}
+.annot-tag {
+  position: absolute; left: 50%; bottom: -36px; transform: translateX(-50%);
+  white-space: nowrap; font: 600 9px/1 "JetBrains Mono", monospace; letter-spacing: .1em;
+  color: #5b46d6; background: rgba(124,108,246,.13); border: 1px solid rgba(124,108,246,.45);
+  border-radius: 999px; padding: 5px 9px;
+}
+body[data-mode="dark"] .annot-tag { color: #cfc6ff; background: rgba(124,108,246,.2); }
+body[data-mode="dark"] .annot-box { border-color: rgba(160,145,255,.5); }
+
+/* ---------- 正文 ---------- */
+.page-body {
+  flex: 1; min-height: 0; display: flex; justify-content: center;
+  background: var(--surface-low); overflow: hidden; padding: 44px 48px 34px;
+  transition: background-color .2s cubic-bezier(.2,0,0,1);
+}
+body[data-view="mobile"] .page-body { padding: 30px 22px 20px; }
+.prose { width: 660px; max-width: 100%; color: var(--on-surface); }
+body[data-view="mobile"] .prose { width: 100%; }
+.chapter { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .18em; color: var(--on-surface-variant); text-transform: uppercase; }
+.prose h3 { margin: 10px 0 22px; font-family: "Instrument Serif", "Songti SC", serif; font-size: 30px; font-weight: 400; line-height: 1.2; }
+body[data-view="mobile"] .prose h3 { font-size: 24px; margin-bottom: 16px; }
+.prose p { margin: 0 0 15px; font-size: 13px; line-height: 2; color: var(--on-surface); text-align: justify; }
+body[data-view="mobile"] .prose p { font-size: 12.5px; line-height: 1.95; margin-bottom: 12px; }
+.folio { margin-top: 18px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 9px; color: var(--on-surface-variant); }
+
+/* ---------- 底栏 ---------- */
+.bottombar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  min-height: 72px; padding: 0 14px;
+  background: var(--surface); border-top: 1px solid var(--outline-variant);
+  transition: background-color .2s cubic-bezier(.2,0,0,1), border-color .2s cubic-bezier(.2,0,0,1);
+}
+body[data-view="mobile"] .bottombar { min-height: 64px; padding: 0 10px; gap: 6px; }
+.pageno, .percent { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--on-surface-variant); font-variant-numeric: tabular-nums; white-space: nowrap; }
+body[data-view="mobile"] .pageno, body[data-view="mobile"] .percent { font-size: 9px; }
+.track { flex: 1; min-width: 0; height: 4px; border-radius: 999px; background: var(--surface-high); position: relative; }
+.thumb { position: absolute; top: 50%; left: 5%; width: 18px; height: 18px; margin-top: -9px; margin-left: -9px; border-radius: 50%; background: var(--primary); }
+.segment { display: none; align-items: center; padding: 3px; border-radius: 20px; background: var(--surface-container); }
+body[data-view="desk"] .segment { display: flex; }
+.seg-item { border: 0; background: transparent; cursor: pointer; padding: 7px 12px; border-radius: 17px; font: inherit; font-size: 10.5px; font-weight: 600; color: var(--on-surface-variant); }
+.seg-item.on { background: var(--primary); color: var(--on-primary); }
+
+/* ---------- 状态条 ---------- */
+.states { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+.state-card { border-radius: 16px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.09); padding: 14px; }
+.state-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.state-head b { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.82); letter-spacing: .04em; }
+.state-head span { font-family: "JetBrains Mono", monospace; font-size: 8.5px; color: rgba(255,255,255,.3); }
+.strip {
+  position: relative; display: flex; align-items: center; gap: 2px; height: 64px; padding: 0 14px;
+  justify-content: flex-end; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--outline-variant);
+}
+.tip-anchor { position: relative; display: flex; }
+.strip-title {
+  margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12.5px; font-weight: 600; color: var(--on-surface);
+}
+.tip {
+  position: absolute; left: 50%; top: -30px; transform: translateX(-50%); white-space: nowrap;
+  background: var(--surface-highest); color: var(--on-surface); border: 1px solid var(--outline-variant);
+  border-radius: 8px; padding: 6px 9px; font-size: 10.5px; font-weight: 600;
+  box-shadow: 0 8px 20px -10px rgba(0,0,0,.55);
+}
+
+/* ---------- 规范卡 ---------- */
+.specs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+.spec { border-radius: 16px; padding: 16px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.09); }
+.spec-k { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .16em; color: rgba(255,255,255,.3); margin-bottom: 8px; }
+.spec h4 { margin: 0 0 7px; font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,.86); }
+.spec p { margin: 0; font-size: 10.5px; line-height: 1.8; color: rgba(255,255,255,.42); }
+.spec code, .note code { font-family: "JetBrains Mono", monospace; font-size: 9.5px; color: #c9c2ff; }
+
+.note { margin-top: 14px; border-radius: 16px; border: 1px solid rgba(124,108,246,.35); background: rgba(124,108,246,.10); padding: 16px 18px; }
+.note-k { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .16em; color: #c9c2ff; margin-bottom: 8px; }
+.note p { margin: 0; font-size: 11px; line-height: 1.9; color: rgba(255,255,255,.55); }
+
+.foot { margin-top: 30px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .18em; color: rgba(255,255,255,.22); }
+
+@media (max-width: 1080px) {
+  .specs { grid-template-columns: repeat(2, 1fr); }
+  .hero { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .hero-r { margin-left: 0; text-align: left; }
+  .hero-r div { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .page { width: calc(100% - 32px); }
+  .states { grid-template-columns: 1fr; }
+  .specs { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 34px; }
+}

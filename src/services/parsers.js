@@ -9,6 +9,7 @@ import JSZip from 'jszip';
 import { showToast } from '../composables/useToast.js';
 import { escapeHtml } from './utils.js';
 import { renderMarkdown } from './markdown.js';
+import { parseMobiBuffer, mobiErrorText } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 
 
@@ -370,6 +371,32 @@ export function parseMarkdownFile(mdFile) {
     reader.onerror = () => resolve(null);
     reader.readAsText(mdFile, 'utf-8');
   });
+}
+
+// ---- MOBI：PalmDOC 解压 + 正文净化，输出小说管道可用的章节 ----
+
+export async function parseMobiFileLazy(file) {
+  try {
+    showToast(`正在解析 MOBI《${file.name}》...`);
+    const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
+    const data = parseMobiBuffer(await file.arrayBuffer(), fallbackTitle);
+    const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
+
+    return {
+      id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: 'novel',
+      format: 'mobi',
+      title: data.title,
+      cover: coverUrl,
+      coverBlob: data.coverBlob,
+      chapters: data.chapters,
+      pageCount: data.chapters.length
+    };
+  } catch (err) {
+    console.error(err);
+    showToast(mobiErrorText(err));
+    return null;
+  }
 }
 
 // 把散装图片按所在文件夹分组，每组生成一本书

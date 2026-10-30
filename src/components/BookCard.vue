@@ -62,6 +62,7 @@ defineEmits(['open', 'remove']);
 
 const badgeText = computed(() => {
   if (props.book.format === 'pdf') return 'PDF';
+  if (props.book.format === 'mobi') return 'MOBI';
   return props.book.type === 'manga' ? '漫画' : (props.book.type === 'epub' ? 'EPUB' : '小说');
 });
 

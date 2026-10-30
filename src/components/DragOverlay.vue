@@ -17,7 +17,7 @@
           draggable="false"
         />
         <h2 class="text-base font-display font-bold tracking-tight">松手即可加入书架</h2>
-        <p class="text-xs text-[var(--fg-muted)]">支持 EPUB / PDF / CBZ / ZIP / TXT / MD 以及图片文件夹</p>
+        <p class="text-xs text-[var(--fg-muted)]">支持 EPUB / PDF / MOBI / CBZ / ZIP / TXT / MD 以及图片文件夹</p>
       </div>
     </div>
   </transition>

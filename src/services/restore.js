@@ -7,7 +7,7 @@
 import { HomuraStore } from './storage.js';
 import { canUseOPFS } from './platform.js';
 import { putFile, getFile } from './opfs.js';
-import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
+import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
 import { showToast } from '../composables/useToast.js';
 
 
@@ -71,6 +71,7 @@ export async function persistBook(book, source) {
   const meta = {
     id: book.id,
     type: book.type,
+    format: book.format || null,
     title: book.title,
     pageCount: book.pageCount,
     addedAt: Date.now(),
@@ -93,6 +94,7 @@ export async function restoreLibrary() {
   return metas.map(meta => ({
     id: meta.id,
     type: meta.type,
+    format: meta.format || null,
     title: meta.title,
     pageCount: meta.pageCount,
     cover: meta.coverBlob ? URL.createObjectURL(meta.coverBlob) : null,
@@ -136,6 +138,7 @@ function parseStoredFile(file) {
   if (/\.epub$/i.test(file.name)) return parseEpubFileLazy(file);
   if (/\.pdf$/i.test(file.name)) return parsePdfFileLazy(file);
   if (/\.(cbz|zip)$/i.test(file.name)) return parseCbzFileLazy(file);
+  if (/\.(mobi|prc|azw)$/i.test(file.name)) return parseMobiFileLazy(file);
   if (/\.md$/i.test(file.name)) return parseMarkdownFile(file);
   if (/\.txt$/i.test(file.name)) return parseTxtFile(file);
   return null;

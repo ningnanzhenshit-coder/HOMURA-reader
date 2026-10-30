@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HOMURA · 阅读器全屏按钮提案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="fullscreen-button.css" />
+</head>
+<body data-theme="blue" data-mode="light" data-view="desk">
+
+<div class="page">
+
+  <header class="hero">
+    <div class="hero-l">
+      <div class="kicker"><i></i>HOMURA · READER TOP BAR</div>
+      <h1>全屏按钮 <em>提案</em></h1>
+      <p>在阅读器顶栏「目录」左侧插入一枚全屏切换按钮，<b class="hl">桌面专属</b>，移动端不排布（窗口本身即全屏）。完全复用 MD3 图标按钮配方：40×40 圆形命中区、20px 线性图标、悬停表面色、200ms 颜色过渡。不引入第二个主色，顶栏保持安静。</p>
+      <div class="order">
+        <div class="order-row"><span>现状</span><b class="chip">目录</b><b class="chip">设置</b></div>
+        <div class="order-row"><span>桌面</span><b class="chip new">全屏</b><b class="chip">目录</b><b class="chip">设置</b></div>
+        <div class="order-row"><span>移动</span><b class="chip">目录</b><b class="chip">设置</b></div>
+      </div>
+    </div>
+    <aside class="hero-r">
+      <div><span>组件</span><b>Icon Button</b></div>
+      <div><span>命中区</span><b>40 × 40</b></div>
+      <div><span>图标</span><b>20px / 2px</b></div>
+      <div><span>按钮间距</span><b>2px</b></div>
+      <div><span>过渡</span><b>200ms</b></div>
+      <div><span>主色占用</span><b>0</b></div>
+    </aside>
+  </header>
+
+  <div class="toolbar">
+    <span class="lab">THEME</span>
+    <button class="seg on" data-set="mode" data-val="light">深海蓝 · 白昼</button>
+    <button class="seg" data-set="mode" data-val="warm">深海蓝 · 护眼</button>
+    <button class="seg" data-set="mode" data-val="dark">深海蓝 · 夜间</button>
+    <span class="sep"></span>
+    <span class="lab">VIEW</span>
+    <button class="seg on" data-set="view" data-val="desk">桌面 1280</button>
+    <button class="seg" data-set="view" data-val="mobile">手机 390</button>
+  </div>
+
+  <section class="board-wrap">
+    <div class="board">
+      <div class="reader">
+
+        <header class="topbar">
+          <button class="md-icon-btn back" title="返回书架 (Esc)" aria-label="返回书架">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <div class="title">
+            <h2>雾港来信</h2>
+            <p>左→右 · 单页 · 12 / 240</p>
+          </div>
+
+          <div class="actions">
+            <div class="slot">
+              <button class="md-icon-btn fs" data-fs title="全屏 (F)" aria-label="全屏 (F)" aria-pressed="false">
+                <svg class="ic ic-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+                </svg>
+                <svg class="ic ic-out" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
+                </svg>
+              </button>
+              <span class="annot-box"></span>
+              <span class="annot-tag">新增 · 全屏</span>
+            </div>
+
+            <button class="md-icon-btn" title="目录" aria-label="目录">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
+              </svg>
+            </button>
+
+            <button class="md-icon-btn" title="阅读设置" aria-label="阅读设置">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <main class="page-body">
+          <article class="prose">
+            <div class="chapter">第 12 章</div>
+            <h3>雾港来信</h3>
+            <p>雾从港口那头漫上来的时候，信已经在桌上放了三天。信封上的墨迹被海风吹得发白，只有落款处那枚暗红色的印章还认得出人。</p>
+            <p>他把窗帘拉开一半，让早晨的光斜斜地落在桌角。楼下的街道还没有醒，只有送牛奶的车从石板路上慢慢碾过，铁皮桶碰出一声又一声钝响。</p>
+            <p>“你要是再不回信，我就当你已经搬走了。”上一封信里她是这么写的。字很小，挤在纸的右下角，像是写完正文之后才想起来的一句抱怨。</p>
+            <p>他抽出信纸，铺平，又把钢笔的笔帽拧开。窗外有船笛响起，长而低，把雾推开了一条缝。他没有立刻动笔，只是看着那条缝慢慢合上。</p>
+            <p>第四天早晨，邮差在楼下喊他的名字。他探出窗子，看见那人举着一只薄薄的包裹，帆布包上落满了水汽。包裹里是一册旧书，扉页写着一行很轻的字。</p>
+            <div class="folio">12</div>
+          </article>
+        </main>
+
+        <footer class="bottombar">
+          <button class="md-icon-btn" title="上一页" aria-label="上一页">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span class="pageno">12 / 240</span>
+          <div class="track"><span class="thumb"></span></div>
+          <span class="percent">5%</span>
+          <div class="segment">
+            <button class="seg-item on">单页</button>
+            <button class="seg-item">双页</button>
+          </div>
+          <button class="md-icon-btn next" title="下一页" aria-label="下一页">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </footer>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="states">
+    <div class="state-card">
+      <div class="state-head"><b>默认</b><span>transparent · on-surface</span></div>
+      <div class="strip">
+        <span class="strip-title">雾港来信</span>
+        <button class="md-icon-btn fs" title="全屏 (F)" aria-label="全屏 (F)" aria-pressed="false">
+          <svg class="ic ic-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+          </svg>
+        </button>
+        <button class="md-icon-btn" title="目录" aria-label="目录">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+        </button>
+        <button class="md-icon-btn" title="阅读设置" aria-label="阅读设置">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="3" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="state-card">
+      <div class="state-head"><b>悬停</b><span>surface-container</span></div>
+      <div class="strip">
+        <span class="strip-title">雾港来信</span>
+        <div class="tip-anchor">
+          <span class="tip">全屏 (F)</span>
+          <button class="md-icon-btn fs force-hover" title="全屏 (F)" aria-label="全屏 (F)" aria-pressed="false">
+            <svg class="ic ic-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+            </svg>
+          </button>
+        </div>
+        <button class="md-icon-btn" title="目录" aria-label="目录">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+        </button>
+        <button class="md-icon-btn" title="阅读设置" aria-label="阅读设置">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="3" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="state-card">
+      <div class="state-head"><b>全屏中</b><span>icon → 收起 · pressed</span></div>
+      <div class="strip">
+        <span class="strip-title">雾港来信</span>
+        <button class="md-icon-btn fs force-on" title="退出全屏 (F)" aria-label="退出全屏 (F)" aria-pressed="true">
+          <svg class="ic ic-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+          </svg>
+          <svg class="ic ic-out" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
+          </svg>
+        </button>
+        <button class="md-icon-btn" title="目录" aria-label="目录">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
+          </svg>
+        </button>
+        <button class="md-icon-btn" title="阅读设置" aria-label="阅读设置">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="3" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="specs">
+    <div class="spec">
+      <div class="spec-k">01 · SIZE</div>
+      <h4>尺寸与命中区</h4>
+      <p>40×40 圆形按钮，图标 20px、线宽 2，与相邻按钮间距 2px（gap-0.5）。仅 ≥900px 桌面端渲染（<code>hidden min-[900px]:grid</code>），移动端不占位。</p>
+    </div>
+    <div class="spec">
+      <div class="spec-k">02 · COLOR</div>
+      <h4>颜色只用 token</h4>
+      <p>图标 <code>on-surface</code>，悬停 <code>surface-container</code>，无描边、无实心。全屏不是主行动，不占用 <code>primary</code>。</p>
+    </div>
+    <div class="spec">
+      <div class="spec-k">03 · MOTION</div>
+      <h4>动效</h4>
+      <p>200ms <code>cubic-bezier(.2,0,0,1)</code>，仅过渡背景色与图标颜色；不做位移、不做缩放，避免与工具栏淡入冲突。</p>
+    </div>
+    <div class="spec">
+      <div class="spec-k">04 · A11Y</div>
+      <h4>语义与状态</h4>
+      <p>title / aria-label「全屏 (F)」，进入后变「退出全屏 (F)」并置 <code>aria-pressed="true"</code>，图标切为四向内收角标。</p>
+    </div>
+  </section>
+
+  <section class="note">
+    <div class="note-k">落地路径</div>
+    <p>顶栏组件里插入按钮（<code>hidden min-[900px]:grid</code>，移动端自动隐藏）→ 点击调用 <code>ui.toggleFullscreen()</code>（Tauri 原生窗口全屏，浏览器调试回落 Fullscreen API）→ <code>ui.fullscreen</code> 同步图标与 <code>aria-pressed</code>。F 快捷键复用同一方法，按钮只是它的可见入口。</p>
+  </section>
+
+  <footer class="foot">HOMURA · 桌面端已落地 · 移动端不排布</footer>
+</div>
+
+<script src="fullscreen-button.js"></script>
+</body>
+</html>
