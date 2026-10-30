@@ -38,14 +38,15 @@
         </div>
         <button
           @click="ui.closeSettings()"
-          class="w-8 h-8 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
+          class="md-hit-target w-10 h-10 -mr-1 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
           title="关闭"
+          aria-label="关闭外观设置"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-[22px] pb-2">
+      <div class="flex-1 overflow-y-auto overscroll-contain px-[22px] pb-2">
         <!-- 阅读方向 -->
         <section class="py-3.5 border-t border-[var(--md-outline-variant)]">
           <div class="flex items-baseline justify-between mb-3">
@@ -57,7 +58,7 @@
               v-for="d in directions"
               :key="d.value"
               @click="reader.setDirection(d.value)"
-              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
               :class="config.direction === d.value
                 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
                 : 'text-[var(--md-on-surface-variant)]'"
@@ -68,7 +69,7 @@
           <button
             v-if="config.direction === 'rtl'"
             @click="reader.toggleRtlTapInvert()"
-            class="w-full flex items-center justify-between mt-3.5"
+            class="w-full min-h-11 flex items-center justify-between mt-3.5"
             role="switch"
             :aria-checked="config.rtlInvertButtons"
           >
@@ -94,12 +95,12 @@
           <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
             <button
               @click="reader.setSpreadCount(1)"
-              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
               :class="!isVertical && config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
             >单页</button>
             <button
               @click="reader.setSpreadCount(2)"
-              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
               :class="!isVertical && config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
             >双页</button>
           </div>
@@ -111,7 +112,7 @@
           <button
             v-if="!isVertical && config.spread === 2"
             @click="reader.toggleCoverOffset()"
-            class="w-full flex items-center justify-between mt-3.5"
+            class="w-full min-h-11 flex items-center justify-between mt-3.5"
             role="switch"
             :aria-checked="config.coverOffset"
             title="双页模式下首页单独显示，确保后续跨页大图对齐"
@@ -133,7 +134,7 @@
               v-for="f in webtoonFits"
               :key="f.value"
               @click="reader.setWebtoonFit(f.value)"
-              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
               :class="config.webtoonFit === f.value
                 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
                 : 'text-[var(--md-on-surface-variant)]'"
@@ -150,7 +151,7 @@
           <div class="flex items-center gap-3">
             <button
               @click="reader.changeFontSize(-2)"
-              class="w-8 h-8 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
               title="减小字号"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
@@ -158,7 +159,7 @@
             <span class="flex-1 text-center font-mono text-[11px]">A</span>
             <button
               @click="reader.changeFontSize(2)"
-              class="w-8 h-8 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
               title="增大字号"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
@@ -177,7 +178,7 @@
               v-for="m in modes"
               :key="m.name"
               @click="theme.setSurfaceMode(m.name)"
-              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
               :class="theme.surfaceMode === m.name
                 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
                 : 'text-[var(--md-on-surface-variant)]'"
@@ -188,7 +189,7 @@
             <span class="text-[11px] font-semibold">主题色</span>
             <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
           </div>
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
             <button
               v-for="s in swatches"
               :key="s.name"
@@ -198,12 +199,13 @@
               :style="{ backgroundColor: s.seed }"
               :title="s.title"
               :aria-label="s.title"
+              :aria-pressed="theme.themeColor === s.name"
             ></button>
           </div>
 
           <button
             @click="theme.toggleTransitionStyle()"
-            class="w-full flex items-center justify-between mt-4"
+            class="w-full min-h-11 flex items-center justify-between mt-2"
             title="切换翻页过渡动画效果"
           >
             <span class="text-[11px] font-medium">翻页过渡</span>
@@ -216,11 +218,11 @@
       <div class="shrink-0 px-[22px] pt-3 pb-4 flex gap-2.5">
         <button
           @click="resetDefaults"
-          class="flex-1 h-10 rounded-full text-[13px] font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors"
+          class="flex-1 h-11 rounded-full text-[13px] font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors"
         >恢复默认</button>
         <button
           @click="ui.closeSettings()"
-          class="flex-1 h-10 rounded-full text-[13px] font-semibold bg-[var(--md-primary)] text-[var(--md-on-primary)] hover:opacity-90 transition-opacity"
+          class="flex-1 h-11 rounded-full text-[13px] font-semibold bg-[var(--md-primary)] text-[var(--md-on-primary)] hover:opacity-90 transition-opacity"
         >完成</button>
       </div>
     </aside>

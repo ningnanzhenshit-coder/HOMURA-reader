@@ -150,17 +150,18 @@
       v-if="appearanceOpen"
       class="fixed z-50 bg-[var(--md-surface-container)] shadow-2xl"
       :class="isCompact
-        ? 'inset-x-0 bottom-0 rounded-t-[28px] px-5 pt-2.5'
+        ? 'inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto overscroll-contain rounded-t-[28px] px-5 pt-2.5'
         : 'left-[104px] bottom-24 w-[280px] rounded-[20px] p-4'"
       :style="isCompact ? 'padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));' : null"
     >
       <div v-if="isCompact" class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)] mx-auto mb-3"></div>
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-[15px] font-semibold">外观设置</h3>
+        <h3 class="text-[17px] font-semibold">外观设置</h3>
         <button
           @click="appearanceOpen = false"
-          class="w-8 h-8 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
+          class="md-hit-target w-10 h-10 -mr-1 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
           title="关闭"
+          aria-label="关闭外观设置"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -171,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, watchEffect } from 'vue';
+import { ref, watch, watchEffect, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { showToast } from '../composables/useToast.js';
 import AppearancePanel from './AppearancePanel.vue';
@@ -181,6 +182,34 @@ const { isCompact } = useViewport();
 const active = ref('shelf');
 const appearanceOpen = ref(false);
 const emit = defineEmits(['nav']);
+
+// 手机 Sheet 打开时锁住书架滚动，关闭后恢复到原位置。
+let shelfScrollY = 0;
+let shelfScrollLocked = false;
+
+function lockShelfScroll() {
+  if (shelfScrollLocked) return;
+  shelfScrollY = window.scrollY || 0;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${shelfScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+  document.body.style.overflow = 'hidden';
+  shelfScrollLocked = true;
+}
+
+function unlockShelfScroll() {
+  if (!shelfScrollLocked) return;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  document.body.style.overflow = '';
+  window.scrollTo(0, shelfScrollY);
+  shelfScrollLocked = false;
+}
 
 const railItems = [
   { key: 'shelf', label: '书架' },
@@ -214,4 +243,11 @@ watchEffect(() => {
   const width = isCompact.value ? '0px' : '96px';
   document.documentElement.style.setProperty('--sidenav-width', width);
 });
+
+watch([appearanceOpen, isCompact], ([open, compact]) => {
+  if (open && compact) lockShelfScroll();
+  else unlockShelfScroll();
+});
+
+onBeforeUnmount(unlockShelfScroll);
 </script>

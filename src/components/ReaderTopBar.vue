@@ -1,12 +1,12 @@
 <template>
   <!-- 阅读器顶部栏：MD3 Top App Bar（返回 / 书名+副标题 / 目录 / 设置） -->
   <header
-    class="shrink-0 min-h-14 min-[900px]:min-h-16 flex items-center gap-2.5 px-1.5 min-[900px]:px-[18px] bg-[var(--md-surface)] border-b border-[var(--md-outline-variant)]"
+    class="shrink-0 min-h-14 min-[900px]:min-h-16 flex items-center gap-2 px-1.5 min-[900px]:gap-2.5 min-[900px]:px-[18px] bg-[var(--md-surface)] border-b border-[var(--md-outline-variant)]"
     :style="{ paddingTop: 'env(safe-area-inset-top)' }"
   >
     <button
       @click="reader.closeReader()"
-      class="w-10 h-10 shrink-0 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+      class="w-11 h-11 shrink-0 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
       title="返回书架 (Esc)"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,15 +15,15 @@
     </button>
 
     <div class="min-w-0 flex-1">
-      <h2 class="text-[12.5px] min-[900px]:text-sm font-semibold truncate leading-tight">{{ reader.currentBook ? reader.currentBook.title : '' }}</h2>
-      <p class="font-mono text-[8.5px] text-[var(--md-primary)] truncate">{{ subStatus }}</p>
+      <h2 class="text-[13px] min-[900px]:text-sm font-semibold truncate leading-tight">{{ reader.currentBook ? reader.currentBook.title : '' }}</h2>
+      <p class="font-mono text-[9px] min-[900px]:text-[9.5px] text-[var(--md-primary)] truncate">{{ subStatus }}</p>
     </div>
 
-    <div class="flex items-center gap-0.5 shrink-0">
+    <div class="flex items-center gap-1 shrink-0">
       <!-- 全屏切换：桌面专属，移动端窗口本身即全屏，不占位 -->
       <button
         @click="ui.toggleFullscreen()"
-        class="hidden min-[900px]:grid w-10 h-10 rounded-full place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+        class="hidden min-[900px]:grid w-11 h-11 rounded-full place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
         :title="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
         :aria-label="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
         :aria-pressed="ui.fullscreen"
@@ -43,8 +43,9 @@
       </button>
       <button
         @click="ui.openToc()"
-        class="w-10 h-10 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+        class="w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
         title="目录"
+        aria-label="目录"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
@@ -52,8 +53,9 @@
       </button>
       <button
         @click="ui.openSettings()"
-        class="w-10 h-10 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+        class="w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
         title="阅读设置"
+        aria-label="阅读设置"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3" stroke-width="2"/>

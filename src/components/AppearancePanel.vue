@@ -25,7 +25,7 @@
         <span class="text-[11px] font-semibold">主题色</span>
         <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
       </div>
-      <div class="flex items-center gap-2.5 flex-wrap">
+      <div class="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar py-1">
         <button
           v-for="s in swatches"
           :key="s.name"
@@ -34,6 +34,7 @@
           :style="{ backgroundColor: s.seed }"
           :title="s.title"
           :aria-label="s.title"
+          :aria-pressed="theme.themeColor === s.name"
         ></button>
       </div>
     </div>

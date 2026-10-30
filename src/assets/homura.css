@@ -243,8 +243,28 @@
     body {
       background-color: var(--bg-canvas);
       color: var(--fg-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: clip;
+      overscroll-behavior-y: contain;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    #app {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    button,
+    select,
+    textarea {
+      touch-action: manipulation;
+    }
+
+    input[type="search"]::-webkit-search-cancel-button {
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     /* ==========================================================================
@@ -258,6 +278,14 @@
       gap: 12px;
       padding: 14px 16px 0;
     }
+    /* 768–899 仍使用底部导航，但信息密度要接近桌面，避免三列巨卡 */
+    @media (min-width: 768px) and (max-width: 899px) {
+      .md-shelf-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        padding-inline: 20px;
+      }
+    }
     @media (min-width: 900px) {
       .md-shelf-grid {
         grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -269,6 +297,9 @@
     /* 继续阅读特色卡：手机整行 / 桌面跨两列 */
     .md-featured-cell {
       grid-column: span 3;
+    }
+    @media (min-width: 768px) and (max-width: 899px) {
+      .md-featured-cell { grid-column: span 2; }
     }
     @media (min-width: 900px) {
       .md-featured-cell { grid-column: span 2; }
@@ -328,6 +359,27 @@
     .md-fade-enter-active,
     .md-fade-leave-active {
       transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* 图标视觉尺寸可以小，但命中区域统一补到 44px */
+    .md-hit-target {
+      position: relative;
+    }
+    .md-hit-target::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+
+    /* 移动菜单条目至少 44px，手指不需要精准点小字 */
+    @media (max-width: 899px) {
+      .md-mobile-menu-item {
+        min-height: 44px;
+      }
     }
 
     /* MD3 进度滑条 */

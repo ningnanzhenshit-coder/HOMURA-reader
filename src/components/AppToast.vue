@@ -18,14 +18,26 @@
 import { computed } from 'vue';
 import { useToast } from '../composables/useToast.js';
 import { useReaderStore } from '../stores/reader.js';
+import { useViewport } from '../composables/useViewport.js';
 
 const toast = useToast();
 const reader = useReaderStore();
+const { isCompact } = useViewport();
 
-// 书架页按内容区（侧栏右侧）居中；阅读器整屏铺满时回到窗口居中，并让开顶部工具栏
-const toastStyle = computed(() =>
-  reader.currentBook ? { left: '50%', top: '4.5rem' } : null
-);
+// 阅读器让开顶部安全区与工具栏；手机书架把提示放到拇指区上方，避免压住筛选栏。
+const toastStyle = computed(() => {
+  if (reader.currentBook) {
+    return { left: '50%', top: 'calc(env(safe-area-inset-top) + 4.5rem)' };
+  }
+  if (isCompact.value) {
+    return {
+      left: '50%',
+      top: 'auto',
+      bottom: 'calc(5rem + env(safe-area-inset-bottom) + 5.25rem)'
+    };
+  }
+  return null;
+});
 </script>
 
 <style scoped>
@@ -56,7 +68,8 @@ const toastStyle = computed(() =>
   transform: translate(-50%, 0) scale(1);
   transition:
     left 0.2s ease-out,
-    top 0.2s ease-out;
+    top 0.2s ease-out,
+    bottom 0.2s ease-out;
   pointer-events: none;
   will-change: opacity, transform, filter;
 }

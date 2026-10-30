@@ -6,7 +6,7 @@
   >
     <button
       @click="reader.onLeftButtonClick()"
-      class="w-10 h-10 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
+      class="w-11 h-11 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
       :class="inverted
         ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
         : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
@@ -18,7 +18,7 @@
       </svg>
     </button>
 
-    <span class="font-mono text-[8.5px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
+    <span class="font-mono text-[9.5px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
 
     <input
       type="range"
@@ -29,9 +29,10 @@
       class="md-range flex-1 min-w-0"
       :class="{ 'rtl-slider': inverted }"
       title="拖动跳转"
+      aria-label="拖动跳转"
     />
 
-    <span class="font-mono text-[9px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
+    <span class="font-mono text-[10px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
 
     <!-- 桌面快捷：单页 / 双页 -->
     <div v-if="!isVertical" class="hidden min-[900px]:flex items-center p-[3px] rounded-[20px] bg-[var(--md-surface-container)] ml-1.5">
@@ -51,7 +52,7 @@
 
     <button
       @click="reader.onRightButtonClick()"
-      class="w-10 h-10 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
+      class="w-11 h-11 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
       :class="inverted
         ? 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
         : 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'"

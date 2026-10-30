@@ -31,16 +31,19 @@
     >
       <div
         v-if="importMenuOpen"
-        class="absolute right-0 bottom-[68px] w-44 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
+        class="absolute right-0 bottom-[68px] w-48 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
+        role="menu"
+        aria-label="导入作品"
       >
-        <button @click="pickFiles" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">
+        <button @click="pickFiles" role="menuitem" class="md-mobile-menu-item w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">
           <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v11M8 8l4-4 4 4"/></svg>
           导入文件
         </button>
         <button
           v-if="canPickFolder"
           @click="pickFolder"
-          class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors"
+          role="menuitem"
+          class="md-mobile-menu-item w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors"
         >
           <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
           导入文件夹
@@ -82,6 +85,7 @@ import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
 import { HomuraStore } from './services/storage.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
+import { resolveBookFormat } from './services/utils.js';
 import { installProgressFlushHooks } from './services/progress.js';
 import { useImporter } from './composables/useImporter.js';
 import { useViewport } from './composables/useViewport.js';
@@ -110,14 +114,15 @@ const importMenuOpen = ref(false);
 const query = ref('');
 const typeFilter = ref('all');
 const sortKey = ref('recent');
+const FORMAT_FILTERS = ['epub', 'markdown', 'mobi', 'pdf'];
 
 const visibleBooks = computed(() => {
   let list = shelf.library;
-  // 筛选 chips：全部 / 漫画 / 轻小说 / PDF（PDF 单独按 format 归类）
-  if (typeFilter.value === 'pdf') {
-    list = list.filter(book => book.format === 'pdf');
+  // 筛选 chips：类型（漫画 / 轻小说）+ 格式（EPUB / Markdown / MOBI / PDF）
+  if (FORMAT_FILTERS.includes(typeFilter.value)) {
+    list = list.filter(book => resolveBookFormat(book) === typeFilter.value);
   } else if (typeFilter.value === 'manga') {
-    list = list.filter(book => book.type === 'manga' && book.format !== 'pdf');
+    list = list.filter(book => book.type === 'manga' && resolveBookFormat(book) !== 'pdf');
   } else if (typeFilter.value === 'novel') {
     list = list.filter(book => book.type !== 'manga');
   }

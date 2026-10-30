@@ -25,9 +25,10 @@
 
       <button
         @click.stop="$emit('remove', book.id)"
-        class="card-remove-btn absolute top-2 right-2 w-7 h-7 rounded-full text-[var(--md-surface)] flex items-center justify-center transition"
+        class="card-remove-btn md-hit-target absolute top-2 right-2 w-8 h-8 rounded-full text-[var(--md-surface)] flex items-center justify-center transition"
         style="background: color-mix(in oklab, var(--md-on-surface) 72%, transparent);"
         title="从书架移除"
+        aria-label="从书架移除"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -38,11 +39,11 @@
       </div>
     </div>
 
-    <div class="px-2.5 pt-2 pb-2.5 min-[900px]:px-3 min-[900px]:pt-2.5 min-[900px]:pb-3 flex flex-col gap-1 min-w-0">
-      <h4 class="font-bold text-[10px] min-[900px]:text-[11.5px] leading-snug truncate">{{ book.title }}</h4>
+    <div class="px-2.5 pt-2 pb-2.5 min-[768px]:px-3 min-[768px]:pt-2.5 min-[768px]:pb-3 flex flex-col gap-1 min-w-0">
+      <h4 class="font-bold text-[10px] min-[768px]:text-[11.5px] leading-snug truncate">{{ book.title }}</h4>
       <div class="flex items-baseline justify-between gap-1.5 min-w-0">
-        <span class="font-mono text-[7.5px] min-[900px]:text-[8.5px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
-        <b class="font-mono text-[7.5px] min-[900px]:text-[8.5px] font-semibold text-[var(--md-primary)] shrink-0">
+        <span class="font-mono text-[7.5px] min-[768px]:text-[8.5px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
+        <b class="font-mono text-[7.5px] min-[768px]:text-[8.5px] font-semibold text-[var(--md-primary)] shrink-0">
           {{ progress ? `${progress.percent}%` : '阅读 →' }}
         </b>
       </div>
@@ -52,6 +53,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { resolveBookFormat } from '../services/utils.js';
 
 const props = defineProps({
   book: { type: Object, required: true },
@@ -61,8 +63,11 @@ const props = defineProps({
 defineEmits(['open', 'remove']);
 
 const badgeText = computed(() => {
-  if (props.book.format === 'pdf') return 'PDF';
-  if (props.book.format === 'mobi') return 'MOBI';
+  const format = resolveBookFormat(props.book);
+  if (format === 'pdf') return 'PDF';
+  if (format === 'mobi') return 'MOBI';
+  if (format === 'markdown') return 'MD';
+  if (format === 'txt') return 'TXT';
   return props.book.type === 'manga' ? '漫画' : (props.book.type === 'epub' ? 'EPUB' : '小说');
 });
 

@@ -10,41 +10,41 @@
     <!-- 竖排衬线书封 -->
     <div
       class="relative shrink-0 overflow-hidden"
-      :class="isCompact ? 'w-[78px]' : 'w-[150px]'"
+      :class="compactCard ? 'w-[78px]' : 'w-[150px]'"
       :style="{ background: 'linear-gradient(155deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 42%, var(--md-tertiary)))' }"
     >
       <span
         class="absolute text-[var(--md-on-primary)] overflow-hidden"
-        :class="isCompact ? 'left-2.5 bottom-2.5 text-[11px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
+        :class="compactCard ? 'left-2.5 bottom-2.5 text-[11px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
         :style="coverTitleStyle"
       >{{ coverLabel }}</span>
       <i
-        v-if="!isCompact"
+        v-if="!compactCard"
         class="absolute inset-3 rounded-[6px] pointer-events-none"
         :style="{ border: '1px solid color-mix(in oklab, var(--md-on-primary) 34%, transparent)' }"
       ></i>
     </div>
 
     <!-- 信息区 -->
-    <div class="min-w-0 flex-1 flex flex-col justify-center" :class="isCompact ? 'px-3.5 py-3' : 'p-[18px]'">
-      <div class="font-mono uppercase opacity-70" :class="isCompact ? 'text-[7.5px] tracking-[0.18em]' : 'text-[8px] tracking-[0.2em]'">{{ started ? 'Continue reading' : 'Start reading' }}</div>
-      <h3 class="font-extrabold line-clamp-2" :class="isCompact ? 'text-[13px] mt-1.5 mb-1 leading-snug' : 'text-[17px] mt-[7px] mb-[5px] leading-[1.25]'">{{ featured.book.title }}</h3>
-      <p class="opacity-70 truncate" :class="isCompact ? 'text-[9.5px]' : 'text-[10.5px]'">{{ subtitle }}</p>
-      <div v-if="!isCompact" class="flex gap-2.5 mt-2 font-mono text-[8.5px] opacity-60">
+    <div class="min-w-0 flex-1 flex flex-col justify-center" :class="compactCard ? 'px-3.5 py-3' : 'p-[18px]'">
+      <div class="font-mono uppercase opacity-70" :class="compactCard ? 'text-[7.5px] tracking-[0.18em]' : 'text-[8px] tracking-[0.2em]'">{{ started ? 'Continue reading' : 'Start reading' }}</div>
+      <h3 class="font-extrabold line-clamp-2" :class="compactCard ? 'text-[13px] mt-1.5 mb-1 leading-snug' : 'text-[17px] mt-[7px] mb-[5px] leading-[1.25]'">{{ featured.book.title }}</h3>
+      <p class="opacity-70 truncate" :class="compactCard ? 'text-[9.5px]' : 'text-[10.5px]'">{{ subtitle }}</p>
+      <div v-if="!compactCard" class="flex gap-2.5 mt-2 font-mono text-[8.5px] opacity-60">
         <span>剩余 {{ remainingText }}</span>
         <span>{{ timeText }}</span>
       </div>
 
-      <div class="flex items-center" :class="isCompact ? 'mt-auto gap-2' : 'mt-5 gap-2.5'">
+      <div class="flex items-center" :class="compactCard ? 'mt-auto gap-2' : 'mt-5 gap-2.5'">
         <div
           class="flex-1 h-[3px] rounded-full overflow-hidden"
           :style="{ background: 'color-mix(in oklab, var(--md-on-primary-container) 18%, transparent)' }"
         >
           <i class="block h-full rounded-full bg-[var(--md-primary)]" :style="{ width: featured.progress.percent + '%' }"></i>
         </div>
-        <em class="not-italic font-mono" :class="isCompact ? 'text-[8px]' : 'text-[9px]'">{{ featured.progress.percent }}%</em>
+        <em class="not-italic font-mono" :class="compactCard ? 'text-[8px]' : 'text-[9px]'">{{ featured.progress.percent }}%</em>
         <span
-          v-if="!isCompact"
+          v-if="!compactCard"
           class="w-10 h-10 shrink-0 rounded-full grid place-items-center bg-[var(--md-primary)] text-[var(--md-on-primary)] ml-2.5"
         >
           <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,11 +60,15 @@
 import { computed } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { useViewport } from '../composables/useViewport.js';
+import { resolveBookFormat } from '../services/utils.js';
 
 defineEmits(['open']);
 
 const shelf = useShelfStore();
-const { isCompact } = useViewport();
+const { isCompact, width } = useViewport();
+
+// 900–1179 的最小桌面窗口仍只有两列宽，沿用紧凑排版避免标题被挤压。
+const compactCard = computed(() => isCompact.value || width.value < 1180);
 
 const items = computed(() =>
   shelf.library
@@ -88,12 +92,12 @@ const coverLabel = computed(() => {
   if (!raw) return '';
   const zh = raw.replace(/[A-Za-z0-9（）()「」《》·:：—\-\s]/g, '');
   const label = zh || raw;
-  return isCompact.value ? label.slice(0, 3) : label.slice(0, 12);
+  return compactCard.value ? label.slice(0, 3) : label.slice(0, 12);
 });
 
 // 桌面：竖排衬线书名（手机退化为左下角横排小字）
 const coverTitleStyle = computed(() => {
-  if (isCompact.value) return null;
+  if (compactCard.value) return null;
   const n = coverLabel.value.length;
   return {
     writingMode: 'vertical-rl',
@@ -107,7 +111,11 @@ const coverTitleStyle = computed(() => {
 const typeLabel = computed(() => {
   const book = featured.value && featured.value.book;
   if (!book) return '';
-  if (book.format === 'pdf') return 'PDF';
+  const format = resolveBookFormat(book);
+  if (format === 'pdf') return 'PDF';
+  if (format === 'mobi') return 'MOBI';
+  if (format === 'markdown') return 'MD';
+  if (format === 'txt') return 'TXT';
   return book.type === 'manga' ? '漫画' : (book.type === 'epub' ? 'EPUB' : '轻小说');
 });
 
