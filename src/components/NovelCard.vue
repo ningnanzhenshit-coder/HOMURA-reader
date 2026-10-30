@@ -1,6 +1,6 @@
 <template>
   <article
-    class="flex-1 h-full max-w-2xl bg-[var(--bg-card)] text-[var(--fg-main)] rounded-xl shadow-sm border border-[var(--border-line)] px-6 py-5 sm:px-10 sm:py-7 flex flex-col justify-between overflow-hidden"
+    class="flex-1 h-full max-w-[660px] bg-[var(--md-surface-low)] text-[var(--md-on-surface)] rounded-[16px] shadow-sm border border-[var(--md-outline-variant)] px-6 py-5 sm:px-10 sm:py-7 flex flex-col justify-between overflow-hidden"
     :style="{ fontSize: fontSize + 'px' }"
   >
     <div class="flex-1 overflow-hidden flex flex-col">

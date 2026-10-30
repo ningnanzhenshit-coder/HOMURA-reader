@@ -10,14 +10,17 @@
       @pointerup="onTouchEnd"
     >
       <template v-if="reader.currentBook">
-        <WebtoonView
-          v-if="reader.layoutConfig.direction === 'vertical'"
-          :key="'webtoon-' + reader.currentBook.id"
-        />
-        <PaginatedView
-          v-else
-          :key="'paginated-' + reader.currentBook.type + '-' + reader.currentBook.id"
-        />
+        <!-- 桌面打开设置侧栏时为正文留出 372px，避免被 sheet 遮挡 -->
+        <div class="w-full h-full transition-[padding] duration-200" :style="columnReserveStyle">
+          <WebtoonView
+            v-if="reader.layoutConfig.direction === 'vertical'"
+            :key="'webtoon-' + reader.currentBook.id"
+          />
+          <PaginatedView
+            v-else
+            :key="'paginated-' + reader.currentBook.type + '-' + reader.currentBook.id"
+          />
+        </div>
       </template>
 
       <Transition
@@ -58,7 +61,7 @@
    设置与目录改为左右抽屉，不再占用顶栏。
    ========================================================================== */
 
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -72,8 +75,13 @@ import WebtoonView from './WebtoonView.vue';
 
 const reader = useReaderStore();
 const ui = useUiStore();
-const { isTouch } = useViewport();
+const { isTouch, isCompact } = useViewport();
 const viewportRef = ref(null);
+
+// 桌面设置侧栏宽度 372px：开启时为正文列预留空间
+const columnReserveStyle = computed(() =>
+  ui.settingsOpen && !isCompact.value ? { paddingRight: '372px' } : null
+);
 
 // 桌面：鼠标贴近上下边缘唤出工具栏；工具栏可见时，移动鼠标会重新计时
 function onMouseMove(e) {

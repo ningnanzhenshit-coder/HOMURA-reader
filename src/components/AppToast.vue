@@ -31,7 +31,7 @@ const toastStyle = computed(() =>
 <style scoped>
 .homura-toast {
   position: fixed;
-  left: calc(50% + var(--sidenav-width, 220px) / 2);
+  left: calc(50% + var(--sidenav-width, 96px) / 2);
   top: 1.5rem;
   z-index: 10000;
   display: flex;
@@ -40,7 +40,7 @@ const toastStyle = computed(() =>
   max-width: min(88vw, 34rem);
   padding: 0.6rem 1.1rem 0.6rem 0.9rem;
   border-radius: 999px;
-  color: #fff;
+  color: var(--md-on-primary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -67,7 +67,7 @@ const toastStyle = computed(() =>
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--md-on-primary);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
 }
 

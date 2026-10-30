@@ -1,33 +1,66 @@
 <template>
-  <!-- 阅读器底部栏：只保留翻页与进度 -->
+  <!-- 阅读器底部栏：页码 + MD3 胶囊进度滑条 + 上一页/下一页 -->
   <footer
-    class="min-h-12 shrink-0 px-3 sm:px-6 flex items-center gap-3 bg-[var(--bg-card)] border-t border-[var(--border-line)]"
+    class="shrink-0 min-h-[72px] min-[900px]:min-h-20 px-3 min-[900px]:px-[22px] flex items-center gap-2 min-[900px]:gap-3.5 bg-[var(--md-surface)] border-t border-[var(--md-outline-variant)]"
     :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }"
   >
-    <button @click="reader.onLeftButtonClick()" :class="leftBtnClass" :title="leftText">
-      <span class="text-sm">←</span>
-      <span class="hidden sm:inline">{{ leftText }}</span>
+    <button
+      @click="reader.onLeftButtonClick()"
+      class="w-10 h-10 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
+      :class="inverted
+        ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+        : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+      :title="leftText"
+      :aria-label="leftText"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
+      </svg>
     </button>
 
-    <div class="flex-1 flex items-center gap-3 min-w-0">
-      <span class="text-[11px] font-mono font-bold text-[var(--fg-muted)] shrink-0 min-w-[54px] text-right tabular-nums">{{ reader.pageIndicator }}</span>
-      <input
-        type="range"
-        min="0"
-        :max="Math.max(0, reader.activePages.length - 1)"
-        :value="reader.sliderValue"
-        @input="reader.onSliderInput($event.target.value)"
-        style="accent-color: var(--brand-primary);"
-        class="flex-1 min-w-0 cursor-pointer h-1.5 bg-[var(--bg-subtle)] rounded-lg"
-        :class="{ 'rtl-slider': inverted }"
-        title="拖动跳转"
-      />
-      <span class="text-[10px] font-mono text-[var(--fg-muted)] shrink-0 tabular-nums hidden sm:inline">{{ percentText }}</span>
+    <span class="font-mono text-[8.5px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
+
+    <input
+      type="range"
+      min="0"
+      :max="Math.max(0, reader.activePages.length - 1)"
+      :value="reader.sliderValue"
+      @input="reader.onSliderInput($event.target.value)"
+      class="md-range flex-1 min-w-0"
+      :class="{ 'rtl-slider': inverted }"
+      title="拖动跳转"
+    />
+
+    <span class="font-mono text-[9px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
+
+    <!-- 桌面快捷：单页 / 双页 -->
+    <div v-if="!isVertical" class="hidden min-[900px]:flex items-center p-[3px] rounded-[20px] bg-[var(--md-surface-container)] ml-1.5">
+      <button
+        @click="reader.setSpreadCount(1)"
+        class="px-3 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+        :class="config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
+        title="单页阅读"
+      >单页</button>
+      <button
+        @click="reader.setSpreadCount(2)"
+        class="px-3 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+        :class="config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
+        title="双页阅读"
+      >双页</button>
     </div>
 
-    <button @click="reader.onRightButtonClick()" :class="rightBtnClass" :title="rightText">
-      <span class="hidden sm:inline">{{ rightText }}</span>
-      <span class="text-sm">→</span>
+    <button
+      @click="reader.onRightButtonClick()"
+      class="w-10 h-10 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
+      :class="inverted
+        ? 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
+        : 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'"
+      :title="rightText"
+      :aria-label="rightText"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
+      </svg>
     </button>
   </footer>
 </template>
@@ -59,11 +92,4 @@ const percentText = computed(() => {
   if (!total) return '0%';
   return Math.round(((reader.currentIndex + 1) / total) * 100) + '%';
 });
-
-const leftBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn-primary' : 'uiverse-btn') + ' min-h-9 sm:min-h-0 py-1 px-2.5 shrink-0'
-);
-const rightBtnClass = computed(() =>
-  (inverted.value ? 'uiverse-btn' : 'uiverse-btn-primary') + ' min-h-9 sm:min-h-0 py-1 px-2.5 shrink-0'
-);
 </script>

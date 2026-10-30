@@ -1,156 +1,227 @@
 <template>
-  <!-- 阅读设置抽屉 -->
+  <!-- 阅读设置：桌面右侧 Side Sheet（372px）/ 手机 Bottom Sheet（最大 78dvh） -->
   <Transition
-    enter-active-class="transition-opacity duration-200"
+    enter-active-class="md-fade-enter-active"
     enter-from-class="opacity-0"
     enter-to-class="opacity-100"
-    leave-active-class="transition-opacity duration-150"
+    leave-active-class="md-fade-leave-active"
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="ui.settingsOpen" class="absolute inset-0 z-40 bg-black/25" @click="ui.closeSettings()"></div>
+    <div v-if="ui.settingsOpen" class="absolute inset-0 z-40 md-scrim" @click="ui.closeSettings()"></div>
   </Transition>
 
   <Transition
-    enter-active-class="transition-transform duration-200 ease-out"
-    :enter-from-class="isPhone ? 'translate-y-full' : 'translate-x-full'"
-    :enter-to-class="isPhone ? 'translate-y-0' : 'translate-x-0'"
-    leave-active-class="transition-transform duration-150 ease-in"
-    :leave-from-class="isPhone ? 'translate-y-0' : 'translate-x-0'"
-    :leave-to-class="isPhone ? 'translate-y-full' : 'translate-x-full'"
+    enter-active-class="md-sheet-enter-active"
+    :enter-from-class="isCompact ? 'translate-y-full' : 'translate-x-full'"
+    :enter-to-class="isCompact ? 'translate-y-0' : 'translate-x-0'"
+    leave-active-class="md-sheet-leave-active"
+    :leave-from-class="isCompact ? 'translate-y-0' : 'translate-x-0'"
+    :leave-to-class="isCompact ? 'translate-y-full' : 'translate-x-full'"
   >
     <aside
       v-if="ui.settingsOpen"
-      class="absolute z-50 bg-[var(--bg-card)] shadow-2xl flex flex-col border-[var(--border-line)]"
-      :class="isPhone
-        ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-2xl border-t'
-        : 'inset-y-0 right-0 w-[320px] max-w-[88%] h-full border-l'"
-      :style="isPhone ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
+      class="absolute z-50 flex flex-col bg-[var(--md-surface-container)] shadow-2xl"
+      :class="isCompact
+        ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-[28px]'
+        : 'inset-y-0 right-0 w-[372px] max-w-[92%] h-full rounded-l-[28px]'"
+      :style="isCompact ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
     >
-      <div v-if="isPhone" class="pt-2.5 pb-1 flex justify-center shrink-0">
-        <span class="w-10 h-1 rounded-full bg-[var(--border-line)]"></span>
+      <div v-if="isCompact" class="pt-2.5 pb-1 flex justify-center shrink-0">
+        <span class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></span>
       </div>
-      <div class="h-14 px-4 flex items-center justify-between border-b border-[var(--border-line)] shrink-0">
-        <h3 class="text-sm font-display font-bold tracking-tight">阅读设置</h3>
-        <button @click="ui.closeSettings()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--fg-muted)] hover:text-[var(--fg-main)] hover:bg-[var(--bg-subtle)] transition" title="关闭">
+
+      <div class="px-[22px] pt-2 pb-1 flex items-start justify-between shrink-0">
+        <div>
+          <h3 class="text-[17px] font-semibold leading-tight">外观设置</h3>
+          <p class="mt-1 text-[10.5px] text-[var(--md-on-surface-variant)]">设置即时生效，按书记忆</p>
+        </div>
+        <button
+          @click="ui.closeSettings()"
+          class="w-8 h-8 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
+          title="关闭"
+        >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+      <div class="flex-1 overflow-y-auto px-[22px] pb-2">
         <!-- 阅读方向 -->
-        <section class="space-y-2">
-          <p class="text-[11px] font-mono font-bold tracking-widest text-[var(--fg-muted)]">阅读方向</p>
-          <div class="flex flex-col gap-1.5">
+        <section class="py-3.5 border-t border-[var(--md-outline-variant)]">
+          <div class="flex items-baseline justify-between mb-3">
+            <span class="text-[11px] font-semibold">阅读方向</span>
+            <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ directionLabel }}</b>
+          </div>
+          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
             <button
               v-for="d in directions"
               :key="d.value"
               @click="reader.setDirection(d.value)"
-              class="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-semibold transition"
-              :style="dirStyle(d.value)"
-            >
-              <span>{{ d.label }}</span>
-              <span class="text-[10px] opacity-70">{{ d.hint }}</span>
-            </button>
+              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              :class="config.direction === d.value
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                : 'text-[var(--md-on-surface-variant)]'"
+              :title="d.hint"
+            >{{ d.label }}</button>
           </div>
+
           <button
             v-if="config.direction === 'rtl'"
             @click="reader.toggleRtlTapInvert()"
-            class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)] text-xs font-semibold"
+            class="w-full flex items-center justify-between mt-3.5"
+            role="switch"
+            :aria-checked="config.rtlInvertButtons"
           >
-            <span>左右翻页按钮反转</span>
-            <span class="font-mono text-[10px] text-[var(--brand-primary)]">{{ config.rtlInvertButtons ? '开' : '关' }}</span>
+            <span class="text-[11px] font-medium">左右翻页按钮反转</span>
+            <span
+              class="w-9 h-5 rounded-full relative transition-colors duration-200"
+              :class="config.rtlInvertButtons ? 'bg-[var(--md-primary)]' : 'bg-[var(--md-outline-variant)]'"
+            >
+              <i
+                class="absolute top-0.5 w-4 h-4 rounded-full transition-[left,right] duration-200"
+                :class="config.rtlInvertButtons ? 'right-0.5 bg-[var(--md-on-primary)]' : 'left-0.5 bg-[var(--md-on-surface)]'"
+              ></i>
+            </span>
           </button>
         </section>
 
         <!-- 翻页布局 -->
-        <section class="space-y-2">
-          <p class="text-[11px] font-mono font-bold tracking-widest text-[var(--fg-muted)]">翻页布局</p>
-          <div class="flex items-center p-0.5 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)]">
-            <button @click="reader.setSpreadCount(1)" :style="segStyle(!isVertical && config.spread === 1)" class="flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition">单页</button>
-            <button @click="reader.setSpreadCount(2)" :style="segStyle(!isVertical && config.spread === 2)" class="flex-1 px-2 py-1.5 rounded-md text-xs font-semibold transition">双页</button>
+        <section class="py-3.5 border-t border-[var(--md-outline-variant)]">
+          <div class="flex items-baseline justify-between mb-3">
+            <span class="text-[11px] font-semibold">翻页布局</span>
+            <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ spreadLabel }}</b>
           </div>
-          <p
-            v-if="!isVertical && config.spread === 2 && isPhone"
-            class="w-full text-left px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)] text-[10px] text-[var(--fg-muted)] leading-relaxed"
-          >
+          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
+            <button
+              @click="reader.setSpreadCount(1)"
+              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              :class="!isVertical && config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
+            >单页</button>
+            <button
+              @click="reader.setSpreadCount(2)"
+              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              :class="!isVertical && config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
+            >双页</button>
+          </div>
+
+          <p v-if="!isVertical && config.spread === 2 && isPhone" class="mt-3 text-[10px] text-[var(--md-on-surface-variant)] leading-relaxed">
             窄屏会自动按单页显示，改大窗口或横屏后可恢复双页。
           </p>
+
           <button
             v-if="!isVertical && config.spread === 2"
             @click="reader.toggleCoverOffset()"
-            class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)] text-xs font-semibold"
+            class="w-full flex items-center justify-between mt-3.5"
+            role="switch"
+            :aria-checked="config.coverOffset"
             title="双页模式下首页单独显示，确保后续跨页大图对齐"
           >
-            <span>首页单排</span>
-            <span class="font-mono text-[10px] text-[var(--brand-primary)]">{{ config.coverOffset ? '开' : '关' }}</span>
+            <span class="text-[11px] font-medium">首页单排</span>
+            <span
+              class="w-9 h-5 rounded-full relative transition-colors duration-200"
+              :class="config.coverOffset ? 'bg-[var(--md-primary)]' : 'bg-[var(--md-outline-variant)]'"
+            >
+              <i
+                class="absolute top-0.5 w-4 h-4 rounded-full transition-[left,right] duration-200"
+                :class="config.coverOffset ? 'right-0.5 bg-[var(--md-on-primary)]' : 'left-0.5 bg-[var(--md-on-surface)]'"
+              ></i>
+            </span>
           </button>
-          <div v-if="isVertical && isManga" class="flex items-center p-0.5 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)]">
+
+          <div v-if="isVertical && isManga" class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)] mt-3.5">
             <button
               v-for="f in webtoonFits"
               :key="f.value"
-              @click="setWebtoonFit(f.value)"
-              :style="segStyle(config.webtoonFit === f.value)"
-              class="flex-1 px-1 py-1.5 rounded-md text-[11px] font-semibold transition"
-            >
-              {{ f.label }}
-            </button>
+              @click="reader.setWebtoonFit(f.value)"
+              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              :class="config.webtoonFit === f.value
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                : 'text-[var(--md-on-surface-variant)]'"
+            >{{ f.label }}</button>
           </div>
         </section>
 
         <!-- 排版 -->
-        <section v-if="!isManga" class="space-y-2">
-          <p class="text-[11px] font-mono font-bold tracking-widest text-[var(--fg-muted)]">排版</p>
-          <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)]">
-            <span class="text-xs font-semibold">字号</span>
-            <div class="flex items-center gap-2">
-              <button @click="reader.changeFontSize(-2)" class="w-6 h-6 rounded-md border border-[var(--border-line)] bg-[var(--bg-card)] text-xs font-bold">A-</button>
-              <span class="font-mono text-[11px] text-[var(--fg-muted)] min-w-[20px] text-center">{{ config.fontSize }}</span>
-              <button @click="reader.changeFontSize(2)" class="w-6 h-6 rounded-md border border-[var(--border-line)] bg-[var(--bg-card)] text-xs font-bold">A+</button>
-            </div>
+        <section v-if="!isManga" class="py-3.5 border-t border-[var(--md-outline-variant)]">
+          <div class="flex items-baseline justify-between mb-3">
+            <span class="text-[11px] font-semibold">字号</span>
+            <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ config.fontSize }} px</b>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              @click="reader.changeFontSize(-2)"
+              class="w-8 h-8 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              title="减小字号"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
+            </button>
+            <span class="flex-1 text-center font-mono text-[11px]">A</span>
+            <button
+              @click="reader.changeFontSize(2)"
+              class="w-8 h-8 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              title="增大字号"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
+            </button>
           </div>
         </section>
 
         <!-- 外观 -->
-        <section class="space-y-2">
-          <p class="text-[11px] font-mono font-bold tracking-widest text-[var(--fg-muted)]">外观</p>
+        <section class="py-3.5 border-t border-b border-[var(--md-outline-variant)]">
+          <div class="flex items-baseline justify-between mb-3">
+            <span class="text-[11px] font-semibold">阅读模式</span>
+            <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
+          </div>
+          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
+            <button
+              v-for="m in modes"
+              :key="m.name"
+              @click="theme.setSurfaceMode(m.name)"
+              class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+              :class="theme.surfaceMode === m.name
+                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
+                : 'text-[var(--md-on-surface-variant)]'"
+            >{{ m.label }}</button>
+          </div>
+
+          <div class="flex items-baseline justify-between mt-4 mb-3">
+            <span class="text-[11px] font-semibold">主题色</span>
+            <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button
+              v-for="s in swatches"
+              :key="s.name"
+              @click="theme.setThemeColor(s.name)"
+              class="md-swatch"
+              :class="{ on: theme.themeColor === s.name }"
+              :style="{ backgroundColor: s.seed }"
+              :title="s.title"
+              :aria-label="s.title"
+            ></button>
+          </div>
+
           <button
             @click="theme.toggleTransitionStyle()"
-            class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)] text-xs font-semibold"
+            class="w-full flex items-center justify-between mt-4"
             title="切换翻页过渡动画效果"
           >
-            <span>翻页过渡</span>
-            <span class="font-mono text-[10px] text-[var(--brand-primary)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</span>
+            <span class="text-[11px] font-medium">翻页过渡</span>
+            <span class="font-mono text-[9.5px] text-[var(--md-primary)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</span>
           </button>
-          <div class="flex items-center p-0.5 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)]">
-            <button v-for="m in modes" :key="m.name" @click="theme.setSurfaceMode(m.name)" :style="segStyle(theme.surfaceMode === m.name)" class="flex-1 px-1 py-1.5 rounded-md text-[11px] font-semibold transition inline-flex items-center justify-center gap-1">
-              <svg v-if="m.name === 'light'" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="4" stroke-width="2"/>
-                <path stroke-linecap="round" stroke-width="2" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-              </svg>
-              <svg v-else-if="m.name === 'warm'" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20c8 0 16-4 16-16-8 0-16 4-16 16z"/>
-                <path stroke-linecap="round" stroke-width="2" d="M4 20c4-4 8-6 12-8"/>
-              </svg>
-              <svg v-else class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.8A8.5 8.5 0 1111.2 3a6.5 6.5 0 009.8 9.8z"/>
-              </svg>
-              <span>{{ m.label }}</span>
-            </button>
-          </div>
-          <div class="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-subtle)]">
-            <span class="text-xs font-semibold">主题色</span>
-            <div class="flex items-center gap-2">
-              <button
-                v-for="s in swatches"
-                :key="s.name"
-                @click="theme.setThemeColor(s.name)"
-                :class="['theme-swatch', s.cls, { 'active-swatch': theme.themeColor === s.name }]"
-                :title="s.title"
-              ></button>
-            </div>
-          </div>
         </section>
+      </div>
+
+      <!-- 底部操作 -->
+      <div class="shrink-0 px-[22px] pt-3 pb-4 flex gap-2.5">
+        <button
+          @click="resetDefaults"
+          class="flex-1 h-10 rounded-full text-[13px] font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors"
+        >恢复默认</button>
+        <button
+          @click="ui.closeSettings()"
+          class="flex-1 h-10 rounded-full text-[13px] font-semibold bg-[var(--md-primary)] text-[var(--md-on-primary)] hover:opacity-90 transition-opacity"
+        >完成</button>
       </div>
     </aside>
   </Transition>
@@ -162,11 +233,12 @@ import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
 import { useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import { showToast } from '../composables/useToast.js';
 
 const reader = useReaderStore();
 const theme = useThemeStore();
 const ui = useUiStore();
-const { isPhone } = useViewport();
+const { isPhone, isCompact } = useViewport();
 const config = reader.layoutConfig;
 
 const isVertical = computed(() => config.direction === 'vertical');
@@ -191,26 +263,28 @@ const modes = [
 ];
 
 const swatches = [
-  { name: 'blue', cls: 'bg-[#2563EB]', title: '晴空蓝 (默认)' },
-  { name: 'red', cls: 'bg-[#E61919]', title: '绯红金' },
-  { name: 'green', cls: 'bg-[#059669]', title: '森系绿' },
-  { name: 'violet', cls: 'bg-[#7C3AED]', title: '星夜紫' }
+  { name: 'blue', seed: '#0061A4', title: '深海蓝 (默认)' },
+  { name: 'red', seed: '#9C4233', title: '落日赤陶' },
+  { name: 'green', seed: '#386A20', title: '森系绿' },
+  { name: 'violet', seed: '#6750A4', title: '鸢尾紫' },
+  { name: 'sakura', seed: '#984061', title: '樱雾粉' },
+  { name: 'mint', seed: '#006A60', title: '薄荷青' },
+  { name: 'amber', seed: '#785900', title: '琥珀金' }
 ];
 
-function dirStyle(value) {
-  const active = config.direction === value;
-  return active
-    ? { backgroundColor: 'var(--brand-primary)', color: '#FFFFFF', borderColor: 'var(--brand-primary)' }
-    : { backgroundColor: 'var(--bg-subtle)', color: 'var(--fg-muted)', borderColor: 'var(--border-line)' };
-}
+const directionLabel = computed(() => (directions.find(d => d.value === config.direction) || directions[0]).label);
+const spreadLabel = computed(() => (isVertical.value ? '长卷' : (config.spread === 2 ? '双页' : '单页')));
+const modeLabel = computed(() => (modes.find(m => m.name === theme.surfaceMode) || modes[0]).label);
+const themeLabel = computed(() => (swatches.find(s => s.name === theme.themeColor) || swatches[0]).title.replace(' (默认)', ''));
 
-function segStyle(active) {
-  return active
-    ? { backgroundColor: 'var(--brand-primary)', color: '#FFFFFF' }
-    : { backgroundColor: 'transparent', color: 'var(--fg-muted)' };
-}
-
-function setWebtoonFit(value) {
-  reader.setWebtoonFit(value);
+// 恢复默认：全部走 store 已有的公开动作，不改动 store API
+function resetDefaults() {
+  reader.setDirection('ltr');
+  if (reader.layoutConfig.spread !== 2) reader.setSpreadCount(2);
+  if (!reader.layoutConfig.coverOffset) reader.toggleCoverOffset();
+  reader.setWebtoonFit('screen');
+  while (reader.layoutConfig.fontSize > 18) reader.changeFontSize(-2);
+  while (reader.layoutConfig.fontSize < 18) reader.changeFontSize(2);
+  showToast('已恢复默认阅读设置');
 }
 </script>

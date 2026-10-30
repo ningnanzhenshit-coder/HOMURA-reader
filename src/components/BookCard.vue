@@ -1,6 +1,6 @@
 <template>
-  <div class="editorial-card group cursor-pointer overflow-hidden flex flex-col" @click="$emit('open', book.id)">
-    <div class="aspect-[3/4] w-full bg-[var(--bg-subtle)] relative overflow-hidden border-b border-[var(--border-line)]">
+  <div class="md-shelf-card group cursor-pointer flex flex-col min-w-0" @click="$emit('open', book.id)">
+    <div class="aspect-[3/4] w-full relative overflow-hidden bg-[var(--md-surface-high)]">
       <img
         v-if="book.cover"
         :src="book.cover"
@@ -9,34 +9,42 @@
       />
       <div
         v-else
-        style="background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));"
-        class="w-full h-full p-4 flex flex-col justify-between text-white"
+        class="w-full h-full p-3 flex flex-col justify-between text-[var(--md-on-primary)]"
+        :style="{ background: 'linear-gradient(160deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 52%, var(--md-tertiary)))' }"
       >
-        <span class="text-[10px] font-mono font-bold tracking-widest opacity-80">HOMURA</span>
-        <div class="font-display font-bold text-sm line-clamp-3 leading-snug text-white">{{ book.title }}</div>
-        <span class="text-[10px] opacity-80 font-mono">{{ subInfo }}</span>
+        <span class="text-[9px] font-mono font-bold tracking-widest opacity-80">HOMURA</span>
+        <div class="font-display font-bold text-[12px] leading-snug line-clamp-3">{{ book.title }}</div>
+        <span class="text-[9px] opacity-80 font-mono">{{ subInfo }}</span>
       </div>
-      <span style="background-color: var(--brand-primary);" class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md font-mono text-[10px] font-bold text-white shadow">
-        {{ badgeText }}
-      </span>
+
+      <!-- 类型徽标 -->
+      <span
+        class="absolute top-2.5 left-2.5 px-2 py-[3px] rounded-full font-mono text-[8px] font-semibold tracking-[0.06em] text-[var(--md-on-surface)]"
+        :style="{ background: 'color-mix(in oklab, var(--md-surface) 84%, transparent)', backdropFilter: 'blur(8px)' }"
+      >{{ badgeText }}</span>
+
       <button
         @click.stop="$emit('remove', book.id)"
-        class="card-remove-btn absolute top-2 right-2 w-8 h-8 sm:w-6 sm:h-6 rounded-md bg-slate-900/75 hover:bg-red-600 text-white text-xs flex items-center justify-center transition"
+        class="card-remove-btn absolute top-2 right-2 w-7 h-7 rounded-full text-[var(--md-surface)] flex items-center justify-center transition"
+        style="background: color-mix(in oklab, var(--md-on-surface) 72%, transparent);"
         title="从书架移除"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <div v-if="progress" class="absolute bottom-0 inset-x-0 h-[3px] bg-slate-900/25">
-        <div class="h-full" :style="{ width: progress.percent + '%', backgroundColor: 'var(--brand-primary)' }"></div>
+
+      <!-- 3px 进度条 -->
+      <div v-if="progress" class="absolute bottom-0 inset-x-0 h-[3px]" style="background: rgba(0,0,0,0.18);">
+        <div class="h-full" :style="{ width: progress.percent + '%', backgroundColor: 'var(--md-primary)' }"></div>
       </div>
     </div>
-    <div class="p-3 flex-1 flex flex-col justify-between gap-1.5">
-      <h4 class="font-bold text-xs line-clamp-2 leading-snug group-hover:text-[var(--brand-primary)] transition">
-        {{ book.title }}
-      </h4>
-      <div class="flex items-center justify-between text-[11px] font-mono text-[var(--fg-muted)] pt-1">
-        <span>{{ subInfo }}</span>
-        <span class="text-[var(--brand-primary)] font-bold">{{ progress ? `读至 ${progress.percent}%` : '阅读 →' }}</span>
+
+    <div class="px-2.5 pt-2 pb-2.5 min-[900px]:px-3 min-[900px]:pt-2.5 min-[900px]:pb-3 flex flex-col gap-1 min-w-0">
+      <h4 class="font-bold text-[10px] min-[900px]:text-[11.5px] leading-snug truncate">{{ book.title }}</h4>
+      <div class="flex items-baseline justify-between gap-1.5 min-w-0">
+        <span class="font-mono text-[7.5px] min-[900px]:text-[8.5px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
+        <b class="font-mono text-[7.5px] min-[900px]:text-[8.5px] font-semibold text-[var(--md-primary)] shrink-0">
+          {{ progress ? `${progress.percent}%` : '阅读 →' }}
+        </b>
       </div>
     </div>
   </div>
@@ -59,7 +67,7 @@ const badgeText = computed(() => {
 
 const subInfo = computed(() =>
   props.book.type === 'manga'
-    ? `共 ${props.book.pageCount || (props.book.pageItems ? props.book.pageItems.length : 0)} 页`
-    : `共 ${props.book.pageCount || (props.book.chapters ? props.book.chapters.length : 1)} 章`
+    ? `${props.book.pageCount || (props.book.pageItems ? props.book.pageItems.length : 0)} 页`
+    : `${props.book.pageCount || (props.book.chapters ? props.book.chapters.length : 1)} 章`
 );
 </script>

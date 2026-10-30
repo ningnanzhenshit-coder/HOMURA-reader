@@ -9,8 +9,9 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { showToast } from '../composables/useToast.js';
 
-const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#F6EFE2', dark: '#090D16' };
-const THEME_NAMES = { blue: '晴空蓝', red: '绯红金', green: '森系绿', violet: '星夜紫' };
+// 原生窗口 / 浏览器地址栏底色，与 homura.css 的 --md-surface 保持一致
+const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#FAF6EE', dark: '#0F1115' };
+const THEME_NAMES = { blue: '深海蓝', red: '落日赤陶', green: '森系绿', violet: '鸢尾紫', sakura: '樱雾粉', mint: '薄荷青', amber: '琥珀金' };
 const MODE_LABELS = {
   light: '白昼清爽模式',
   warm: '暖色护眼模式',

@@ -13,7 +13,7 @@
 
   <!-- Novel: 长卷连续滚动 -->
   <div v-else ref="scrollRoot" class="w-full h-full overflow-y-auto py-4 px-3 sm:px-2">
-    <div :style="{ fontSize: reader.layoutConfig.fontSize + 'px' }" class="max-w-3xl mx-auto bg-[var(--bg-card)] rounded-xl shadow-sm border border-[var(--border-line)] p-5 sm:p-12 space-y-8">
+    <div :style="{ fontSize: reader.layoutConfig.fontSize + 'px' }" class="max-w-[660px] mx-auto bg-[var(--md-surface-low)] border border-[var(--md-outline-variant)] rounded-[16px] p-5 sm:p-12 space-y-8">
       <section
         v-for="p in reader.activePages"
         :key="p.pageNumber"

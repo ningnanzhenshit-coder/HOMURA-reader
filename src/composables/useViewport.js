@@ -11,6 +11,8 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 const PHONE_MAX = 767;
 const TABLET_MAX = 1023;
+// MD3 布局断点：<900 走手机布局（底部导航 / bottom sheet），>=900 走桌面布局（rail / side sheet）
+const COMPACT_MAX = 899;
 const RESIZE_DEBOUNCE_MS = 120;
 const TOUCH_QUERY = '(any-pointer: coarse)';
 
@@ -62,6 +64,7 @@ export function useViewport() {
   const isPhone = computed(() => width.value <= PHONE_MAX);
   const isTablet = computed(() => width.value > PHONE_MAX && width.value <= TABLET_MAX);
   const isDesktop = computed(() => width.value > TABLET_MAX);
+  const isCompact = computed(() => width.value <= COMPACT_MAX);
 
-  return { width, isPhone, isTablet, isDesktop, isTouch };
+  return { width, isPhone, isTablet, isDesktop, isCompact, isTouch };
 }

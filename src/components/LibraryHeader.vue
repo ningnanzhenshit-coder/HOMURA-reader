@@ -1,104 +1,108 @@
 <template>
-  <!-- 书架页头部：标题 / 搜索 / 筛选 / 排序 / 导入 -->
+  <!-- 书架页头部：MD3 Top App Bar + 搜索栏 + 筛选 chips -->
   <div
-    class="sticky top-0 z-20 border-b border-[var(--border-line)] bg-[var(--bg-canvas)]"
+    class="sticky top-0 z-20 bg-[var(--md-surface)]"
     :style="isPhone ? { paddingTop: 'env(safe-area-inset-top)' } : null"
   >
-    <div class="max-w-6xl w-full mx-auto px-4 sm:px-8 pt-4 sm:pt-5 pb-3 sm:pb-4 flex flex-col gap-2.5 sm:gap-3">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-baseline gap-2.5 sm:gap-3 min-w-0">
-          <h2 class="font-display font-extrabold text-lg sm:text-xl tracking-tight">书架</h2>
-          <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-[var(--brand-soft)] text-[var(--brand-primary)] border border-[var(--brand-border)] shrink-0">{{ count }} 部作品</span>
-        </div>
-        <div class="relative flex items-center gap-2 shrink-0">
-          <button v-if="canPickFolder" @click="$emit('pick-folder')" class="uiverse-btn min-h-9 sm:min-h-0 px-2.5 sm:px-3" title="导入整个文件夹（支持内含多本 EPUB/ZIP 或漫画图片子文件夹）">
-            <svg class="w-3.5 h-3.5 text-[var(--brand-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-            <span class="hidden sm:inline">文件夹</span>
-          </button>
-          <button @click="$emit('pick-file')" class="uiverse-btn-primary min-h-9 sm:min-h-0 px-2.5 sm:px-3">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-            <span class="hidden sm:inline">导入文件</span>
-            <span class="sm:hidden">导入</span>
-          </button>
+    <!-- Top App Bar: 桌面 64px / 手机 56px -->
+    <div class="h-14 min-[900px]:h-16 flex items-center gap-3 px-4 min-[900px]:px-7">
+      <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">书架</h1>
+      <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[9px] font-semibold">{{ count }} 部作品</span>
 
-          <!-- 移动端：次要操作收进「更多」菜单 -->
-          <button
-            v-if="isPhone"
-            @click="moreOpen = !moreOpen"
-            class="uiverse-btn min-h-9 px-2"
-            title="更多操作"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/>
-              <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/>
-              <circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>
+      <div class="ml-auto flex items-center gap-0.5 shrink-0">
+        <button @click="focusSearch" class="w-10 h-10 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors" title="搜索">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20l-4-4"/>
+          </svg>
+        </button>
+
+        <div class="relative">
+          <button @click="toggleMenu('sort')" class="w-10 h-10 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors" title="排序方式">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"/>
             </svg>
           </button>
-
-          <div v-if="isPhone && moreOpen" class="fixed inset-0 z-20" @click="moreOpen = false"></div>
+          <div v-if="menu === 'sort'" class="fixed inset-0 z-20" @click="menu = null"></div>
           <div
-            v-if="isPhone && moreOpen"
-            class="absolute right-0 top-full mt-2 w-44 z-30 rounded-xl border border-[var(--border-line)] bg-[var(--bg-card)] shadow-xl p-1.5 flex flex-col gap-0.5"
+            v-if="menu === 'sort'"
+            class="absolute right-0 top-full mt-1 w-44 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
           >
-            <button @click="addDemoManga" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold text-[var(--fg-main)] hover:bg-[var(--bg-subtle)] transition">+ 示例漫画</button>
-            <button @click="addDemoNovel" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold text-[var(--fg-main)] hover:bg-[var(--bg-subtle)] transition">+ 示例小说</button>
-            <div v-if="storageLabel" class="px-3 py-2 font-mono text-[11px] text-[var(--fg-muted)] border-t border-[var(--border-line)]">
+            <button
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              @click="pickSort(opt.value)"
+              class="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors"
+              :class="sort === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
+            >
+              <span class="flex-1">{{ opt.label }}</span>
+              <svg v-if="sort === opt.value" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <button
+            @click="toggleMenu('more')"
+            class="w-8 h-8 ml-1.5 rounded-full grid place-items-center bg-[var(--md-tertiary-container)] text-[var(--md-on-tertiary-container)] text-[11px] font-bold"
+            title="更多操作"
+          >H</button>
+          <div v-if="menu === 'more'" class="fixed inset-0 z-20" @click="menu = null"></div>
+          <div
+            v-if="menu === 'more'"
+            class="absolute right-0 top-full mt-1 w-48 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
+          >
+            <button @click="addDemoManga" class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
+            <button @click="addDemoNovel" class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
+            <div v-if="storageLabel" class="px-3 py-2 font-mono text-[11px] text-[var(--md-on-surface-variant)] border-t border-[var(--md-outline-variant)]">
               存储 {{ storageLabel }}
             </div>
-            <button @click="moreOpen = false; shelf.clearShelf()" class="w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold text-red-500 hover:bg-[var(--bg-subtle)] transition">清空书架</button>
+            <button @click="onClear" class="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-2 px-2.5 h-9 sm:h-8 rounded-lg border border-[var(--border-line)] bg-[var(--bg-card)] flex-1 min-w-[140px] max-w-full sm:max-w-xs">
-          <svg class="w-3.5 h-3.5 text-[var(--fg-muted)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-          <input
-            :value="query"
-            @input="$emit('update:query', $event.target.value)"
-            type="text"
-            placeholder="搜索书名…"
-            class="flex-1 min-w-0 bg-transparent border-none outline-none text-xs font-medium placeholder:text-[var(--fg-muted)]"
-          />
-        </div>
-
-        <div class="flex items-center bg-[var(--bg-subtle)] p-0.5 rounded-lg border border-[var(--border-line)]">
-          <button
-            v-for="t in types"
-            :key="t.value"
-            @click="$emit('update:type', t.value)"
-            class="px-2.5 py-1.5 sm:py-1 rounded-md text-xs font-semibold transition"
-            :style="type === t.value
-              ? 'background-color: var(--brand-primary); color: #FFFFFF;'
-              : 'background-color: transparent; color: var(--fg-muted);'"
-          >
-            {{ t.label }}
-          </button>
-        </div>
-
-        <select
-          :value="sort"
-          @change="$emit('update:sort', $event.target.value)"
-          class="h-9 sm:h-8 px-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-card)] text-xs font-semibold text-[var(--fg-muted)] outline-none cursor-pointer"
-          title="排序方式"
-        >
-          <option value="recent">最近添加</option>
-          <option value="progress">阅读进度</option>
-          <option value="title">书名排序</option>
-        </select>
-
-        <div v-if="!isPhone" class="ml-auto flex items-center gap-2.5 text-[11px] font-semibold text-[var(--fg-muted)]">
-          <button @click="addDemoManga" class="hover:text-[var(--brand-primary)] transition">+ 示例漫画</button>
-          <span class="opacity-40">·</span>
-          <button @click="addDemoNovel" class="hover:text-[var(--brand-primary)] transition">+ 示例小说</button>
-          <span class="opacity-40">·</span>
-          <button @click="shelf.clearShelf()" class="hover:text-red-500 transition">清空</button>
-          <template v-if="storageLabel">
-            <span class="opacity-40">·</span>
-            <span class="font-mono" title="浏览器估算的已用存储 / 可用配额">存储 {{ storageLabel }}</span>
-          </template>
-        </div>
+    <!-- 搜索栏 52px 胶囊 -->
+    <div class="px-4 min-[900px]:px-7 pt-1.5">
+      <div class="h-[52px] rounded-[26px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-[18px] pr-4">
+        <svg class="w-5 h-5 shrink-0 text-[var(--md-on-surface-variant)] opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7" stroke-width="2"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20l-4-4"/>
+        </svg>
+        <input
+          ref="searchRef"
+          :value="query"
+          @input="$emit('update:query', $event.target.value)"
+          type="text"
+          placeholder="搜索书名、作者…"
+          class="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-medium text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)]"
+        />
+        <span
+          v-if="!isPhone"
+          class="shrink-0 font-mono text-[9px] px-[7px] py-1 rounded-[6px] bg-[var(--md-surface-highest)] text-[var(--md-on-surface-variant)]"
+        >⌘ K</span>
       </div>
+    </div>
+
+    <!-- 筛选 chips -->
+    <div class="px-4 min-[900px]:px-7 pt-3.5 pb-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button
+        v-for="t in types"
+        :key="t.value"
+        @click="$emit('update:type', t.value)"
+        class="h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1.5 border transition-colors duration-200"
+        :class="type === t.value
+          ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-transparent'
+          : 'border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+      >
+        <svg v-if="type === t.value" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
+        </svg>
+        {{ t.label }}
+      </button>
     </div>
   </div>
 </template>
@@ -109,7 +113,7 @@ import { useShelfStore } from '../stores/shelf.js';
 import { useViewport } from '../composables/useViewport.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { HomuraStore } from '../services/storage.js';
-import { canPickFolder, formatBytes } from '../services/platform.js';
+import { formatBytes } from '../services/platform.js';
 import { showToast } from '../composables/useToast.js';
 
 const props = defineProps({
@@ -119,11 +123,22 @@ const props = defineProps({
   sort: { type: String, default: 'recent' }
 });
 
-defineEmits(['update:query', 'update:type', 'update:sort', 'pick-file', 'pick-folder']);
+const emit = defineEmits(['update:query', 'update:type', 'update:sort']);
 
 const shelf = useShelfStore();
 const { isPhone } = useViewport();
-const moreOpen = ref(false);
+
+const searchRef = ref(null);
+const menu = ref(null);
+
+function focusSearch() {
+  menu.value = null;
+  if (searchRef.value) searchRef.value.focus();
+}
+
+function toggleMenu(name) {
+  menu.value = menu.value === name ? null : name;
+}
 
 // 存储用量：浏览器估算值，书架增减后刷新
 const storage = ref(null);
@@ -138,28 +153,42 @@ async function refreshStorage() {
 
 onMounted(refreshStorage);
 watch(() => props.count, refreshStorage);
-
-// 切回桌面布局时收起移动端菜单，避免残留浮层
 watch(isPhone, value => {
-  if (!value) moreOpen.value = false;
+  if (!value) menu.value = null;
 });
 
 const types = [
   { value: 'all', label: '全部' },
   { value: 'manga', label: '漫画' },
-  { value: 'novel', label: '小说' },
-  { value: 'epub', label: 'EPUB' }
+  { value: 'novel', label: '轻小说' },
+  { value: 'pdf', label: 'PDF' }
 ];
+
+const sortOptions = [
+  { value: 'recent', label: '最近添加' },
+  { value: 'progress', label: '阅读进度' },
+  { value: 'title', label: '书名排序' }
+];
+
+function pickSort(value) {
+  emit('update:sort', value);
+  menu.value = null;
+}
 
 function addDemoManga() {
   shelf.unshiftBook(createDemoManga());
-  moreOpen.value = false;
+  menu.value = null;
   showToast('已添加《示例漫画》到书架');
 }
 
 function addDemoNovel() {
   shelf.unshiftBook(createDemoNovel());
-  moreOpen.value = false;
+  menu.value = null;
   showToast('已添加《示例轻小说》到书架');
+}
+
+function onClear() {
+  menu.value = null;
+  shelf.clearShelf();
 }
 </script>

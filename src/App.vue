@@ -1,23 +1,66 @@
 <template>
   <div class="flex flex-1 min-h-0">
-    <SideNav />
+    <SideNav @nav="onRailNav" />
 
-    <div class="flex-1 min-w-0 flex flex-col" :class="isPhone ? 'mobile-tabbar-space' : ''">
+    <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
       <LibraryHeader
         :count="shelf.library.length"
         v-model:query="query"
         v-model:type="typeFilter"
         v-model:sort="sortKey"
-        @pick-file="openFilePicker"
-        @pick-folder="openFolderPicker"
       />
 
-      <main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 flex flex-col gap-5 sm:gap-6">
-        <ContinueReading @open="reader.openBook" />
+      <main class="flex-1 w-full flex flex-col pb-24">
         <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
         <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
       </main>
     </div>
+  </div>
+
+  <!-- 唯一主行动：扩展 FAB「导入」，点开选择导入文件 / 文件夹 -->
+  <div class="md-fab-pos flex flex-col items-end">
+    <div v-if="importMenuOpen" class="fixed inset-0" @click="importMenuOpen = false"></div>
+
+    <Transition
+      enter-active-class="md-sheet-enter-active"
+      enter-from-class="translate-y-2 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="md-sheet-leave-active"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <div
+        v-if="importMenuOpen"
+        class="absolute right-0 bottom-[68px] w-44 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
+      >
+        <button @click="pickFiles" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">
+          <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v11M8 8l4-4 4 4"/></svg>
+          导入文件
+        </button>
+        <button
+          v-if="canPickFolder"
+          @click="pickFolder"
+          class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors"
+        >
+          <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          导入文件夹
+        </button>
+      </div>
+    </Transition>
+
+    <button
+      @click="importMenuOpen = !importMenuOpen"
+      class="relative z-10 h-14 rounded-2xl px-5 inline-flex items-center gap-2.5 bg-[var(--md-primary)] text-[var(--md-on-primary)] text-[13px] font-bold active:scale-95 transition-transform duration-200"
+      style="box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--md-primary) 55%, transparent), 0 2px 4px rgba(0,0,0,0.2);"
+      title="导入作品"
+      aria-haspopup="menu"
+      :aria-expanded="importMenuOpen"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M12 5v14M5 12h14"/>
+      </svg>
+      导入
+    </button>
   </div>
 
   <input ref="fileInput" type="file" multiple :accept="fileAccept" class="hidden" @change="onFileChange" />
@@ -44,7 +87,6 @@ import { useViewport } from './composables/useViewport.js';
 import { showToast } from './composables/useToast.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
-import ContinueReading from './components/ContinueReading.vue';
 import BookShelf from './components/BookShelf.vue';
 import EmptyShelf from './components/EmptyShelf.vue';
 import DragOverlay from './components/DragOverlay.vue';
@@ -55,11 +97,12 @@ const theme = useThemeStore();
 const shelf = useShelfStore();
 const reader = useReaderStore();
 const importer = useImporter();
-const { isPhone } = useViewport();
+const { isCompact } = useViewport();
 
 const measurerRef = ref(null);
 const fileInput = ref(null);
 const folderInput = ref(null);
+const importMenuOpen = ref(false);
 
 // 书架视图状态
 const query = ref('');
@@ -68,8 +111,13 @@ const sortKey = ref('recent');
 
 const visibleBooks = computed(() => {
   let list = shelf.library;
-  if (typeFilter.value !== 'all') {
-    list = list.filter(book => book.type === typeFilter.value);
+  // 筛选 chips：全部 / 漫画 / 轻小说 / PDF（PDF 单独按 format 归类）
+  if (typeFilter.value === 'pdf') {
+    list = list.filter(book => book.format === 'pdf');
+  } else if (typeFilter.value === 'manga') {
+    list = list.filter(book => book.type === 'manga' && book.format !== 'pdf');
+  } else if (typeFilter.value === 'novel') {
+    list = list.filter(book => book.type !== 'manga');
   }
   const keyword = query.value.trim().toLowerCase();
   if (keyword) {
@@ -108,6 +156,26 @@ function openFolderPicker() {
 async function onFileChange(e) {
   await importer.handleFiles(e.target.files);
   e.target.value = '';
+}
+
+// FAB 菜单：先收起菜单再走原有导入流程
+function pickFiles() {
+  importMenuOpen.value = false;
+  openFilePicker();
+}
+
+function pickFolder() {
+  importMenuOpen.value = false;
+  openFolderPicker();
+}
+
+// Navigation Rail：书架 = 恢复全部 / 最近添加；最近 = 按阅读进度排序
+function onRailNav(key) {
+  if (key !== 'shelf' && key !== 'recent') return;
+  query.value = '';
+  typeFilter.value = 'all';
+  sortKey.value = key === 'recent' ? 'progress' : 'recent';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 全屏：走 Tauri 原生窗口全屏（Windows 的 WebView2 不接管网页全屏）；浏览器调试环境回退标准 Fullscreen API

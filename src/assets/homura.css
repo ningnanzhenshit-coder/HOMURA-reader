@@ -1,79 +1,243 @@
     /* ==========================================================================
-       1. Dynamic Theme Accent Colors (Blue / RedGold / Green / Violet)
+       1. MD3 Color Tokens · 7 套主题（默认 深海蓝 = seed #0061A4）
        ========================================================================== */
     :root,
     html[data-theme="blue"] {
-      --brand-primary: #2563EB;
-      --brand-primary-hover: #1D4ED8;
-      --brand-shadow: #1E40AF;
-      --brand-soft: #EFF6FF;
-      --brand-border: #BFDBFE;
-      --brand-on-primary: #FFFFFF;
+      --md-primary: #0061A4;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #D1E4FF;
+      --md-on-primary-container: #001D36;
+      --md-secondary: #535F70;
+      --md-secondary-container: #D7E3F7;
+      --md-on-secondary-container: #101C2B;
+      --md-tertiary: #6B5778;
+      --md-tertiary-container: #F2DAFF;
+      --md-on-tertiary-container: #251431;
     }
     html[data-theme="red"] {
-      --brand-primary: #E61919;
-      --brand-primary-hover: #C81010;
-      --brand-shadow: #FFC400;
-      --brand-soft: #FFF7D6;
-      --brand-border: #FDE68A;
-      --brand-on-primary: #FFFFFF;
+      --md-primary: #9C4233;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #FFDAD4;
+      --md-on-primary-container: #410002;
+      --md-secondary: #775650;
+      --md-secondary-container: #FFDAD6;
+      --md-on-secondary-container: #2C1512;
+      --md-tertiary: #705C2E;
+      --md-tertiary-container: #F7DFA5;
+      --md-on-tertiary-container: #251A00;
     }
     html[data-theme="green"] {
-      --brand-primary: #059669;
-      --brand-primary-hover: #047857;
-      --brand-shadow: #065F46;
-      --brand-soft: #ECFDF5;
-      --brand-border: #A7F3D0;
-      --brand-on-primary: #FFFFFF;
+      --md-primary: #386A20;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #B8F397;
+      --md-on-primary-container: #042100;
+      --md-secondary: #55624C;
+      --md-secondary-container: #D9E7CB;
+      --md-on-secondary-container: #131F0D;
+      --md-tertiary: #386666;
+      --md-tertiary-container: #BBEBE8;
+      --md-on-tertiary-container: #002020;
     }
     html[data-theme="violet"] {
-      --brand-primary: #7C3AED;
-      --brand-primary-hover: #6D28D9;
-      --brand-shadow: #5B21B6;
-      --brand-soft: #F5F3FF;
-      --brand-border: #DDD6FE;
-      --brand-on-primary: #FFFFFF;
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #EADDFF;
+      --md-on-primary-container: #21005D;
+      --md-secondary: #625B71;
+      --md-secondary-container: #E8DEF8;
+      --md-on-secondary-container: #1D192B;
+      --md-tertiary: #7D5260;
+      --md-tertiary-container: #FFD8E4;
+      --md-on-tertiary-container: #31111D;
+    }
+    html[data-theme="sakura"] {
+      --md-primary: #984061;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #FFD9E2;
+      --md-on-primary-container: #3E001D;
+      --md-secondary: #74565F;
+      --md-secondary-container: #FFD9E1;
+      --md-on-secondary-container: #2B151C;
+      --md-tertiary: #7C5635;
+      --md-tertiary-container: #FFDCC1;
+      --md-on-tertiary-container: #2E1500;
+    }
+    html[data-theme="mint"] {
+      --md-primary: #006A60;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #74F8E5;
+      --md-on-primary-container: #00201C;
+      --md-secondary: #4A635F;
+      --md-secondary-container: #CCE8E2;
+      --md-on-secondary-container: #06201C;
+      --md-tertiary: #456179;
+      --md-tertiary-container: #D0E4FF;
+      --md-on-tertiary-container: #001D33;
+    }
+    html[data-theme="amber"] {
+      --md-primary: #785900;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #FFDF9E;
+      --md-on-primary-container: #261A00;
+      --md-secondary: #6B5D3F;
+      --md-secondary-container: #F2E0BB;
+      --md-on-secondary-container: #231B04;
+      --md-tertiary: #4A6546;
+      --md-tertiary-container: #CCEBC3;
+      --md-on-tertiary-container: #05210A;
+    }
+
+    /* 夜间：同色相深阶（primary / primary-container 对调为 tone 80 / 30） */
+    html[data-mode="dark"][data-theme="blue"] {
+      --md-primary: #A6C8FF;
+      --md-on-primary: #003258;
+      --md-primary-container: #00497D;
+      --md-on-primary-container: #D1E4FF;
+      --md-secondary: #BEC8DC;
+      --md-secondary-container: #3E4759;
+      --md-on-secondary-container: #DAE2F9;
+      --md-tertiary: #DDBCEE;
+      --md-tertiary-container: #543F5E;
+      --md-on-tertiary-container: #F9D8FF;
+    }
+    html[data-mode="dark"][data-theme="red"] {
+      --md-primary: #FFB4A8;
+      --md-on-primary: #561F16;
+      --md-primary-container: #7B2E22;
+      --md-on-primary-container: #FFDAD4;
+      --md-secondary: #E7BDB6;
+      --md-secondary-container: #5B413C;
+      --md-on-secondary-container: #FFDAD6;
+      --md-tertiary: #E0C38C;
+      --md-tertiary-container: #574500;
+      --md-on-tertiary-container: #F7DFA5;
+    }
+    html[data-mode="dark"][data-theme="green"] {
+      --md-primary: #9CD67E;
+      --md-on-primary: #0C3900;
+      --md-primary-container: #235100;
+      --md-on-primary-container: #B8F397;
+      --md-secondary: #C0CCB4;
+      --md-secondary-container: #3C4A33;
+      --md-on-secondary-container: #D9E7CB;
+      --md-tertiary: #A0CFCC;
+      --md-tertiary-container: #1E4B49;
+      --md-on-tertiary-container: #BBEBE8;
+    }
+    html[data-mode="dark"][data-theme="violet"] {
+      --md-primary: #CFBCFF;
+      --md-on-primary: #381E72;
+      --md-primary-container: #4F378B;
+      --md-on-primary-container: #EADDFF;
+      --md-secondary: #CBC2DB;
+      --md-secondary-container: #4A4458;
+      --md-on-secondary-container: #E8DEF8;
+      --md-tertiary: #EFB8C8;
+      --md-tertiary-container: #633B48;
+      --md-on-tertiary-container: #FFD8E4;
+    }
+    html[data-mode="dark"][data-theme="sakura"] {
+      --md-primary: #FFB1C8;
+      --md-on-primary: #5E1133;
+      --md-primary-container: #7B2949;
+      --md-on-primary-container: #FFD9E2;
+      --md-secondary: #E3BDC6;
+      --md-secondary-container: #5B3F47;
+      --md-on-secondary-container: #FFD9E1;
+      --md-tertiary: #E7BE8C;
+      --md-tertiary-container: #5E4218;
+      --md-on-tertiary-container: #FFDCC1;
+    }
+    html[data-mode="dark"][data-theme="mint"] {
+      --md-primary: #55DBCB;
+      --md-on-primary: #003731;
+      --md-primary-container: #005047;
+      --md-on-primary-container: #74F8E5;
+      --md-secondary: #B1CCC6;
+      --md-secondary-container: #334B47;
+      --md-on-secondary-container: #CCE8E2;
+      --md-tertiary: #ADCAE5;
+      --md-tertiary-container: #2D4960;
+      --md-on-tertiary-container: #D0E4FF;
+    }
+    html[data-mode="dark"][data-theme="amber"] {
+      --md-primary: #F5BE48;
+      --md-on-primary: #402D00;
+      --md-primary-container: #5B4300;
+      --md-on-primary-container: #FFDF9E;
+      --md-secondary: #D7C4A0;
+      --md-secondary-container: #52452C;
+      --md-on-secondary-container: #F2E0BB;
+      --md-tertiary: #B0CFA7;
+      --md-tertiary-container: #334D30;
+      --md-on-tertiary-container: #CCEBC3;
     }
 
     /* ==========================================================================
-       2. Reading Surface Modes (Light / Warm Eye-Care / Dark)
+       2. MD3 Surface Scales（白昼 / 暖色护眼 / 夜间）
        ========================================================================== */
     html[data-mode="light"] {
-      --bg-canvas: #F8FAFC;
-      --bg-subtle: #F1F5F9;
-      --bg-card: #FFFFFF;
-      --bg-reader: #F1F5F9;
-      --fg-main: #0F172A;
-      --fg-muted: #64748B;
-      --border-line: #E2E8F0;
+      color-scheme: light;
+      --md-surface: #F8FAFC;
+      --md-surface-low: #F1F4F8;
+      --md-surface-container: #EBEFF4;
+      --md-surface-high: #E4E9EF;
+      --md-surface-highest: #DDE3EA;
+      --md-on-surface: #111827;
+      --md-on-surface-variant: #475569;
+      --md-outline: #6B7280;
+      --md-outline-variant: #CBD5E1;
       --manga-filter: none;
     }
 
     /* Warm Eye-Care Mode (Sepia / Warm Paper) */
     html[data-mode="warm"] {
-      --bg-canvas: #F6EFE2;
-      --bg-subtle: #EDE3D0;
-      --bg-card: #FBF7EE;
-      --bg-reader: #EFE6D5;
-      --fg-main: #3B2F2F;
-      --fg-muted: #7C6A58;
-      --border-line: #DFD1BA;
-      --brand-soft: #EFE4CE;
+      color-scheme: light;
+      --md-surface: #FAF6EE;
+      --md-surface-low: #F5F0E5;
+      --md-surface-container: #EFE9DC;
+      --md-surface-high: #E8E1D2;
+      --md-surface-highest: #E1D9C8;
+      --md-on-surface: #221E17;
+      --md-on-surface-variant: #57503F;
+      --md-outline: #8A7F68;
+      --md-outline-variant: #D8CDB6;
       --manga-filter: sepia(0.18) brightness(0.97) contrast(0.98);
     }
 
     /* Dark Mode */
     html[data-mode="dark"] {
-      --bg-canvas: #090D16;
-      --bg-subtle: #0F172A;
-      --bg-card: #111827;
-      --bg-reader: #070B12;
-      --fg-main: #F1F5F9;
-      --fg-muted: #94A3B8;
-      --border-line: #1E293B;
-      --brand-soft: rgba(255, 255, 255, 0.06);
-      --brand-border: rgba(255, 255, 255, 0.14);
+      color-scheme: dark;
+      --md-surface: #0F1115;
+      --md-surface-low: #14171C;
+      --md-surface-container: #1A1E24;
+      --md-surface-high: #20252C;
+      --md-surface-highest: #272C34;
+      --md-on-surface: #E2E6EC;
+      --md-on-surface-variant: #B9C2CE;
+      --md-outline: #8B95A3;
+      --md-outline-variant: #3A424C;
       --manga-filter: brightness(0.92);
+    }
+
+    /* ==========================================================================
+       3. Legacy Aliases — 组件仍沿用旧变量名，统一映射到 MD3 tokens
+       ========================================================================== */
+    :root {
+      --brand-primary: var(--md-primary);
+      --brand-primary-hover: color-mix(in srgb, var(--md-primary) 84%, #000);
+      --brand-shadow: color-mix(in srgb, var(--md-primary) 62%, #000);
+      --brand-soft: var(--md-primary-container);
+      --brand-border: var(--md-outline-variant);
+      --brand-on-primary: var(--md-on-primary);
+      --bg-page: var(--md-surface);
+      --bg-canvas: var(--md-surface);
+      --bg-subtle: var(--md-surface-container);
+      --bg-card: var(--md-surface-low);
+      --bg-reader: var(--md-surface-low);
+      --fg-main: var(--md-on-surface);
+      --fg-muted: var(--md-on-surface-variant);
+      --border-line: var(--md-outline-variant);
     }
 
     body {
@@ -81,6 +245,125 @@
       color: var(--fg-main);
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ==========================================================================
+       4. MD3 基础组件（rail / FAB / 卡片网格 / sheet 动效）
+       ========================================================================== */
+
+    /* 书架网格：桌面 6 列 / 手机 3 列 */
+    .md-shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 14px 16px 0;
+    }
+    @media (min-width: 900px) {
+      .md-shelf-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 16px;
+        padding: 18px 28px 0;
+      }
+    }
+
+    /* 继续阅读特色卡：手机整行 / 桌面跨两列 */
+    .md-featured-cell {
+      grid-column: span 3;
+    }
+    @media (min-width: 900px) {
+      .md-featured-cell { grid-column: span 2; }
+    }
+
+    .md-shelf-card {
+      background-color: var(--md-surface-container);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 42%, transparent),
+        0 2px 8px -3px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .md-shelf-card:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 60%, transparent),
+          0 10px 24px -12px color-mix(in oklab, var(--md-on-surface) 30%, transparent);
+      }
+    }
+
+    /* 主行动 FAB：桌面右下角 / 手机上浮于底部导航之上 */
+    .md-fab-pos {
+      position: fixed;
+      right: 28px;
+      bottom: 26px;
+      z-index: 40;
+    }
+    @media (max-width: 899px) {
+      .md-fab-pos {
+        right: 18px;
+        bottom: calc(5rem + env(safe-area-inset-bottom) + 14px);
+      }
+    }
+
+    /* 手机底部导航预留高度，避免卡片文字被导航条盖住 */
+    .md-bottom-nav-space {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+
+    .md-scrim {
+      background: color-mix(in oklab, var(--md-on-surface) 32%, transparent);
+    }
+    .md-scrim-soft {
+      background: color-mix(in oklab, var(--md-on-surface) 30%, transparent);
+    }
+
+    /* 200ms · cubic-bezier(.2,0,0,1)：sheet / bar 统一动效 */
+    .md-sheet-enter-active,
+    .md-sheet-leave-active {
+      transition:
+        transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+        opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .md-fade-enter-active,
+    .md-fade-leave-active {
+      transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* MD3 进度滑条 */
+    .md-range {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 20px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .md-range::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--md-outline-variant);
+    }
+    .md-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: var(--md-primary);
+      box-shadow: 0 0 0 3px var(--md-surface);
+    }
+    .md-range::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--md-outline-variant);
+    }
+    .md-range::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--md-primary);
+      box-shadow: 0 0 0 3px var(--md-surface);
     }
 
     /* ==========================================================================
@@ -103,10 +386,6 @@
     .mobile-tabbar {
       min-height: 3.5rem;
       padding-bottom: env(safe-area-inset-bottom);
-    }
-
-    .mobile-tabbar-space {
-      padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
     }
 
     /* 触屏上没有 hover：书架卡片的移除按钮改为常显 */
@@ -141,6 +420,21 @@
         border-radius: 9999px;
         background: var(--brand-primary);
         border: 2px solid var(--bg-card);
+      }
+    }
+
+    /* MD3 滑条：触屏上仍保持 20px 命中高度与 18px 拇指 */
+    @media (hover: none) {
+      input[type="range"].md-range {
+        height: 20px;
+      }
+      .md-range::-webkit-slider-thumb {
+        width: 18px;
+        height: 18px;
+        margin-top: -7px;
+        border: 0;
+        background: var(--md-primary);
+        box-shadow: 0 0 0 3px var(--md-surface);
       }
     }
 
@@ -270,21 +564,38 @@
     }
 
     .theme-swatch {
-      width: 18px;
-      height: 18px;
+      width: 24px;
+      height: 24px;
       border-radius: 9999px;
       cursor: pointer;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
-      border: 2px solid rgba(255,255,255,0.8);
+      border: 0;
+      padding: 0;
     }
     @media (hover: hover) and (pointer: fine) {
       .theme-swatch:hover {
-        transform: scale(1.15);
+        transform: scale(1.12);
       }
     }
     .theme-swatch.active-swatch {
-      box-shadow: 0 0 0 2px var(--fg-main);
-      transform: scale(1.12);
+      box-shadow: 0 0 0 2px var(--md-surface-container), 0 0 0 3.5px var(--md-primary);
+    }
+
+    /* 阅读设置面板里的大号色板（32px） */
+    .md-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .md-swatch:hover { transform: scale(1.06); }
+    }
+    .md-swatch.on {
+      box-shadow: 0 0 0 2px var(--md-surface-container), 0 0 0 3.5px var(--md-primary);
     }
 
     .book-spine-shadow {
