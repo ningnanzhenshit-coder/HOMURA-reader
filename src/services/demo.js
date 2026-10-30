@@ -21,19 +21,19 @@ function createDemoMangaSvg(pageNumber, title, subtitle) {
     <text x="617" y="630" font-family="sans-serif" font-size="24" font-weight="800" fill="#1e293b" text-anchor="middle">分镜 B (右格)</text>
     <rect x="56" y="846" width="738" height="280" rx="8" fill="#0f172a"/>
     <text x="425" y="975" font-family="sans-serif" font-size="50" font-weight="900" fill="#ffffff" text-anchor="middle">PAGE 0${pageNumber}</text>
-    <text x="425" y="1035" font-family="sans-serif" font-size="18" font-weight="700" fill="#60a5fa" text-anchor="middle">双缓冲滑轨过渡 · 零卡顿硬件加速 · 暖色护眼 · 鼠标滚轮</text>
+    <text x="425" y="1035" font-family="sans-serif" font-size="18" font-weight="700" fill="#60a5fa" text-anchor="middle">双缓冲滑轨过渡 / 零卡顿硬件加速 / 暖色护眼 / 鼠标滚轮</text>
   </svg>`;
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
 export function createDemoManga() {
   const pages = [
-    createDemoMangaSvg(1, '第1页 · 封面 (Cover)', '双页模式下首页单独对齐'),
-    createDemoMangaSvg(2, '第2页 · 苍穹启航', '日漫模式下位于右侧先读'),
-    createDemoMangaSvg(3, '第3页 · 星轨观测', '日漫模式下位于左侧后读（左边是下一页）'),
-    createDemoMangaSvg(4, '第4页 · 跨页展开 (右)', '双缓冲滑轨：旧页滑出 + 新页同步滑入'),
-    createDemoMangaSvg(5, '第5页 · 跨页展开 (左)', '支持鼠标滚轮直接丝滑翻页'),
-    createDemoMangaSvg(6, '第6页 · 终章预告', '条漫模式支持单张完整显示')
+    createDemoMangaSvg(1, '第1页  封面 (Cover)', '双页模式下首页单独对齐'),
+    createDemoMangaSvg(2, '第2页  苍穹启航', '日漫模式下位于右侧先读'),
+    createDemoMangaSvg(3, '第3页  星轨观测', '日漫模式下位于左侧后读（左边是下一页）'),
+    createDemoMangaSvg(4, '第4页  跨页展开 (右)', '双缓冲滑轨：旧页滑出 + 新页同步滑入'),
+    createDemoMangaSvg(5, '第5页  跨页展开 (左)', '支持鼠标滚轮直接丝滑翻页'),
+    createDemoMangaSvg(6, '第6页  终章预告', '条漫模式支持单张完整显示')
   ];
   return {
     id: 'demo_manga_' + Date.now(),

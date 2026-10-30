@@ -186,7 +186,7 @@ export const useReaderStore = defineStore('reader', () => {
     const restoredIdx = applyRestoredProgress(book, activePages.value, shelf.progressMap);
     if (restoredIdx >= 0) {
       currentIndex.value = restoredIdx;
-      showToast(`已回到上次阅读位置 · 第 ${restoredIdx + 1} / ${activePages.value.length} 页`);
+      showToast(`已回到上次阅读位置，第 ${restoredIdx + 1} / ${activePages.value.length} 页`);
     }
     // PaginatedView / WebtoonView 可能尚未挂载（Vue 在下个微任务才 patch），
     // 那时由组件 onMounted 自检 activePages 非空后自行首渲染

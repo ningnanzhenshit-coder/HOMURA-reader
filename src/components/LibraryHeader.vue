@@ -7,7 +7,7 @@
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
     <div class="h-14 min-[900px]:h-16 flex items-center gap-3 px-4 min-[900px]:px-7">
       <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">书架</h1>
-      <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[9px] font-semibold">{{ count }} 部作品</span>
+      <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-2 shrink-0">
         <div class="relative">
@@ -25,7 +25,7 @@
               v-for="opt in sortOptions"
               :key="opt.value"
               @click="pickSort(opt.value)"
-              class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors"
+              class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold text-left transition-colors"
               :class="sort === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
             >
               <span class="flex-1">{{ opt.label }}</span>
@@ -39,7 +39,7 @@
         <div class="relative">
           <button
             @click="toggleMenu('more')"
-            class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-tertiary-container)] text-[var(--md-on-tertiary-container)] text-[11px] font-bold"
+            class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-tertiary-container)] text-[var(--md-on-tertiary-container)] text-[12px] font-bold"
             title="更多操作"
             aria-label="更多操作"
           >H</button>
@@ -48,20 +48,20 @@
             v-if="menu === 'more'"
             class="absolute right-0 top-full mt-1 w-48 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
           >
-            <button @click="addDemoManga" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
-            <button @click="addDemoNovel" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
-            <div v-if="storageLabel" class="px-3 py-2 font-mono text-[11px] text-[var(--md-on-surface-variant)] border-t border-[var(--md-outline-variant)]">
+            <button @click="addDemoManga" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
+            <button @click="addDemoNovel" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
+            <div v-if="storageLabel" class="px-3 py-2 font-mono text-[12px] text-[var(--md-on-surface-variant)] border-t-[0.5px] border-[var(--md-outline-variant)]">
               存储 {{ storageLabel }}
             </div>
-            <button @click="onClear" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
+            <button @click="onClear" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 搜索栏 52px 胶囊 -->
-    <div class="px-4 min-[900px]:px-7 pt-1.5">
-      <div class="h-[52px] rounded-[26px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-[18px] pr-4">
+    <!-- 搜索栏：手机独立一行；桌面嵌入 Top App Bar 中段，避免被拉成整条跑道 -->
+    <div class="px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-3 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
+      <div class="library-search-field h-[52px] min-[900px]:h-10 rounded-[26px] min-[900px]:rounded-[20px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-[18px] min-[900px]:pl-4 pr-4 min-[900px]:pr-2.5 transition-colors duration-200">
         <svg class="w-5 h-5 shrink-0 text-[var(--md-on-surface-variant)] opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="7" stroke-width="2"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20l-4-4"/>
@@ -78,7 +78,7 @@
           spellcheck="false"
           aria-label="搜索书名、作者"
           placeholder="搜索书名、作者…"
-          class="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-medium text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)]"
+          class="library-search-input flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-medium text-[var(--md-on-surface)] placeholder:text-[var(--md-on-surface-variant)]"
         />
         <button
           v-if="query"
@@ -95,13 +95,13 @@
     </div>
 
     <!-- 筛选 chips：类型直接切换，文件格式收进一个下拉菜单 -->
-    <div class="relative px-4 min-[900px]:px-7 pt-3.5 pb-1 flex items-center gap-2">
+    <div class="relative px-4 min-[900px]:px-7 pt-3.5 min-[900px]:pt-3 pb-1 flex items-center gap-2">
       <div class="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar">
         <button
           v-for="t in types"
           :key="t.value"
           @click="$emit('update:type', t.value)"
-          class="h-11 min-[900px]:h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1.5 border transition-colors duration-200"
+          class="h-11 min-[900px]:h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center gap-1.5 border-[0.5px] border-[var(--md-outline-variant)] transition-colors duration-200"
           :class="type === t.value
             ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-transparent'
             : 'border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
@@ -116,7 +116,7 @@
 
       <button
         @click="toggleMenu('format')"
-        class="h-11 min-[900px]:h-8 shrink-0 pl-[13px] pr-2.5 rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1.5 border transition-colors duration-200"
+        class="h-11 min-[900px]:h-8 shrink-0 pl-[13px] pr-2.5 rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center gap-1.5 border-[0.5px] border-[var(--md-outline-variant)] transition-colors duration-200"
         :class="activeFormat
           ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-transparent'
           : 'border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
@@ -152,7 +152,7 @@
           role="menuitemradio"
           :aria-checked="type === opt.value"
           @click="pickType(opt.value)"
-          class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition-colors"
+          class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold text-left transition-colors"
           :class="type === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
         >
           <span class="flex-1">{{ opt.label }}</span>
@@ -218,9 +218,9 @@ const types = [
 const formatOptions = [
   { value: 'all', label: '不限格式' },
   { value: 'epub', label: 'EPUB' },
-  { value: 'markdown', label: 'Markdown' },
+  { value: 'pdf', label: 'PDF' },
   { value: 'mobi', label: 'MOBI' },
-  { value: 'pdf', label: 'PDF' }
+  { value: 'markdown', label: 'Markdown' }
 ];
 
 const activeFormat = computed(() => formatOptions.find(opt => opt.value !== 'all' && opt.value === props.type) || null);

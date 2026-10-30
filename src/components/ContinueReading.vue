@@ -15,22 +15,27 @@
     >
       <span
         class="absolute text-[var(--md-on-primary)] overflow-hidden"
-        :class="compactCard ? 'left-2.5 bottom-2.5 text-[11px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
+        :class="compactCard ? 'left-2.5 bottom-2.5 text-[12px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
         :style="coverTitleStyle"
       >{{ coverLabel }}</span>
       <i
         v-if="!compactCard"
-        class="absolute inset-3 rounded-[6px] pointer-events-none"
-        :style="{ border: '1px solid color-mix(in oklab, var(--md-on-primary) 34%, transparent)' }"
+        class="absolute inset-3 rounded-[4px] pointer-events-none"
+        :style="{ border: '0.5px solid color-mix(in oklab, var(--md-on-primary) 34%, transparent)' }"
       ></i>
     </div>
 
     <!-- 信息区 -->
     <div class="min-w-0 flex-1 flex flex-col justify-center" :class="compactCard ? 'px-3.5 py-3' : 'p-[18px]'">
-      <div class="font-mono uppercase opacity-70" :class="compactCard ? 'text-[7.5px] tracking-[0.18em]' : 'text-[8px] tracking-[0.2em]'">{{ started ? 'Continue reading' : 'Start reading' }}</div>
+      <div class="font-mono uppercase opacity-70 text-[12px]" :class="compactCard ? 'tracking-[0.12em]' : 'tracking-[0.14em]'">{{ started ? 'Continue reading' : 'Start reading' }}</div>
       <h3 class="font-extrabold line-clamp-2" :class="compactCard ? 'text-[13px] mt-1.5 mb-1 leading-snug' : 'text-[17px] mt-[7px] mb-[5px] leading-[1.25]'">{{ featured.book.title }}</h3>
-      <p class="opacity-70 truncate" :class="compactCard ? 'text-[9.5px]' : 'text-[10.5px]'">{{ subtitle }}</p>
-      <div v-if="!compactCard" class="flex gap-2.5 mt-2 font-mono text-[8.5px] opacity-60">
+      <p class="opacity-70 flex items-center gap-1.5 min-w-0 overflow-hidden text-[12px]">
+        <template v-for="(part, idx) in subtitleParts" :key="idx">
+          <i v-if="idx" class="block w-[0.5px] h-2.5 shrink-0 bg-current opacity-25"></i>
+          <span :class="idx === subtitleParts.length - 1 ? 'truncate' : 'shrink-0'">{{ part }}</span>
+        </template>
+      </p>
+      <div v-if="!compactCard" class="flex gap-2.5 mt-2 font-mono text-[12px] opacity-60">
         <span>剩余 {{ remainingText }}</span>
         <span>{{ timeText }}</span>
       </div>
@@ -42,7 +47,7 @@
         >
           <i class="block h-full rounded-full bg-[var(--md-primary)]" :style="{ width: featured.progress.percent + '%' }"></i>
         </div>
-        <em class="not-italic font-mono" :class="compactCard ? 'text-[8px]' : 'text-[9px]'">{{ featured.progress.percent }}%</em>
+        <em class="not-italic font-mono text-[12px]">{{ featured.progress.percent }}%</em>
         <span
           v-if="!compactCard"
           class="w-10 h-10 shrink-0 rounded-full grid place-items-center bg-[var(--md-primary)] text-[var(--md-on-primary)] ml-2.5"
@@ -129,11 +134,13 @@ const totalPages = computed(() => {
   return book.chapters ? book.chapters.length : 0;
 });
 
-const subtitle = computed(() => {
+const subtitleParts = computed(() => {
   const item = featured.value;
-  if (!item) return '';
-  if (!started.value) return `${typeLabel.value} · ${totalPages.value} 页 · 尚未开始`;
-  return `${typeLabel.value} · ${totalPages.value} 页 · ${clockText.value} 读到 ${item.progress.index + 1} 页`;
+  if (!item) return [];
+  const status = started.value
+    ? `${clockText.value} 读到 ${item.progress.index + 1} 页`
+    : '尚未开始';
+  return [typeLabel.value, `${totalPages.value} 页`, status];
 });
 
 const started = computed(() => !!featured.value && featured.value.progress.percent > 0);

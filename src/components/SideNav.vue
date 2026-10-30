@@ -2,7 +2,7 @@
   <!-- 桌面：MD3 Navigation Rail（96px，图标在上标签在下） -->
   <aside
     v-if="!isCompact"
-    class="shrink-0 sticky top-0 h-screen w-24 z-30 flex flex-col items-center pt-3.5 pb-4 bg-[var(--md-surface-low)] border-r border-[var(--md-outline-variant)]"
+    class="shrink-0 sticky top-0 h-screen w-24 z-30 flex flex-col items-center pt-3.5 pb-4 bg-[var(--md-surface-low)] border-r-[0.5px] border-[var(--md-outline-variant)]"
   >
     <div
       class="w-11 h-11 shrink-0 rounded-[14px] grid place-items-center mb-[22px] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] select-none"
@@ -42,7 +42,7 @@
           </svg>
         </span>
         <em
-          class="not-italic text-[10.5px] font-semibold transition-colors duration-200"
+          class="not-italic text-[12px] font-semibold transition-colors duration-200"
           :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
         >{{ item.label }}</em>
       </button>
@@ -65,7 +65,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
           </svg>
         </span>
-        <em class="not-italic text-[10.5px] font-semibold" :class="appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'">外观</em>
+        <em class="not-italic text-[12px] font-semibold" :class="appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'">外观</em>
       </button>
       <button @click="onSettings" class="w-full flex flex-col items-center gap-1 group" title="设置（占位）">
         <span class="w-14 h-8 rounded-2xl grid place-items-center text-[var(--md-on-surface-variant)] group-hover:bg-[var(--md-surface-container)] transition-colors duration-200">
@@ -74,7 +74,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
         </span>
-        <em class="not-italic text-[10.5px] font-semibold text-[var(--md-on-surface-variant)]">设置</em>
+        <em class="not-italic text-[12px] font-semibold text-[var(--md-on-surface-variant)]">设置</em>
       </button>
     </div>
   </aside>
@@ -82,14 +82,14 @@
   <!-- 手机：MD3 Bottom Navigation -->
   <nav
     v-else
-    class="fixed inset-x-0 bottom-0 z-40 flex items-center px-1.5 pt-1.5 bg-[var(--md-surface-container)] border-t border-[var(--md-outline-variant)]"
+    class="fixed inset-x-0 bottom-0 z-40 flex items-center px-1.5 pt-1.5 bg-[var(--md-surface-container)] border-t-[0.5px] border-[var(--md-outline-variant)]"
     style="height: calc(5rem + env(safe-area-inset-bottom)); padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));"
   >
     <button
       v-for="item in bottomItems"
       :key="item.key"
       @click="item.key === 'appearance' ? (appearanceOpen = !appearanceOpen) : select(item.key)"
-      class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[9.5px]"
+      class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
       :class="item.key === 'appearance'
         ? (appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]')
         : (active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]')"

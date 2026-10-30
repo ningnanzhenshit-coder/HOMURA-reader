@@ -36,7 +36,11 @@ const toastStyle = computed(() => {
       bottom: 'calc(5rem + env(safe-area-inset-bottom) + 5.25rem)'
     };
   }
-  return null;
+  // 桌面顶栏中段就是搜索框，提示放到下方，别糊在输入框上
+  return {
+    top: 'auto',
+    bottom: '1.75rem'
+  };
 });
 </script>
 

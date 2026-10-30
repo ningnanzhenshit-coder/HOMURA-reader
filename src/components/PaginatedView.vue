@@ -5,7 +5,7 @@
     v-if="showGestures"
     ref="gestureEl"
     class="reader-gesture-layer fixed inset-0 z-30 select-none"
-    @click.stop.prevent
+    @click.stop.prevent="onGestureClick"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -398,6 +398,12 @@ function onPointerCancel() {
   drag.active = false;
   drag.pointerId = null;
   resetStageTransform();
+}
+
+// 手势层只认触摸指针；窄窗口用鼠标调试时补一条「轻点中间切换工具栏」
+function onGestureClick() {
+  if (isTouch.value) return;
+  ui.toggleChrome();
 }
 
 onMounted(() => {

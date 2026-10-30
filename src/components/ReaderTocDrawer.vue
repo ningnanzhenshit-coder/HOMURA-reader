@@ -44,7 +44,7 @@
             v-for="(page, idx) in reader.activePages"
             :key="idx"
             @click="jumpTo(idx)"
-            class="h-11 rounded-lg border text-[11px] font-mono font-bold transition"
+            class="h-11 rounded-lg border-[0.5px] text-[12px] font-mono font-bold transition"
             :style="idx === reader.currentIndex
               ? 'background-color: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary);'
               : 'background-color: var(--md-surface-high); border-color: transparent; color: var(--md-on-surface-variant);'"

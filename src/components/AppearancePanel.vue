@@ -1,17 +1,17 @@
 <template>
   <!-- 外观设置面板内容：主题色 + 阅读模式（桌面浮层 / 手机底部 sheet 共用） -->
   <div>
-    <div class="py-3 border-t border-[var(--md-outline-variant)]">
+    <div class="py-3 border-t-[0.5px] border-[var(--md-outline-variant)]">
       <div class="flex items-baseline justify-between mb-3">
-        <span class="text-[11px] font-semibold">阅读模式</span>
-        <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
+        <span class="text-[12px] font-semibold">阅读模式</span>
+        <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
       </div>
       <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
         <button
           v-for="m in modes"
           :key="m.name"
           @click="theme.setSurfaceMode(m.name)"
-          class="flex-1 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+          class="flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
           :class="theme.surfaceMode === m.name
             ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
             : 'text-[var(--md-on-surface-variant)]'"
@@ -20,12 +20,12 @@
       </div>
     </div>
 
-    <div class="py-3 border-t border-[var(--md-outline-variant)]">
+    <div class="py-3 border-t-[0.5px] border-[var(--md-outline-variant)]">
       <div class="flex items-baseline justify-between mb-3">
-        <span class="text-[11px] font-semibold">主题色</span>
-        <b class="font-mono text-[9.5px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
+        <span class="text-[12px] font-semibold">主题色</span>
+        <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
       </div>
-      <div class="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar py-1">
+      <div class="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar px-1 py-1">
         <button
           v-for="s in swatches"
           :key="s.name"

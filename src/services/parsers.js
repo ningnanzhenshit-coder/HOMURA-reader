@@ -257,7 +257,7 @@ export function parseTxtFile(txtFile) {
       const title = txtFile.name.replace(/\.[^.]+$/, '');
 
       const chapters = [];
-      let currentChapTitle = title + ' · 开始';
+      let currentChapTitle = '开始';
       let currentParagraphs = [];
       const chapterRegex = /^(第[0-9零一二三四五六七八九十百千万]+[章节卷回话]|Chapter\s*\d+|序[章言]?|楔子|终章|尾声)/i;
 
@@ -325,7 +325,7 @@ function splitMarkdownChapters(text, fallbackTitle) {
     buffer = [];
     if (!html) return;
     chapters.push({
-      title: title || fallbackTitle + ' · 开始',
+      title: title || '开始',
       htmlContent: html
     });
   };

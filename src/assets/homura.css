@@ -240,6 +240,11 @@
       --border-line: var(--md-outline-variant);
     }
 
+    html {
+      /* 阅读器进出时隐藏 body 滚动不会让整页横向跳动 */
+      scrollbar-gutter: stable;
+    }
+
     body {
       background-color: var(--bg-canvas);
       color: var(--fg-main);
@@ -265,6 +270,19 @@
     input[type="search"]::-webkit-search-cancel-button {
       -webkit-appearance: none;
       appearance: none;
+    }
+
+    /* 键盘导航必须看得见焦点；鼠标点击不触发 */
+    :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 2px;
+    }
+    /* 书架搜索框的焦点反馈由外层胶囊承载，输入本体不再画方框 */
+    .library-search-input:focus-visible {
+      outline: none;
+    }
+    .library-search-field:focus-within {
+      background-color: var(--md-surface-highest);
     }
 
     /* ==========================================================================
@@ -293,6 +311,14 @@
         padding: 18px 28px 0;
       }
     }
+    /* 超大屏加密度，避免书卡被拉成相框 */
+    @media (min-width: 1600px) {
+      .md-shelf-grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 18px;
+        padding-inline: 36px;
+      }
+    }
 
     /* 继续阅读特色卡：手机整行 / 桌面跨两列 */
     .md-featured-cell {
@@ -310,7 +336,7 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow:
-        0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 42%, transparent),
+        0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 42%, transparent),
         0 2px 8px -3px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
     }
@@ -318,7 +344,7 @@
       .md-shelf-card:hover {
         transform: translateY(-2px);
         box-shadow:
-          0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 60%, transparent),
+          0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 60%, transparent),
           0 10px 24px -12px color-mix(in oklab, var(--md-on-surface) 30%, transparent);
       }
     }

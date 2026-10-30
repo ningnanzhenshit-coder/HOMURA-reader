@@ -1,7 +1,7 @@
 <template>
   <!-- 阅读器底部栏：页码 + MD3 胶囊进度滑条 + 上一页/下一页 -->
   <footer
-    class="shrink-0 min-h-[72px] min-[900px]:min-h-20 px-3 min-[900px]:px-[22px] flex items-center gap-2 min-[900px]:gap-3.5 bg-[var(--md-surface)] border-t border-[var(--md-outline-variant)]"
+    class="shrink-0 min-h-[72px] min-[900px]:min-h-20 px-3 min-[900px]:px-[22px] flex items-center gap-2 min-[900px]:gap-3.5 bg-[var(--md-surface)] border-t-[0.5px] border-[var(--md-outline-variant)]"
     :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }"
   >
     <button
@@ -18,7 +18,7 @@
       </svg>
     </button>
 
-    <span class="font-mono text-[9.5px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
+    <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
 
     <input
       type="range"
@@ -32,19 +32,19 @@
       aria-label="拖动跳转"
     />
 
-    <span class="font-mono text-[10px] min-[900px]:text-[10px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
+    <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
 
     <!-- 桌面快捷：单页 / 双页 -->
     <div v-if="!isVertical" class="hidden min-[900px]:flex items-center p-[3px] rounded-[20px] bg-[var(--md-surface-container)] ml-1.5">
       <button
         @click="reader.setSpreadCount(1)"
-        class="px-3 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+        class="px-3 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
         :class="config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
         title="单页阅读"
       >单页</button>
       <button
         @click="reader.setSpreadCount(2)"
-        class="px-3 py-[7px] rounded-[17px] text-[10.5px] font-semibold transition-colors duration-200"
+        class="px-3 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
         :class="config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
         title="双页阅读"
       >双页</button>

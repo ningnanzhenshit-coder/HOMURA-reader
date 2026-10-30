@@ -12,14 +12,14 @@
         class="w-full h-full p-3 flex flex-col justify-between text-[var(--md-on-primary)]"
         :style="{ background: 'linear-gradient(160deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 52%, var(--md-tertiary)))' }"
       >
-        <span class="text-[9px] font-mono font-bold tracking-widest opacity-80">HOMURA</span>
-        <div class="font-display font-bold text-[12px] leading-snug line-clamp-3">{{ book.title }}</div>
-        <span class="text-[9px] opacity-80 font-mono">{{ subInfo }}</span>
+        <span class="text-[10px] min-[900px]:text-[12px] font-mono font-bold tracking-widest opacity-80">HOMURA</span>
+        <div class="font-display font-bold text-[12px] min-[900px]:text-[13px] leading-snug line-clamp-3">{{ book.title }}</div>
+        <span class="text-[10px] min-[900px]:text-[12px] opacity-80 font-mono">{{ subInfo }}</span>
       </div>
 
       <!-- 类型徽标 -->
       <span
-        class="absolute top-2.5 left-2.5 px-2 py-[3px] rounded-full font-mono text-[8px] font-semibold tracking-[0.06em] text-[var(--md-on-surface)]"
+        class="absolute top-2.5 left-2.5 px-2 py-[3px] rounded-full font-mono text-[10px] min-[900px]:text-[12px] font-semibold tracking-[0.04em] text-[var(--md-on-surface)]"
         :style="{ background: 'color-mix(in oklab, var(--md-surface) 84%, transparent)', backdropFilter: 'blur(8px)' }"
       >{{ badgeText }}</span>
 
@@ -40,10 +40,10 @@
     </div>
 
     <div class="px-2.5 pt-2 pb-2.5 min-[768px]:px-3 min-[768px]:pt-2.5 min-[768px]:pb-3 flex flex-col gap-1 min-w-0">
-      <h4 class="font-bold text-[10px] min-[768px]:text-[11.5px] leading-snug truncate">{{ book.title }}</h4>
+      <h4 class="font-bold text-[12px] min-[768px]:text-[13px] leading-snug truncate">{{ book.title }}</h4>
       <div class="flex items-baseline justify-between gap-1.5 min-w-0">
-        <span class="font-mono text-[7.5px] min-[768px]:text-[8.5px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
-        <b class="font-mono text-[7.5px] min-[768px]:text-[8.5px] font-semibold text-[var(--md-primary)] shrink-0">
+        <span class="font-mono text-[10px] min-[768px]:text-[12px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
+        <b class="font-mono text-[10px] min-[768px]:text-[12px] font-semibold text-[var(--md-primary)] shrink-0">
           {{ progress ? `${progress.percent}%` : '阅读 →' }}
         </b>
       </div>

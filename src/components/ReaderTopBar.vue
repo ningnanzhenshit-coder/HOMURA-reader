@@ -1,7 +1,7 @@
 <template>
   <!-- 阅读器顶部栏：MD3 Top App Bar（返回 / 书名+副标题 / 目录 / 设置） -->
   <header
-    class="shrink-0 min-h-14 min-[900px]:min-h-16 flex items-center gap-2 px-1.5 min-[900px]:gap-2.5 min-[900px]:px-[18px] bg-[var(--md-surface)] border-b border-[var(--md-outline-variant)]"
+    class="shrink-0 min-h-14 min-[900px]:min-h-16 flex items-center gap-2 px-1.5 min-[900px]:gap-2.5 min-[900px]:px-[18px] bg-[var(--md-surface)] border-b-[0.5px] border-[var(--md-outline-variant)]"
     :style="{ paddingTop: 'env(safe-area-inset-top)' }"
   >
     <button
@@ -16,7 +16,12 @@
 
     <div class="min-w-0 flex-1">
       <h2 class="text-[13px] min-[900px]:text-sm font-semibold truncate leading-tight">{{ reader.currentBook ? reader.currentBook.title : '' }}</h2>
-      <p class="font-mono text-[9px] min-[900px]:text-[9.5px] text-[var(--md-primary)] truncate">{{ subStatus }}</p>
+      <p class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-primary)] flex items-center gap-1.5 min-w-0 overflow-hidden">
+        <template v-for="(part, idx) in subStatusParts" :key="idx">
+          <i v-if="idx" class="block w-[0.5px] h-2.5 shrink-0 bg-current opacity-30"></i>
+          <span :class="idx === subStatusParts.length - 1 ? 'shrink-0' : 'truncate'">{{ part }}</span>
+        </template>
+      </p>
     </div>
 
     <div class="flex items-center gap-1 shrink-0">
@@ -74,11 +79,11 @@ import { useUiStore } from '../stores/ui.js';
 const reader = useReaderStore();
 const ui = useUiStore();
 
-const subStatus = computed(() => {
+const subStatusParts = computed(() => {
   const total = reader.activePages.length;
   const pos = `${reader.currentIndex + 1} / ${total}`;
-  if (reader.layoutConfig.direction === 'vertical') return `纵向长卷 · ${pos}`;
-  if (reader.layoutConfig.direction === 'rtl') return `日漫右→左 · ${pos}`;
-  return `左→右 · ${reader.effectiveDouble ? '双页' : '单页'} · ${pos}`;
+  if (reader.layoutConfig.direction === 'vertical') return ['纵向长卷', pos];
+  if (reader.layoutConfig.direction === 'rtl') return ['日漫右→左', pos];
+  return ['左→右', reader.effectiveDouble ? '双页' : '单页', pos];
 });
 </script>

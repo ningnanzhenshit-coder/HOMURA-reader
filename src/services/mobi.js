@@ -168,7 +168,7 @@ function pickChapterTitle(body, fallbackTitle, index) {
     const text = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
     if (text && text.length <= 60 && /[\u4e00-\u9fa5a-zA-Z]/.test(text)) return text;
   }
-  return index === 0 ? `${fallbackTitle} · 开始` : `${fallbackTitle} · ${index + 1}`;
+  return index === 0 ? '开始' : `${fallbackTitle} ${index + 1}`;
 }
 
 // ---- 主入口：ArrayBuffer → 书籍数据 ----

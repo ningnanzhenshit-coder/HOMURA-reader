@@ -114,11 +114,11 @@ const importMenuOpen = ref(false);
 const query = ref('');
 const typeFilter = ref('all');
 const sortKey = ref('recent');
-const FORMAT_FILTERS = ['epub', 'markdown', 'mobi', 'pdf'];
+const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
 
 const visibleBooks = computed(() => {
   let list = shelf.library;
-  // 筛选 chips：类型（漫画 / 轻小说）+ 格式（EPUB / Markdown / MOBI / PDF）
+  // 筛选 chips：类型（漫画 / 轻小说）+ 格式（EPUB / PDF / MOBI / Markdown）
   if (FORMAT_FILTERS.includes(typeFilter.value)) {
     list = list.filter(book => resolveBookFormat(book) === typeFilter.value);
   } else if (typeFilter.value === 'manga') {
