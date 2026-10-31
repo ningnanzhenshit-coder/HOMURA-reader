@@ -10,8 +10,32 @@
       <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-2 shrink-0">
+        <button
+          v-if="isCompact"
+          @click="$emit('toggle-appearance')"
+          class="w-11 h-11 rounded-full grid place-items-center transition-colors"
+          :class="appearanceOpen
+            ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]'
+            : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+          title="外观设置"
+          aria-label="外观设置"
+          aria-haspopup="dialog"
+          :aria-expanded="appearanceOpen"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
+          </svg>
+        </button>
+
         <div class="relative">
-          <button @click="toggleMenu('sort')" class="md-hit-target w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors" title="排序方式" aria-label="排序方式">
+          <button
+            @click="toggleMenu('sort')"
+            class="md-hit-target w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors"
+            title="排序与更多操作"
+            aria-label="排序与更多操作"
+            aria-haspopup="menu"
+            :aria-expanded="menu === 'sort'"
+          >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"/>
             </svg>
@@ -19,11 +43,16 @@
           <div v-if="menu === 'sort'" class="fixed inset-0 z-20" @click="menu = null"></div>
           <div
             v-if="menu === 'sort'"
-            class="absolute right-0 top-full mt-1 w-44 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
+            class="absolute right-0 top-full mt-1 w-56 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
+            role="menu"
+            aria-label="排序与更多操作"
           >
+            <p role="presentation" class="px-3 pt-1.5 pb-1 text-[11px] font-semibold text-[var(--md-on-surface-variant)]">排序方式</p>
             <button
               v-for="opt in sortOptions"
               :key="opt.value"
+              role="menuitemradio"
+              :aria-checked="sort === opt.value"
               @click="pickSort(opt.value)"
               class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold text-left transition-colors"
               :class="sort === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
@@ -33,27 +62,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
               </svg>
             </button>
-          </div>
-        </div>
 
-        <div class="relative">
-          <button
-            @click="toggleMenu('more')"
-            class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-tertiary-container)] text-[var(--md-on-tertiary-container)] text-[12px] font-bold"
-            title="更多操作"
-            aria-label="更多操作"
-          >H</button>
-          <div v-if="menu === 'more'" class="fixed inset-0 z-20" @click="menu = null"></div>
-          <div
-            v-if="menu === 'more'"
-            class="absolute right-0 top-full mt-1 w-48 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
-          >
-            <button @click="addDemoManga" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
-            <button @click="addDemoNovel" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
-            <div v-if="storageLabel" class="px-3 py-2 font-mono text-[12px] text-[var(--md-on-surface-variant)] border-t-[0.5px] border-[var(--md-outline-variant)]">
+            <div role="separator" class="my-1 border-t-[0.5px] border-[var(--md-outline-variant)]"></div>
+            <p role="presentation" class="px-3 pt-1 pb-1 text-[11px] font-semibold text-[var(--md-on-surface-variant)]">更多操作</p>
+            <button role="menuitem" @click="addDemoManga" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
+            <button role="menuitem" @click="addDemoNovel" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
+            <div v-if="storageLabel" role="presentation" class="px-3 py-2 font-mono text-[12px] text-[var(--md-on-surface-variant)] border-t-[0.5px] border-[var(--md-outline-variant)]">
               存储 {{ storageLabel }}
             </div>
-            <button @click="onClear" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
+            <button role="menuitem" @click="onClear" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
           </div>
         </div>
       </div>
@@ -176,12 +193,13 @@ import { showToast } from '../composables/useToast.js';
 
 const props = defineProps({
   count: { type: Number, default: 0 },
+  appearanceOpen: { type: Boolean, default: false },
   query: { type: String, default: '' },
   type: { type: String, default: 'all' },
   sort: { type: String, default: 'recent' }
 });
 
-const emit = defineEmits(['update:query', 'update:type', 'update:sort']);
+const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance']);
 
 const shelf = useShelfStore();
 const { isCompact } = useViewport();

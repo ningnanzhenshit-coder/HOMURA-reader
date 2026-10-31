@@ -88,18 +88,14 @@
     <button
       v-for="item in bottomItems"
       :key="item.key"
-      @click="item.key === 'appearance' ? (appearanceOpen = !appearanceOpen) : select(item.key)"
+      @click="select(item.key)"
       class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
-      :class="item.key === 'appearance'
-        ? (appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]')
-        : (active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]')"
+      :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
       :title="item.label"
     >
       <span
         class="w-[52px] h-[30px] rounded-[15px] grid place-items-center"
-        :class="item.key === 'appearance'
-          ? (appearanceOpen ? 'bg-[var(--md-primary-container)]' : '')
-          : (active === item.key ? 'bg-[var(--md-primary-container)]' : '')"
+        :class="active === item.key ? 'bg-[var(--md-primary-container)]' : ''"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <template v-if="item.key === 'shelf'">
@@ -111,9 +107,6 @@
           <template v-else-if="item.key === 'recent'">
             <circle cx="12" cy="12" r="9" stroke-width="2"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 2"/>
-          </template>
-          <template v-else>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
           </template>
         </svg>
       </span>
@@ -148,13 +141,23 @@
   >
     <div
       v-if="appearanceOpen"
+      ref="appearanceSheetRef"
       class="fixed z-50 bg-[var(--md-surface-container)] shadow-2xl"
       :class="isCompact
         ? 'inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto overscroll-contain rounded-t-[28px] px-5 pt-2.5'
         : 'left-[104px] bottom-24 w-[280px] rounded-[20px] p-4'"
       :style="isCompact ? 'padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));' : null"
     >
-      <div v-if="isCompact" class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)] mx-auto mb-3"></div>
+      <div
+        v-if="isCompact"
+        class="mobile-sheet-drag-zone -mx-5 -mt-2.5 h-9 flex items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
+        @pointerdown="onSheetDragStart"
+        @pointermove="onSheetDragMove"
+        @pointerup="onSheetDragEnd"
+        @pointercancel="onSheetDragCancel"
+      >
+        <div class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></div>
+      </div>
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-[17px] font-semibold">外观设置</h3>
         <button
@@ -172,16 +175,36 @@
 </template>
 
 <script setup>
-import { ref, watch, watchEffect, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, watchEffect, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
+import { useSheetDrag } from '../composables/useSheetDrag.js';
 import { showToast } from '../composables/useToast.js';
 import AppearancePanel from './AppearancePanel.vue';
 
 const { isCompact } = useViewport();
+const props = defineProps({
+  appearanceOpen: { type: Boolean, default: false }
+});
+const emit = defineEmits(['nav', 'update:appearanceOpen']);
 
 const active = ref('shelf');
-const appearanceOpen = ref(false);
-const emit = defineEmits(['nav']);
+const appearanceOpen = computed({
+  get: () => props.appearanceOpen,
+  set: value => emit('update:appearanceOpen', value)
+});
+const {
+  sheetRef: appearanceSheetRef,
+  onDragStart: onSheetDragStart,
+  onDragMove: onSheetDragMove,
+  onDragEnd: onSheetDragEnd,
+  onDragCancel: onSheetDragCancel
+} = useSheetDrag({
+  isCompact,
+  isOpen: appearanceOpen,
+  onClose: () => {
+    appearanceOpen.value = false;
+  }
+});
 
 // 手机 Sheet 打开时锁住书架滚动，关闭后恢复到原位置。
 let shelfScrollY = 0;
@@ -221,8 +244,7 @@ const railItems = [
 const bottomItems = [
   { key: 'shelf', label: '书架' },
   { key: 'recent', label: '最近' },
-  { key: 'favorite', label: '收藏' },
-  { key: 'appearance', label: '外观' }
+  { key: 'favorite', label: '收藏' }
 ];
 
 function select(key) {

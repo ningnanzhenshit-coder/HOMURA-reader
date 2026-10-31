@@ -21,13 +21,21 @@
   >
     <aside
       v-if="ui.settingsOpen"
+      ref="settingsSheetRef"
       class="absolute z-50 flex flex-col bg-[var(--md-surface-container)] shadow-2xl"
       :class="isCompact
         ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-[28px]'
         : 'inset-y-0 right-0 w-[372px] max-w-[92%] h-full rounded-l-[28px]'"
       :style="isCompact ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
     >
-      <div v-if="isCompact" class="pt-2.5 pb-1 flex justify-center shrink-0">
+      <div
+        v-if="isCompact"
+        class="mobile-sheet-drag-zone h-9 flex shrink-0 items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
+        @pointerdown="onSheetDragStart"
+        @pointermove="onSheetDragMove"
+        @pointerup="onSheetDragEnd"
+        @pointercancel="onSheetDragCancel"
+      >
         <span class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></span>
       </div>
 
@@ -178,6 +186,7 @@ import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
 import { SURFACE_MODE_OPTIONS, THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import { useSheetDrag } from '../composables/useSheetDrag.js';
 import { showToast } from '../composables/useToast.js';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
@@ -189,6 +198,18 @@ const theme = useThemeStore();
 const ui = useUiStore();
 const { isPhone, isCompact } = useViewport();
 const config = reader.layoutConfig;
+const settingsOpen = computed(() => ui.settingsOpen);
+const {
+  sheetRef: settingsSheetRef,
+  onDragStart: onSheetDragStart,
+  onDragMove: onSheetDragMove,
+  onDragEnd: onSheetDragEnd,
+  onDragCancel: onSheetDragCancel
+} = useSheetDrag({
+  isCompact,
+  isOpen: settingsOpen,
+  onClose: () => ui.closeSettings()
+});
 
 const isVertical = computed(() => config.direction === 'vertical');
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');

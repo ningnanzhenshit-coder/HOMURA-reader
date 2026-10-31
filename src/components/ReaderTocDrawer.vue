@@ -21,13 +21,21 @@
   >
     <aside
       v-if="ui.tocOpen"
+      ref="tocSheetRef"
       class="absolute z-50 bg-[var(--md-surface-container)] shadow-2xl flex flex-col"
       :class="isCompact
         ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-[28px]'
         : 'inset-y-0 left-0 w-[320px] max-w-[88%] h-full rounded-r-[28px]'"
       :style="isCompact ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
     >
-      <div v-if="isCompact" class="pt-2.5 pb-1 flex justify-center shrink-0">
+      <div
+        v-if="isCompact"
+        class="mobile-sheet-drag-zone h-9 flex shrink-0 items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
+        @pointerdown="onSheetDragStart"
+        @pointermove="onSheetDragMove"
+        @pointerup="onSheetDragEnd"
+        @pointercancel="onSheetDragCancel"
+      >
         <span class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></span>
       </div>
       <div class="h-14 px-4 flex items-center justify-between shrink-0">
@@ -78,10 +86,23 @@ import { computed } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import { useSheetDrag } from '../composables/useSheetDrag.js';
 
 const reader = useReaderStore();
 const ui = useUiStore();
 const { isCompact } = useViewport();
+const tocOpen = computed(() => ui.tocOpen);
+const {
+  sheetRef: tocSheetRef,
+  onDragStart: onSheetDragStart,
+  onDragMove: onSheetDragMove,
+  onDragEnd: onSheetDragEnd,
+  onDragCancel: onSheetDragCancel
+} = useSheetDrag({
+  isCompact,
+  isOpen: tocOpen,
+  onClose: () => ui.closeToc()
+});
 
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
 

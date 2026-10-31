@@ -1,10 +1,12 @@
 <template>
   <div class="flex flex-1 min-h-0">
-    <SideNav @nav="onRailNav" />
+    <SideNav v-model:appearance-open="appearanceOpen" @nav="onRailNav" />
 
     <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
       <LibraryHeader
         :count="shelf.library.length"
+        :appearance-open="appearanceOpen"
+        @toggle-appearance="appearanceOpen = !appearanceOpen"
         v-model:query="query"
         v-model:type="typeFilter"
         v-model:sort="sortKey"
@@ -109,6 +111,7 @@ const measurerRef = ref(null);
 const fileInput = ref(null);
 const folderInput = ref(null);
 const importMenuOpen = ref(false);
+const appearanceOpen = ref(false);
 
 // 书架视图状态
 const query = ref('');
