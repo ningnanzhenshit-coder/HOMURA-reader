@@ -1,5 +1,5 @@
     /* ==========================================================================
-       1. MD3 Color Tokens · 7 套主题（默认 深海蓝 = seed #0061A4）
+       1. MD3 Color Tokens · 10 套主题（默认 深海蓝 = seed #0061A4）
        ========================================================================== */
     :root,
     html[data-theme="blue"] {
@@ -39,16 +39,16 @@
       --md-on-tertiary-container: #002020;
     }
     html[data-theme="violet"] {
-      --md-primary: #6750A4;
+      --md-primary: #4F5DA8;
       --md-on-primary: #FFFFFF;
-      --md-primary-container: #EADDFF;
-      --md-on-primary-container: #21005D;
-      --md-secondary: #625B71;
-      --md-secondary-container: #E8DEF8;
-      --md-on-secondary-container: #1D192B;
-      --md-tertiary: #7D5260;
-      --md-tertiary-container: #FFD8E4;
-      --md-on-tertiary-container: #31111D;
+      --md-primary-container: #DFE0FF;
+      --md-on-primary-container: #11184A;
+      --md-secondary: #5B5E72;
+      --md-secondary-container: #E0E1F9;
+      --md-on-secondary-container: #181A2C;
+      --md-tertiary: #76546D;
+      --md-tertiary-container: #FFD7F3;
+      --md-on-tertiary-container: #2D122A;
     }
     html[data-theme="sakura"] {
       --md-primary: #984061;
@@ -85,6 +85,42 @@
       --md-tertiary: #4A6546;
       --md-tertiary-container: #CCEBC3;
       --md-on-tertiary-container: #05210A;
+    }
+    html[data-theme="cyan"] {
+      --md-primary: #006874;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #9CEFF7;
+      --md-on-primary-container: #002023;
+      --md-secondary: #486265;
+      --md-secondary-container: #CBE7EA;
+      --md-on-secondary-container: #041F21;
+      --md-tertiary: #48627C;
+      --md-tertiary-container: #D0E4FF;
+      --md-on-tertiary-container: #001D34;
+    }
+    html[data-theme="orchid"] {
+      --md-primary: #7B4E9E;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #F3DAFF;
+      --md-on-primary-container: #2F0E4A;
+      --md-secondary: #685A71;
+      --md-secondary-container: #F0DDF5;
+      --md-on-secondary-container: #23182C;
+      --md-tertiary: #7D5260;
+      --md-tertiary-container: #FFD8E4;
+      --md-on-tertiary-container: #31111D;
+    }
+    html[data-theme="olive"] {
+      --md-primary: #5D6100;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #E5EE8A;
+      --md-on-primary-container: #1B1D00;
+      --md-secondary: #60614B;
+      --md-secondary-container: #E6E6CF;
+      --md-on-secondary-container: #1C1D0C;
+      --md-tertiary: #4B6078;
+      --md-tertiary-container: #D3E3FF;
+      --md-on-tertiary-container: #041D34;
     }
 
     /* 夜间：同色相深阶（primary / primary-container 对调为 tone 80 / 30） */
@@ -125,16 +161,16 @@
       --md-on-tertiary-container: #BBEBE8;
     }
     html[data-mode="dark"][data-theme="violet"] {
-      --md-primary: #CFBCFF;
-      --md-on-primary: #381E72;
-      --md-primary-container: #4F378B;
-      --md-on-primary-container: #EADDFF;
-      --md-secondary: #CBC2DB;
-      --md-secondary-container: #4A4458;
-      --md-on-secondary-container: #E8DEF8;
-      --md-tertiary: #EFB8C8;
-      --md-tertiary-container: #633B48;
-      --md-on-tertiary-container: #FFD8E4;
+      --md-primary: #BCC2FF;
+      --md-on-primary: #1D2960;
+      --md-primary-container: #37458C;
+      --md-on-primary-container: #DFE0FF;
+      --md-secondary: #C3C5DD;
+      --md-secondary-container: #434659;
+      --md-on-secondary-container: #E0E1F9;
+      --md-tertiary: #E4BADB;
+      --md-tertiary-container: #5D3B56;
+      --md-on-tertiary-container: #FFD7F3;
     }
     html[data-mode="dark"][data-theme="sakura"] {
       --md-primary: #FFB1C8;
@@ -171,6 +207,42 @@
       --md-tertiary: #B0CFA7;
       --md-tertiary-container: #334D30;
       --md-on-tertiary-container: #CCEBC3;
+    }
+    html[data-mode="dark"][data-theme="cyan"] {
+      --md-primary: #82D3DF;
+      --md-on-primary: #00363D;
+      --md-primary-container: #004F57;
+      --md-on-primary-container: #9CEFF7;
+      --md-secondary: #B1CBCE;
+      --md-secondary-container: #314B4E;
+      --md-on-secondary-container: #CBE7EA;
+      --md-tertiary: #B0C9E8;
+      --md-tertiary-container: #304964;
+      --md-on-tertiary-container: #D0E4FF;
+    }
+    html[data-mode="dark"][data-theme="orchid"] {
+      --md-primary: #E2B6FD;
+      --md-on-primary: #45205F;
+      --md-primary-container: #5D347A;
+      --md-on-primary-container: #F3DAFF;
+      --md-secondary: #D4C2DB;
+      --md-secondary-container: #504258;
+      --md-on-secondary-container: #F0DDF5;
+      --md-tertiary: #EFB8C8;
+      --md-tertiary-container: #633B48;
+      --md-on-tertiary-container: #FFD8E4;
+    }
+    html[data-mode="dark"][data-theme="olive"] {
+      --md-primary: #D5D86D;
+      --md-on-primary: #303300;
+      --md-primary-container: #464A00;
+      --md-on-primary-container: #E5EE8A;
+      --md-secondary: #C9C9B4;
+      --md-secondary-container: #484835;
+      --md-on-secondary-container: #E6E6CF;
+      --md-tertiary: #B7C8E2;
+      --md-tertiary-container: #34485F;
+      --md-on-tertiary-container: #D3E3FF;
     }
 
     /* ==========================================================================
@@ -221,7 +293,30 @@
     }
 
     /* ==========================================================================
-       3. Legacy Aliases — 组件仍沿用旧变量名，统一映射到 MD3 tokens
+       3. MD3 Motion Tokens — 非线性缓动曲线与时长
+       --------------------------------------------------------------------------
+       MD3 的曲线都是「慢起步 → 中段加速 → 缓停」的非线性曲线；
+       位移类动效走 decelerate / expressive，颜色类动效走 decelerate。
+       ========================================================================== */
+    :root {
+      /* 强调曲线：项目默认动效（sheet / bar / 通用位移） */
+      --md-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+      /* 减速曲线：起步快、收尾稳，适合「开始 -> 落位」的切换 */
+      --md-ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+      /* 加速曲线：起步慢、离场快，适合退场 */
+      --md-ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+      /* 轻回弹：位移约过冲 1.5% 再回落，用于分段胶囊滑块（跨格实测约 3px） */
+      --md-ease-expressive: cubic-bezier(0.16, 1.22, 0.30, 1);
+      /* 强回弹：位移明显过冲，用于行程短的开关滑块 */
+      --md-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      /* 时长：短 = 颜色/透明度，中 = 位移 */
+      --md-duration-short: 200ms;
+      --md-duration-medium: 280ms;
+    }
+
+    /* ==========================================================================
+       4. Legacy Aliases — 组件仍沿用旧变量名，统一映射到 MD3 tokens
        ========================================================================== */
     :root {
       --brand-primary: var(--md-primary);
@@ -286,7 +381,7 @@
     }
 
     /* ==========================================================================
-       4. MD3 基础组件（rail / FAB / 卡片网格 / sheet 动效）
+       5. MD3 基础组件（rail / FAB / 卡片网格 / sheet 动效）
        ========================================================================== */
 
     /* 书架网格：桌面 6 列 / 手机 3 列 */
@@ -375,16 +470,16 @@
       background: color-mix(in oklab, var(--md-on-surface) 30%, transparent);
     }
 
-    /* 200ms · cubic-bezier(.2,0,0,1)：sheet / bar 统一动效 */
+    /* 200ms · 强调曲线：sheet / bar 统一动效（曲线见第 3 节 motion tokens） */
     .md-sheet-enter-active,
     .md-sheet-leave-active {
       transition:
-        transform 0.2s cubic-bezier(0.2, 0, 0, 1),
-        opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+        transform var(--md-duration-short) var(--md-ease-emphasized),
+        opacity var(--md-duration-short) var(--md-ease-emphasized);
     }
     .md-fade-enter-active,
     .md-fade-leave-active {
-      transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+      transition: opacity var(--md-duration-short) var(--md-ease-emphasized);
     }
 
     /* 图标视觉尺寸可以小，但命中区域统一补到 44px */
@@ -525,14 +620,18 @@
       transition: none !important;
     }
 
-    /* 阅读模式切换：旧底色半透明叠在最上层，收缩时保留组件轮廓与配色 */
-    .surface-wipe {
+    /* 阅读模式切换：旧表面色遮罩中央的透明孔从按钮位置扩大，露出新配色 */
+    .surface-reveal {
       position: fixed;
       inset: 0;
       z-index: 9999;
-      opacity: 0.6;
+      opacity: 0.68;
       pointer-events: none;
-      will-change: clip-path;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
+      will-change: -webkit-mask-image, mask-image;
     }
 
     .manga-page-img {
@@ -641,39 +740,88 @@
       }
     }
 
-    .theme-swatch {
-      width: 24px;
-      height: 24px;
-      border-radius: 9999px;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      border: 0;
+    /* 主题色板：固定 5 列，10 套主题稳定排成两行 */
+    .theme-swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+      max-width: 248px;
+      margin-inline: auto;
+    }
+    .theme-swatch-tile {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      aspect-ratio: 1;
       padding: 0;
+      border: 0;
+      border-radius: 14px;
+      background: var(--md-surface-low);
+      color: var(--md-on-surface);
+      cursor: pointer;
+      transition:
+        background-color var(--md-duration-short) var(--md-ease-emphasized),
+        transform var(--md-duration-short) var(--md-ease-emphasized),
+        box-shadow var(--md-duration-short) var(--md-ease-emphasized);
+    }
+    .theme-swatch-disc {
+      width: 27px;
+      aspect-ratio: 1;
+      border-radius: 9999px;
+      background-color: var(--swatch-base);
+      background-image: linear-gradient(to right, var(--swatch-light) 50%, var(--swatch-deep) 50%);
+      background-repeat: no-repeat;
+      background-position: bottom;
+      background-size: 100% 50%;
+      box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-on-surface) 12%, transparent);
+      transition: transform var(--md-duration-short) var(--md-ease-emphasized);
+    }
+    .theme-swatch-check {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 9999px;
+      background: var(--md-surface-container);
+      color: var(--md-on-surface);
+      box-shadow: 0 1px 4px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+    }
+    .theme-swatch-check svg {
+      width: 10px;
+      height: 10px;
+    }
+    .theme-swatch-tile.is-selected {
+      background: var(--md-primary-container);
+      box-shadow: inset 0 0 0 1.5px var(--md-primary);
+    }
+    .theme-swatch-tile:focus-visible {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 2px;
     }
     @media (hover: hover) and (pointer: fine) {
-      .theme-swatch:hover {
-        transform: scale(1.12);
+      .theme-swatch-tile:hover {
+        background: var(--md-surface-high);
+        transform: translateY(-1px);
+      }
+      .theme-swatch-tile:hover .theme-swatch-disc {
+        transform: scale(1.08);
+      }
+      .theme-swatch-tile.is-selected:hover {
+        background: var(--md-primary-container);
       }
     }
-    .theme-swatch.active-swatch {
-      box-shadow: 0 0 0 2px var(--md-surface-container), 0 0 0 3.5px var(--md-primary);
-    }
-
-    /* 阅读设置面板里的大号色板（32px） */
-    .md-swatch {
-      width: 32px;
-      height: 32px;
-      border-radius: 9999px;
-      border: 0;
-      padding: 0;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    @media (hover: hover) and (pointer: fine) {
-      .md-swatch:hover { transform: scale(1.06); }
-    }
-    .md-swatch.on {
-      box-shadow: 0 0 0 2px var(--md-surface-container), 0 0 0 3.5px var(--md-primary);
+    @media (prefers-reduced-motion: reduce) {
+      .theme-swatch-tile,
+      .theme-swatch-disc {
+        transition: none;
+      }
+      .theme-swatch-tile:hover,
+      .theme-swatch-tile:hover .theme-swatch-disc {
+        transform: none;
+      }
     }
 
     .book-spine-shadow {

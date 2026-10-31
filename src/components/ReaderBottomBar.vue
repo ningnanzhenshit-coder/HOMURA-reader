@@ -35,19 +35,14 @@
     <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
 
     <!-- 桌面快捷：单页 / 双页 -->
-    <div v-if="!isVertical" class="hidden min-[900px]:flex items-center p-[3px] rounded-[20px] bg-[var(--md-surface-container)] ml-1.5">
-      <button
-        @click="reader.setSpreadCount(1)"
-        class="px-3 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-        :class="config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
-        title="单页阅读"
-      >单页</button>
-      <button
-        @click="reader.setSpreadCount(2)"
-        class="px-3 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-        :class="config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
-        title="双页阅读"
-      >双页</button>
+    <div v-if="!isVertical" class="hidden min-[900px]:block shrink-0 ml-1.5">
+      <MdSegmentedControl
+        :model-value="config.spread"
+        :options="spreadOptions"
+        aria-label="翻页布局"
+        style="--md-segmented-bg: var(--md-surface-container)"
+        @update:model-value="value => reader.setSpreadCount(Number(value))"
+      />
     </div>
 
     <button
@@ -69,12 +64,18 @@
 <script setup>
 import { computed } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
+import MdSegmentedControl from './MdSegmentedControl.vue';
 
 const reader = useReaderStore();
 const config = reader.layoutConfig;
 
 const inverted = computed(() => config.direction === 'rtl' && config.rtlInvertButtons);
 const isVertical = computed(() => config.direction === 'vertical');
+
+const spreadOptions = [
+  { value: 1, label: '单页', title: '单页阅读' },
+  { value: 2, label: '双页', title: '双页阅读' }
+];
 
 const leftText = computed(() => {
   if (isVertical.value) return '上滚一屏';

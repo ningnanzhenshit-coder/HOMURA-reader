@@ -50,37 +50,23 @@
             <span class="text-[12px] font-semibold">阅读方向</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ directionLabel }}</b>
           </div>
-          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
-            <button
-              v-for="d in directions"
-              :key="d.value"
-              @click="reader.setDirection(d.value)"
-              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-              :class="config.direction === d.value
-                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
-                : 'text-[var(--md-on-surface-variant)]'"
-              :title="d.hint"
-            >{{ d.label }}</button>
-          </div>
+          <MdSegmentedControl
+            class="w-full"
+            :model-value="config.direction"
+            :options="directions"
+            aria-label="阅读方向"
+            @update:model-value="reader.setDirection"
+          />
 
-          <button
+          <MdSwitch
             v-if="config.direction === 'rtl'"
-            @click="reader.toggleRtlTapInvert()"
-            class="w-full min-h-11 flex items-center justify-between mt-3.5"
-            role="switch"
-            :aria-checked="config.rtlInvertButtons"
+            class="mt-3.5"
+            :model-value="config.rtlInvertButtons"
+            title="反转 RTL 模式下左右翻页按钮的方向"
+            @update:model-value="reader.toggleRtlTapInvert()"
           >
             <span class="text-[12px] font-medium">左右翻页按钮反转</span>
-            <span
-              class="w-9 h-5 rounded-full relative transition-colors duration-200"
-              :class="config.rtlInvertButtons ? 'bg-[var(--md-primary)]' : 'bg-[var(--md-outline-variant)]'"
-            >
-              <i
-                class="absolute top-0.5 w-4 h-4 rounded-full transition-[left,right] duration-200"
-                :class="config.rtlInvertButtons ? 'right-0.5 bg-[var(--md-on-primary)]' : 'left-0.5 bg-[var(--md-on-surface)]'"
-              ></i>
-            </span>
-          </button>
+          </MdSwitch>
         </section>
 
         <!-- 翻页布局 -->
@@ -89,54 +75,36 @@
             <span class="text-[12px] font-semibold">翻页布局</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ spreadLabel }}</b>
           </div>
-          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
-            <button
-              @click="reader.setSpreadCount(1)"
-              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-              :class="!isVertical && config.spread === 1 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
-            >单页</button>
-            <button
-              @click="reader.setSpreadCount(2)"
-              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-              :class="!isVertical && config.spread === 2 ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]' : 'text-[var(--md-on-surface-variant)]'"
-            >双页</button>
-          </div>
+          <MdSegmentedControl
+            class="w-full"
+            :model-value="isVertical ? -1 : config.spread"
+            :options="spreadOptions"
+            aria-label="翻页布局"
+            @update:model-value="value => reader.setSpreadCount(Number(value))"
+          />
 
           <p v-if="!isVertical && config.spread === 2 && isPhone" class="mt-3 text-[12px] text-[var(--md-on-surface-variant)] leading-relaxed">
             窄屏会自动按单页显示，改大窗口或横屏后可恢复双页。
           </p>
 
-          <button
+          <MdSwitch
             v-if="!isVertical && config.spread === 2"
-            @click="reader.toggleCoverOffset()"
-            class="w-full min-h-11 flex items-center justify-between mt-3.5"
-            role="switch"
-            :aria-checked="config.coverOffset"
+            class="mt-3.5"
+            :model-value="config.coverOffset"
             title="双页模式下首页单独显示，确保后续跨页大图对齐"
+            @update:model-value="reader.toggleCoverOffset()"
           >
             <span class="text-[12px] font-medium">首页单排</span>
-            <span
-              class="w-9 h-5 rounded-full relative transition-colors duration-200"
-              :class="config.coverOffset ? 'bg-[var(--md-primary)]' : 'bg-[var(--md-outline-variant)]'"
-            >
-              <i
-                class="absolute top-0.5 w-4 h-4 rounded-full transition-[left,right] duration-200"
-                :class="config.coverOffset ? 'right-0.5 bg-[var(--md-on-primary)]' : 'left-0.5 bg-[var(--md-on-surface)]'"
-              ></i>
-            </span>
-          </button>
+          </MdSwitch>
 
-          <div v-if="isVertical && isManga" class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)] mt-3.5">
-            <button
-              v-for="f in webtoonFits"
-              :key="f.value"
-              @click="reader.setWebtoonFit(f.value)"
-              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-              :class="config.webtoonFit === f.value
-                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
-                : 'text-[var(--md-on-surface-variant)]'"
-            >{{ f.label }}</button>
-          </div>
+          <MdSegmentedControl
+            v-if="isVertical && isManga"
+            class="w-full mt-3.5"
+            :model-value="config.webtoonFit"
+            :options="webtoonFits"
+            aria-label="条漫尺寸"
+            @update:model-value="reader.setWebtoonFit"
+          />
         </section>
 
         <!-- 排版 -->
@@ -170,35 +138,19 @@
             <span class="text-[12px] font-semibold">阅读模式</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
           </div>
-          <div class="flex p-[3px] rounded-[20px] bg-[var(--md-surface-high)]">
-            <button
-              v-for="m in modes"
-              :key="m.name"
-              @click="theme.setSurfaceMode(m.name)"
-              class="md-hit-target flex-1 py-[7px] rounded-[17px] text-[12px] font-semibold transition-colors duration-200"
-              :class="theme.surfaceMode === m.name
-                ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
-                : 'text-[var(--md-on-surface-variant)]'"
-            >{{ m.label }}</button>
-          </div>
+          <MdSegmentedControl
+            class="w-full"
+            :model-value="theme.surfaceMode"
+            :options="modes"
+            aria-label="阅读模式"
+            @update:model-value="onSurfaceModeChange"
+          />
 
           <div class="flex items-baseline justify-between mt-4 mb-3">
             <span class="text-[12px] font-semibold">主题色</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
           </div>
-          <div class="flex items-center gap-3 overflow-x-auto no-scrollbar px-1 py-1">
-            <button
-              v-for="s in swatches"
-              :key="s.name"
-              @click="theme.setThemeColor(s.name)"
-              class="md-swatch"
-              :class="{ on: theme.themeColor === s.name }"
-              :style="{ backgroundColor: s.seed }"
-              :title="s.title"
-              :aria-label="s.title"
-              :aria-pressed="theme.themeColor === s.name"
-            ></button>
-          </div>
+          <ThemeSwatchGrid />
 
           <button
             @click="theme.toggleTransitionStyle()"
@@ -229,10 +181,13 @@
 <script setup>
 import { computed } from 'vue';
 import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
-import { useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
+import { THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { showToast } from '../composables/useToast.js';
+import MdSegmentedControl from './MdSegmentedControl.vue';
+import MdSwitch from './MdSwitch.vue';
+import ThemeSwatchGrid from './ThemeSwatchGrid.vue';
 
 const reader = useReaderStore();
 const theme = useThemeStore();
@@ -244,9 +199,14 @@ const isVertical = computed(() => config.direction === 'vertical');
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
 
 const directions = [
-  { value: 'ltr', label: '左→右', hint: '普通排版' },
-  { value: 'rtl', label: '右→左', hint: '日漫' },
-  { value: 'vertical', label: '上→下', hint: '条漫长卷' }
+  { value: 'ltr', label: '从左到右', title: '普通排版' },
+  { value: 'rtl', label: '从右到左', title: '日漫' },
+  { value: 'vertical', label: '条漫模式', title: '条漫长卷' }
+];
+
+const spreadOptions = [
+  { value: 1, label: '单页' },
+  { value: 2, label: '双页' }
 ];
 
 const webtoonFits = [
@@ -256,25 +216,19 @@ const webtoonFits = [
 ];
 
 const modes = [
-  { name: 'light', label: '白昼' },
-  { name: 'warm', label: '护眼' },
-  { name: 'dark', label: '夜间' }
-];
-
-const swatches = [
-  { name: 'blue', seed: '#0061A4', title: '深海蓝 (默认)' },
-  { name: 'red', seed: '#9C4233', title: '落日赤陶' },
-  { name: 'green', seed: '#386A20', title: '森系绿' },
-  { name: 'violet', seed: '#6750A4', title: '鸢尾紫' },
-  { name: 'sakura', seed: '#984061', title: '樱雾粉' },
-  { name: 'mint', seed: '#006A60', title: '薄荷青' },
-  { name: 'amber', seed: '#785900', title: '琥珀金' }
+  { value: 'light', label: '白昼' },
+  { value: 'dark', label: '夜间' },
+  { value: 'warm', label: '护眼' }
 ];
 
 const directionLabel = computed(() => (directions.find(d => d.value === config.direction) || directions[0]).label);
 const spreadLabel = computed(() => (isVertical.value ? '长卷' : (config.spread === 2 ? '双页' : '单页')));
-const modeLabel = computed(() => (modes.find(m => m.name === theme.surfaceMode) || modes[0]).label);
-const themeLabel = computed(() => (swatches.find(s => s.name === theme.themeColor) || swatches[0]).title.replace(' (默认)', ''));
+const modeLabel = computed(() => (modes.find(m => m.value === theme.surfaceMode) || modes[0]).label);
+const themeLabel = computed(() => (THEME_OPTIONS.find(option => option.name === theme.themeColor) || THEME_OPTIONS[0]).title.replace(' (默认)', ''));
+
+function onSurfaceModeChange(value, origin) {
+  theme.setSurfaceMode(value, false, origin);
+}
 
 // 恢复默认：全部走 store 已有的公开动作，不改动 store API
 function resetDefaults() {
