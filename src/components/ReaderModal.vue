@@ -101,15 +101,37 @@ const tapInfo = { x: 0, y: 0, t: 0 };
 
 function onTouchStart(e) {
   if (e.pointerType === 'mouse' || reader.layoutConfig.direction !== 'vertical') return;
+  if (ui.settingsOpen || ui.tocOpen) return;
   tapInfo.x = e.clientX;
   tapInfo.y = e.clientY;
   tapInfo.t = Date.now();
+  tapInfo.canSwipeBack = isCompact.value && (e.clientX <= 28 || reader.currentIndex === 0);
 }
 
 function onTouchEnd(e) {
   if (e.pointerType === 'mouse' || reader.layoutConfig.direction !== 'vertical') return;
-  if (Date.now() - tapInfo.t > 350) return;
-  if (Math.abs(e.clientX - tapInfo.x) > 10 || Math.abs(e.clientY - tapInfo.y) > 10) return;
+  if (ui.settingsOpen || ui.tocOpen) return;
+  const dx = e.clientX - tapInfo.x;
+  const dy = e.clientY - tapInfo.y;
+  const dt = Math.max(1, Date.now() - tapInfo.t);
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+  const threshold = Math.max(48, (window.innerWidth || 375) * 0.14);
+  const velocity = absX / dt;
+  if (
+    tapInfo.canSwipeBack
+    && dx > 0
+    && absX > 24
+    && absX > absY * 1.2
+    && (absX > threshold || (velocity > 0.45 && absX > 20))
+  ) {
+    // 等当前 pointer 序列的 click 走完再卸载阅读器，避免穿透到书架卡片
+    e.preventDefault();
+    requestAnimationFrame(() => reader.closeReader());
+    return;
+  }
+  if (dt > 350) return;
+  if (absX > 10 || absY > 10) return;
   if (e.target && e.target.closest && e.target.closest('button, input, a, select')) return;
   ui.toggleChrome();
 }

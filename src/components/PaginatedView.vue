@@ -44,7 +44,11 @@
 
       <!-- Novel: 1P Single -->
       <template v-else>
-        <div class="w-full h-full items-center justify-center p-2 sm:p-4 overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'single' ? 'flex' : 'hidden'">
+        <div
+          class="w-full h-full items-center justify-center p-2 sm:p-4 overflow-hidden"
+          :class="slotVMs[slot] && slotVMs[slot].mode === 'single' ? 'flex' : 'hidden'"
+          :style="paperSafeAreaStyle"
+        >
           <NovelCard
             v-if="slotVMs[slot] && slotVMs[slot].single"
             :page="slotVMs[slot].single"
@@ -54,7 +58,11 @@
           />
         </div>
         <!-- Novel: 2P Double -->
-        <div class="w-full h-full max-w-6xl mx-auto flex-col md:flex-row items-stretch justify-center gap-3 p-2 sm:p-4 relative z-0 overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'double' ? 'flex' : 'hidden'">
+        <div
+          class="w-full h-full max-w-6xl mx-auto flex-col md:flex-row items-stretch justify-center gap-3 p-2 sm:p-4 relative z-0 overflow-hidden"
+          :class="slotVMs[slot] && slotVMs[slot].mode === 'double' ? 'flex' : 'hidden'"
+          :style="paperSafeAreaStyle"
+        >
           <template v-if="slotVMs[slot] && slotVMs[slot].mode === 'double'">
             <NovelCard :page="slotVMs[slot].left" :side-label="slotVMs[slot].leftLabel" :total="slotVMs[slot].total" :font-size="reader.layoutConfig.fontSize" />
             <NovelCard :page="slotVMs[slot].right" :side-label="slotVMs[slot].rightLabel" :total="slotVMs[slot].total" :font-size="reader.layoutConfig.fontSize" />
@@ -86,7 +94,7 @@ import NovelCard from './NovelCard.vue';
 const reader = useReaderStore();
 const theme = useThemeStore();
 const ui = useUiStore();
-const { isTouch, isPhone } = useViewport();
+const { isTouch, isPhone, isCompact } = useViewport();
 
 // 触屏或手机宽度都启用手势层：部分 WebView 的 pointer/hover 媒体查询会失真
 const showGestures = computed(() => isTouch.value || isPhone.value);
@@ -94,6 +102,14 @@ const showGestures = computed(() => isTouch.value || isPhone.value);
 const gestureEl = ref(null);
 
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
+const paperSafeAreaStyle = computed(() => (
+  isCompact.value
+    ? {
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
+      }
+    : null
+));
 
 // 每个槽位的视图模型：single / double 模式 + 页面 + 阅读顺序标签
 const slotVMs = shallowRef([null, null]);
@@ -285,7 +301,8 @@ const drag = {
   startTime: 0,
   dx: 0,
   dy: 0,
-  axis: null
+  axis: null,
+  canSwipeBack: false
 };
 
 function activeStageEl() {
@@ -321,6 +338,8 @@ function onPointerDown(e) {
   drag.dx = 0;
   drag.dy = 0;
   drag.axis = null;
+  // 移动端：第一页任意位置右滑，或任意页从左边缘右滑，返回书架
+  drag.canSwipeBack = isCompact.value && (drag.startX <= 28 || reader.currentIndex === 0);
   if (gestureEl.value) {
     try { gestureEl.value.setPointerCapture(e.pointerId); } catch (err) {}
   }
@@ -362,7 +381,15 @@ function onPointerUp(e) {
   const el = activeStageEl();
 
   if (horizontal) {
-    if (absX > threshold || (velocity > 0.45 && absX > 20)) {
+    const crossedThreshold = absX > threshold || (velocity > 0.45 && absX > 20);
+    if (drag.canSwipeBack && dx > 0 && crossedThreshold) {
+      resetStageTransform();
+      // 等当前 pointer 序列的 click 走完再卸载阅读器，避免穿透到书架卡片
+      event.preventDefault();
+      requestAnimationFrame(() => reader.closeReader());
+      return;
+    }
+    if (crossedThreshold) {
       resetStageTransform();
       if (dx > 0) reader.onLeftButtonClick();
       else reader.onRightButtonClick();

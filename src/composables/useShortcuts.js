@@ -44,6 +44,8 @@ export function useShortcuts(reader, viewportRef) {
   // Mouse Wheel Page Turn Support（条漫模式让位原生滚动）
   function onWheel(e) {
     if (!reader.currentBook) return;
+    // 抽屉打开时滚轮属于抽屉内容，不能截成阅读器翻页
+    if (ui.settingsOpen || ui.tocOpen) return;
     if (reader.layoutConfig.direction === 'vertical') return;
 
     e.preventDefault();

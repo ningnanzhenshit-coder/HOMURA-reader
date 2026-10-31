@@ -82,8 +82,8 @@ const ui = useUiStore();
 const subStatusParts = computed(() => {
   const total = reader.activePages.length;
   const pos = `${reader.currentIndex + 1} / ${total}`;
-  if (reader.layoutConfig.direction === 'vertical') return ['纵向长卷', pos];
-  if (reader.layoutConfig.direction === 'rtl') return ['日漫右→左', pos];
-  return ['左→右', reader.effectiveDouble ? '双页' : '单页', pos];
+  if (reader.layoutConfig.direction === 'vertical') return ['条漫模式', pos];
+  if (reader.layoutConfig.direction === 'rtl') return ['从右到左', pos];
+  return ['从左到右', reader.effectiveDouble ? '双页' : '单页', pos];
 });
 </script>
