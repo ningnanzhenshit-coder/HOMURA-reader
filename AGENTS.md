@@ -10,7 +10,7 @@ HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集
 - 当前版本 `2.1.3`
 - 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（Rust）
 - 纯 JavaScript，没有 TypeScript、没有 ESLint、没有自动测试
-- 数据存本机 IndexedDB / OPFS；只有主题偏好写 localStorage
+- 数据存本机 IndexedDB；原文件在 Android 写 AppData，其余平台按能力写 OPFS 或 IndexedDB Blob；主题偏好写 localStorage
 
 支持的格式：
 
@@ -63,7 +63,8 @@ src/
     markdown.js            marked + 安全渲染器
     pagination.js          小说智能分页、章节/图片页构建
     progress.js            阅读进度与排版记忆、落盘节流
-    restore.js             原文件句柄 / OPFS / Blob 存档恢复
+    restore.js             原生 AppData / OPFS / 句柄 / Blob 存档恢复
+    nativeStorage.js       Android 原生 AppData 原文件存储
     demo.js                空书架示例书
     utils.js               escapeHtml 等小工具
   composables/
@@ -93,7 +94,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - Pinia 使用 **setup 写法**（`defineStore('x', () => {...})`），动作就是普通函数。
 - **重对象必须 `shallowRef`**：`zipContent`、`File`、`Animation`、timer、DOM 引用一律不要被 Vue 深度代理，否则会拖慢动画，甚至让 `Animation.cancel()` 异常。
 - 翻页引擎 `PaginatedView.vue` / `WebtoonView.vue` **直接操作 ref DOM + Web Animations API**，不走响应式重渲染。不要为了“优雅”改写成 `v-for` + 响应式布局。
-- Tauri 通过 `window.__TAURI__` 全局对象调用，项目**没有**安装 `@tauri-apps/api`。新增原生能力时同时更新 `src-tauri/capabilities/default.json` 的 permissions。
+- Tauri 通过 `window.__TAURI__` 全局对象与 `@tauri-apps/plugin-*` 调用，项目不直接依赖 `@tauri-apps/api`。新增原生能力时必须同步 Rust 插件注册与 `src-tauri/capabilities/default.json` 的 permissions。
 - 图标全部内联 SVG，不引入图标库 / 组件库。新增依赖需要明确理由。
 - 注释用中文；复杂模块顶部保留现有的 banner 注释风格。只在逻辑不直观处写注释，不要给没改动的代码补注释。
 - 用户可见的提示统一走 `showToast()`，不要自己写 alert / 自制 toast。
@@ -149,7 +150,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 4. **工具栏自动隐藏 2.2 秒**：`ui.js` 的 `AUTO_HIDE_DELAY = 2200`；点击阅读画布 / 轻点可唤出。抽屉打开时不自动隐藏。
 5. **移动端手势**：横向滑动跟手翻页，带阻尼与回弹；轻点左 30% 上一页、右 30% 下一页、中间切换工具栏。手势层 z-index 必须高于阅读舞台，否则会被图片层拦截。
 6. **窄屏强制单页**：`DOUBLE_SPREAD_MIN_WIDTH = 768`，`<768` 即使设置里选了双页也只按单页渲染。
-7. **移动端存储降级**：原文件优先 FileSystemFileHandle → OPFS → IndexedDB Blob；导入后检查配额，已用 ≥85% 或剩余 <200MB 时提示。不要删掉这套降级链。
+7. **移动端存储降级**：Android Tauri 包优先把原文件写入应用私有 AppData，失败再保留 IndexedDB Blob；其余平台走 FileSystemFileHandle → OPFS → IndexedDB Blob。读取时逐层回退，不能因为前一层失效就判定整本书丢失。导入后检查配额，已用 ≥85% 或剩余 <200MB 时提示。不要删掉这套备份方案。
 8. **全屏走 Tauri 原生窗口 API**：Windows WebView2 不接管 F11，`ui.js` 的 `toggleFullscreen` 已处理；浏览器调试环境才回退 Fullscreen API。
 9. **PDF 资源必须随包分发**：`vite.config.js` 的 `pdfjsAssets` 插件会把 `cmaps / standard_fonts / wasm / iccs` 同步到 `public/pdfjs`。删掉插件会导致 PDF 白屏。`public/pdfjs` 已 gitignore，不要提交。
 10. **PDF 渲染约束**：按页懒加载，LRU 缓存 24 页；首次打开默认单页；不支持字号调整与重排。
@@ -164,7 +165,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - PDF 白屏优先查 `public/pdfjs/` 是否生成、控制台是否有 cmaps / standard_fonts 404。
 - Tailwind 对 CSS 变量加透明度修饰会失效，改用 `color-mix`。
 - 触屏上不要依赖 `:hover` 显示操作按钮；触屏常显，鼠标设备才 hover。
-- iOS Safari 不支持文件夹选择与 File System Access API；Android 的系统选择器也选不到目录，`platform.js` 已做降级，不要绕开。
+- iOS Safari 不支持文件夹选择与 File System Access API；Android WebView 可能暴露 `showOpenFilePicker`，但 `content://` 句柄跨重启会失去权限，`platform.js` 已强制 Android 关闭 FSA。Android 系统选择器也选不到目录，不要绕开这些降级。
 - 本地与 `origin` 分叉时直接 push 会被拒；先 `git pull --rebase`，别强推。
 - `.trae/` 是本地 agent 配置，已被 gitignore；不要把其中的 skill / 文档当作仓库内容。
 - `.trae-html-share-packages/` 已进 gitignore，但历史上仍跟踪了一个 `homura-ultra.html.zip`；不要继续提交同类产物。

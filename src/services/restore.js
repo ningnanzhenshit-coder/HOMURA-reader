@@ -5,16 +5,29 @@
    ========================================================================== */
 
 import { HomuraStore } from './storage.js';
-import { canUseOPFS } from './platform.js';
-import { putFile, getFile } from './opfs.js';
+import { canUseOPFS, isAndroid } from './platform.js';
+import { putFile, getFile, removeFile } from './opfs.js';
+import {
+  canUseNativeStorage,
+  getNativeFile,
+  nativeFilePath,
+  putNativeFile,
+  removeNativeBookDir,
+  removeNativeFile
+} from './nativeStorage.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
 import { showToast } from '../composables/useToast.js';
 
 
 export function makeFileSource(file) {
-  const source = { kind: 'file', name: file.name, lastModified: file.lastModified || Date.now() };
+  const source = {
+    kind: 'file',
+    name: file.name,
+    size: file.size,
+    lastModified: file.lastModified || Date.now(),
+    blob: file
+  };
   if (file.customHandle) source.handle = file.customHandle;
-  else source.blob = file;
   return source;
 }
 
@@ -24,6 +37,7 @@ export function makeFolderSource(folderName, files) {
     name: folderName,
     entries: files.map(f => ({
       path: f.customRelativePath || f.webkitRelativePath || (folderName + '/' + f.name),
+      size: f.size,
       lastModified: f.lastModified || Date.now(),
       blob: f
     }))
@@ -34,10 +48,113 @@ function basename(path) {
   return String(path || '').split('/').pop() || 'source';
 }
 
-// 没有原文件句柄时（移动端 / 非 Chromium），把文件本体落到 OPFS，只留路径；
-// OPFS 不可用则原样保留 Blob，由 IndexedDB 兜底。
+function withoutBlob(source) {
+  const { blob, ...rest } = source;
+  return rest;
+}
+
+async function readSourceBlob(source) {
+  if (source.blob) return source.blob;
+  if (!source.handle || !(await ensureReadPermission(source.handle))) return null;
+  try {
+    return await source.handle.getFile();
+  } catch (err) {
+    return null;
+  }
+}
+
+async function sourceWithBlobCopy(source) {
+  const blob = await readSourceBlob(source);
+  if (!blob) return source;
+  return {
+    kind: source.kind,
+    name: source.name,
+    size: source.size,
+    lastModified: source.lastModified,
+    blob
+  };
+}
+
+async function stageBlob(path, blob) {
+  const opfsPath = await putFile(path, blob);
+  try {
+    const stored = await getFile(opfsPath);
+    if (stored.size !== blob.size) {
+      throw new Error(`OPFS 回读大小不一致：${stored.size} / ${blob.size}`);
+    }
+    return opfsPath;
+  } catch (err) {
+    await removeFile(opfsPath);
+    throw err;
+  }
+}
+
+// 没有原文件句柄时优先落原生 AppData（Android）或 OPFS（桌面），失败则保留 Blob。
 async function stageSource(bookId, source) {
-  if (source.handle || !canUseOPFS) return source;
+  // 桌面端句柄是零拷贝引用，跨重启可用；Android 的 content:// 句柄不可靠。
+  if (source.handle && !isAndroid) return withoutBlob(source);
+
+  if (canUseNativeStorage()) {
+    try {
+      if (source.kind === 'folder') {
+        const entries = [];
+        const list = source.entries || [];
+        for (let i = 0; i < list.length; i++) {
+          const entry = list[i];
+          if (!entry.blob) {
+            entries.push(entry);
+            continue;
+          }
+          try {
+            const nativePath = await putNativeFile(
+              nativeFilePath(
+                bookId,
+                `files/${String(i + 1).padStart(3, '0')}/${basename(entry.path)}`
+              ),
+              entry.blob
+            );
+            entries.push({
+              path: entry.path,
+              size: entry.size,
+              lastModified: entry.lastModified,
+              nativePath
+            });
+          } catch (err) {
+            console.warn('[HOMURA] 原生存档单文件写入失败，保留 IndexedDB Blob', entry.path, err);
+            await removeNativeFile(
+              nativeFilePath(
+                bookId,
+                `files/${String(i + 1).padStart(3, '0')}/${basename(entry.path)}`
+              )
+            );
+            entries.push(entry);
+          }
+        }
+        return { kind: 'folder', name: source.name, entries };
+      }
+      const fileBlob = await readSourceBlob(source);
+      if (fileBlob) {
+        const nativePath = await putNativeFile(
+          nativeFilePath(bookId, `source/${source.name || 'source'}`),
+          fileBlob
+        );
+        return {
+          kind: 'file',
+          name: source.name,
+          size: fileBlob.size,
+          lastModified: source.lastModified,
+          nativePath
+        };
+      }
+    } catch (err) {
+      console.warn('[HOMURA] Android 原生存档写入失败，回落 IndexedDB Blob', err);
+      await removeNativeBookDir(bookId);
+    }
+  }
+
+  // Android 即使插件异常也不能再保存句柄；本次仍能读到 File 时必须留下 Blob 副本。
+  if (isAndroid) return sourceWithBlobCopy(source);
+  if (!canUseOPFS) return source;
   try {
     if (source.kind === 'folder') {
       const entries = [];
@@ -48,20 +165,36 @@ async function stageSource(bookId, source) {
           entries.push(entry);
           continue;
         }
-        const opfsPath = await putFile(
-          `${bookId}/${String(i + 1).padStart(3, '0')}/${basename(entry.path)}`,
-          entry.blob
-        );
-        entries.push({ path: entry.path, lastModified: entry.lastModified, opfsPath });
+        try {
+          const opfsPath = await stageBlob(
+            `${bookId}/${String(i + 1).padStart(3, '0')}/${basename(entry.path)}`,
+            entry.blob
+          );
+          entries.push({
+            path: entry.path,
+            size: entry.size,
+            lastModified: entry.lastModified,
+            opfsPath
+          });
+        } catch (err) {
+          console.warn('[HOMURA] OPFS 单文件写入校验失败，保留 IndexedDB Blob', entry.path, err);
+          entries.push(entry);
+        }
       }
       return { kind: 'folder', name: source.name, entries };
     }
     if (source.blob) {
-      const opfsPath = await putFile(`${bookId}/${source.name || 'source'}`, source.blob);
-      return { kind: 'file', name: source.name, lastModified: source.lastModified, opfsPath };
+      const opfsPath = await stageBlob(`${bookId}/${source.name || 'source'}`, source.blob);
+      return {
+        kind: 'file',
+        name: source.name,
+        size: source.size,
+        lastModified: source.lastModified,
+        opfsPath
+      };
     }
   } catch (err) {
-    console.warn('[HOMURA] OPFS 写入失败，回落到 IndexedDB Blob', err);
+    console.warn('[HOMURA] OPFS 写入或回读校验失败，回落到 IndexedDB Blob', err);
   }
   return source;
 }
@@ -77,9 +210,16 @@ export async function persistBook(book, source) {
     addedAt: Date.now(),
     coverBlob: book.coverBlob || null
   };
+  // 在用户触发导入时申请持久存储，避免配额压力下先清掉小体积的书架记录
+  const persistence = await HomuraStore.requestPersistence();
   const staged = await stageSource(book.id, source);
-  await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
-  HomuraStore.requestPersistence();
+  try {
+    await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
+  } catch (err) {
+    await removeNativeBookDir(book.id);
+    throw err;
+  }
+  return { persistence };
 }
 
 // 返回按添加时间倒序的书架数组；IndexedDB 不可用时返回 null
@@ -111,27 +251,92 @@ async function ensureReadPermission(handle) {
   return false;
 }
 
-async function resolveSourceFile(source) {
-  // 移动端存档路径：直接从 OPFS 取回原文件
+function errorSummary(err) {
+  if (!err) return '未知错误';
+  return err.name ? `${err.name}: ${err.message || ''}` : String(err.message || err);
+}
+
+function logSourceFailures(bookId, failures) {
+  if (!failures.length) return;
+  console.warn('[HOMURA] 原文件恢复失败明细', {
+    bookId,
+    failures: failures.map(item => ({
+      kind: item.kind,
+      path: item.path || undefined,
+      error: errorSummary(item.error)
+    }))
+  });
+}
+
+function makeRestoredFile(blob, name, lastModified, type) {
+  return new File([blob], name, {
+    type: type || blob.type || '',
+    lastModified: lastModified || blob.lastModified || Date.now()
+  });
+}
+
+// 依次尝试原生 AppData、OPFS、原文件句柄、内嵌 Blob；前一层失效时继续用后一层。
+async function resolveStoredFile(source, displayName) {
+  const failures = [];
+  if (source.nativePath) {
+    try {
+      const stored = await getNativeFile(source.nativePath);
+      if (typeof source.size === 'number' && stored.size !== source.size) {
+        throw new Error(`原生存档文件大小不一致：${stored.size} / ${source.size}`);
+      }
+      return {
+        file: makeRestoredFile(stored, displayName, source.lastModified, stored.type),
+        failures
+      };
+    } catch (err) {
+      failures.push({ kind: 'native', path: source.nativePath, error: err });
+    }
+  }
   if (source.opfsPath) {
     try {
-      return await getFile(source.opfsPath);
+      const stored = await getFile(source.opfsPath);
+      if (typeof source.size === 'number' && stored.size !== source.size) {
+        throw new Error(`OPFS 文件大小不一致：${stored.size} / ${source.size}`);
+      }
+      return {
+        file: makeRestoredFile(stored, displayName, source.lastModified, stored.type),
+        failures
+      };
     } catch (err) {
-      return null;
+      failures.push({ kind: 'opfs', path: source.opfsPath, error: err });
     }
   }
   if (source.handle) {
-    if (!(await ensureReadPermission(source.handle))) return null;
-    try {
-      return await source.handle.getFile();
-    } catch (err) {
-      return null;
+    if (!(await ensureReadPermission(source.handle))) {
+      failures.push({ kind: 'handle', error: new Error('文件读取权限失效') });
+    } else {
+      try {
+        const file = await source.handle.getFile();
+        return {
+          file: makeRestoredFile(file, displayName, source.lastModified || file.lastModified, file.type),
+          failures
+        };
+      } catch (err) {
+        failures.push({ kind: 'handle', error: err });
+      }
     }
   }
   if (source.blob) {
-    return new File([source.blob], source.name || 'book', { lastModified: source.lastModified || Date.now() });
+    try {
+      return {
+        file: makeRestoredFile(
+          source.blob,
+          displayName,
+          source.lastModified || source.blob.lastModified,
+          source.blob.type
+        ),
+        failures
+      };
+    } catch (err) {
+      failures.push({ kind: 'blob', error: err });
+    }
   }
-  return null;
+  return { file: null, failures };
 }
 
 function parseStoredFile(file) {
@@ -144,41 +349,71 @@ function parseStoredFile(file) {
   return null;
 }
 
+function isStoredFileFormatSupported(file) {
+  return /\.(epub|pdf|cbz|zip|mobi|prc|azw|md|txt)$/i.test(file.name);
+}
+
 async function resolveFolderFiles(source) {
   const files = [];
+  const failures = [];
   for (const entry of source.entries || []) {
-    let file = null;
-    if (entry.opfsPath) {
-      try {
-        file = await getFile(entry.opfsPath);
-      } catch (err) {
-        continue;
-      }
-    } else if (entry.handle) {
-      if (!(await ensureReadPermission(entry.handle))) continue;
-      try {
-        file = await entry.handle.getFile();
-      } catch (err) {
-        continue;
-      }
-    } else if (entry.blob) {
-      file = new File([entry.blob], entry.path.split('/').pop(), { lastModified: entry.lastModified || Date.now() });
+    const resolved = await resolveStoredFile(entry, basename(entry.path));
+    const file = resolved.file;
+    if (!file) {
+      failures.push(...resolved.failures.map(item => ({ ...item, path: entry.path })));
+      continue;
     }
-    if (!file) continue;
+    if (resolved.failures.length > 0) {
+      console.warn('[HOMURA] 图片已从备用存档恢复', entry.path, resolved.failures.map(item => item.kind));
+    }
     try {
       Object.defineProperty(file, 'customRelativePath', { value: entry.path, writable: false });
     } catch (err) {}
     files.push(file);
   }
-  return files;
+  return { files, failures };
+}
+
+function sourceFailureMessage(source, failures, isFolder) {
+  const kinds = new Set(failures.map(item => item.kind));
+  const hasNative = kinds.has('native') || !!source.nativePath;
+  const hasOpfs = kinds.has('opfs') || !!source.opfsPath;
+  const hasHandle = kinds.has('handle') || !!source.handle;
+  const hasInline = kinds.has('blob') || !!source.blob;
+  const subject = isFolder ? '文件夹' : '文件';
+
+  if ((hasNative || hasOpfs) && hasHandle) {
+    return `应用内存档和原${subject}均无法读取，请重新导入`;
+  }
+  if (isAndroid && hasHandle) {
+    return `旧版 Android 存档只记录了系统文件句柄，没有保存文件副本，请重新导入该作品`;
+  }
+  if (hasHandle) {
+    return `原${subject}已移动、删除或访问权限失效，请重新导入`;
+  }
+  if (hasNative || hasOpfs) {
+    return `应用内本地存档读取失败，请重新导入该作品`;
+  }
+  if (hasInline) {
+    return `本地存档中的原${subject}已损坏，请重新导入该作品`;
+  }
+  return `本地存档中的原${subject}不存在，请重新导入该作品`;
 }
 
 // 书架里只有元数据；第一次点开时才回到存档里取原始文件重新解析
 export async function hydrateBook(book) {
   let source = null;
+  let sourceError = null;
   try {
     source = await HomuraStore.getSource(book.id);
-  } catch (err) {}
+  } catch (err) {
+    sourceError = err;
+  }
+  if (sourceError) {
+    console.error('[HOMURA] 读取本地存档失败', sourceError);
+    showToast('本地存档读取失败，请稍后重试或重新导入该作品');
+    return false;
+  }
   if (!source) {
     showToast('本地存档已丢失，请重新导入该作品');
     return false;
@@ -187,20 +422,37 @@ export async function hydrateBook(book) {
   showToast(`正在从本地存档恢复《${book.title}》...`);
   let parsed = null;
   if (source.kind === 'folder') {
-    const files = await resolveFolderFiles(source);
+    const { files, failures } = await resolveFolderFiles(source);
+    logSourceFailures(book.id, failures);
     if (files.length === 0) {
-      showToast('原文件夹已移动或被删除，请重新导入');
+      showToast(sourceFailureMessage(source, failures, true));
       return false;
+    }
+    if (failures.length > 0) {
+      showToast(`有 ${failures.length} 张图片未从本地存档恢复，当前内容可能不完整`);
     }
     const groups = buildImageFolderBooks(files);
     parsed = groups.length > 0 ? groups[0].book : null;
   } else {
-    const file = await resolveSourceFile(source);
+    const { file, failures } = await resolveStoredFile(source, source.name || 'book');
+    logSourceFailures(book.id, failures);
     if (!file) {
-      showToast('原文件已移动或被删除，请重新导入');
+      showToast(sourceFailureMessage(source, failures, false));
       return false;
     }
-    parsed = await parseStoredFile(file);
+    try {
+      parsed = await parseStoredFile(file);
+    } catch (err) {
+      console.error('[HOMURA] 本地存档解析失败', err);
+      showToast('本地存档解析失败，请重新导入该作品');
+      return false;
+    }
+    if (!parsed) {
+      if (!isStoredFileFormatSupported(file)) {
+        showToast('无法识别本地存档格式，请重新导入该作品');
+      }
+      return false;
+    }
   }
 
   if (!parsed) return false;

@@ -18,7 +18,9 @@ export const isIOS = /iPad|iPhone|iPod/.test(ua)
 
 export const isAndroid = /Android/i.test(ua);
 
-export const hasFileSystemAccess = typeof window !== 'undefined'
+// Android WebView 会偷偷暴露 showOpenFilePicker，但存下来的 content:// 句柄
+// 跨进程重启后没有持久读取权限，因此移动端强制走 Blob 文件输入。
+export const hasFileSystemAccess = !isAndroid && typeof window !== 'undefined'
   && typeof window.showOpenFilePicker === 'function';
 
 export const hasDirectoryPicker = typeof window !== 'undefined'

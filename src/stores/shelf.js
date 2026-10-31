@@ -17,23 +17,20 @@ import { showToast } from '../composables/useToast.js';
 export const useShelfStore = defineStore('shelf', () => {
   const library = shallowRef([]);
   const progressMap = shallowRef({});
-  let storageNoticeShown = false;
 
   function unshiftBook(book) {
     library.value = [book, ...library.value];
   }
 
-  // 新增书籍并落盘；落盘失败只提示一次
+  // 新增书籍并落盘；写入失败由导入层统一汇总提示
   async function addBook(book, source) {
     unshiftBook(book);
-    if (!source) return;
+    if (!source) throw new Error('缺少原文件来源');
     try {
-      await persistBook(book, source);
+      return await persistBook(book, source);
     } catch (err) {
-      if (!storageNoticeShown) {
-        storageNoticeShown = true;
-        showToast('本地存档不可用，请通过 http://localhost 打开页面');
-      }
+      console.error('[HOMURA] 本地存档写入失败', err);
+      throw err;
     }
   }
 

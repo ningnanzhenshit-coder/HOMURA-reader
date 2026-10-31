@@ -33,10 +33,10 @@ export function useImporter() {
     const files = Array.from(fileList).filter(f => !f.name.startsWith('.'));
     if (files.length === 0) return;
 
-    let importedCount = 0;
+    const importedBooks = [];
     const persistTasks = [];
     const addBook = (book, source) => {
-      importedCount++;
+      importedBooks.push(book);
       // addBook 内部先同步入架再落盘，这里收集落盘 Promise
       persistTasks.push(shelf.addBook(book, source));
     };
@@ -83,11 +83,22 @@ export function useImporter() {
     }
 
     // 先确保写盘完成，避免导入后立刻关闭页面导致存档丢失
-    await Promise.allSettled(persistTasks);
+    const persistResults = await Promise.allSettled(persistTasks);
+    const failedBooks = persistResults
+      .map((result, index) => result.status === 'rejected' ? importedBooks[index] : null)
+      .filter(Boolean);
+    const importedCount = importedBooks.length;
+    const savedCount = importedCount - failedBooks.length;
 
     if (importedCount > 0) {
-      showToast(`已秒速添加 ${importedCount} 部作品到书架`);
-      await warnIfStorageTight();
+      if (failedBooks.length === 0) {
+        showToast(`已添加 ${importedCount} 部作品到书架`);
+      } else if (savedCount > 0) {
+        showToast(`已添加 ${importedCount} 部作品，其中 ${failedBooks.length} 部未能保存，重启后需要重新导入`);
+      } else {
+        showToast('作品已加入当前书架，但本地存档失败，重启后需要重新导入');
+      }
+      if (savedCount > 0) await warnIfStorageTight();
     } else {
       showToast('未找到支持的漫画或小说格式 (.epub / .pdf / .mobi / .cbz / .zip / .txt / .md / 图片)');
     }

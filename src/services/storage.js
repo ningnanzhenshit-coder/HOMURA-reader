@@ -2,13 +2,14 @@
    HOMURA 书架本地存档（IndexedDB）
    ----------------------------------------------------------------------------
    books    : 书架元数据（标题 / 类型 / 页数 / 封面 Blob）
-   sources  : 原始文件。优先存 FileSystemFileHandle（不占浏览器配额），
-              不支持时降级为原始 Blob 副本。
+   sources  : 原始文件。桌面端优先存 FileSystemFileHandle（不占浏览器配额）；
+              Android 存原生 AppData 相对路径，其余平台存 OPFS 或 IndexedDB Blob。
    progress : 每本书的阅读进度（页码索引 / 总页数 / 比例）
    浏览器禁用 IndexedDB（例如直接 file:// 打开）时自动降级为纯内存模式。
    ========================================================================== */
 
 import { removeBookDir, clearAll } from './opfs.js';
+import { clearNativeSources, removeNativeBookDir } from './nativeStorage.js';
 
 export const HomuraStore = (() => {
   const DB_NAME = 'homura_shelf';
@@ -91,6 +92,7 @@ export const HomuraStore = (() => {
 
   function deleteBook(id) {
     removeBookDir(id).catch(() => {});
+    removeNativeBookDir(id).catch(() => {});
     if (disabled) return Promise.resolve();
     return openDb().then(db => new Promise((resolve, reject) => {
       const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
@@ -105,6 +107,7 @@ export const HomuraStore = (() => {
 
   function clear() {
     clearAll().catch(() => {});
+    clearNativeSources().catch(() => {});
     if (disabled) return Promise.resolve();
     return openDb().then(db => new Promise((resolve, reject) => {
       const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
@@ -129,13 +132,20 @@ export const HomuraStore = (() => {
   }
 
   // 申请「持久存储」，避免浏览器清理缓存时把书架一起清掉
-  function requestPersistence() {
+  async function requestPersistence() {
     try {
-      if (!navigator.storage || !navigator.storage.persist) return;
-      navigator.storage.persisted()
-        .then(persisted => (persisted ? null : navigator.storage.persist()))
-        .catch(() => {});
-    } catch (e) {}
+      if (!navigator.storage || typeof navigator.storage.persisted !== 'function') {
+        return { supported: false, persisted: false };
+      }
+      let persisted = await navigator.storage.persisted();
+      if (!persisted && typeof navigator.storage.persist === 'function') {
+        persisted = await navigator.storage.persist();
+      }
+      return { supported: true, persisted: !!persisted };
+    } catch (err) {
+      console.warn('[HomuraStore] 无法申请持久存储', err);
+      return { supported: true, persisted: false };
+    }
   }
 
   return {

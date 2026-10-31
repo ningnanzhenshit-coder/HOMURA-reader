@@ -5,6 +5,7 @@
   "description": "HOMURA — ACGN GO 本地漫画与轻小说阅读器",
   "scripts": {
     "tauri": "tauri",
+    "icons:generate": "tauri icon src-tauri/app-icon.json",
     "dev:vite": "vite",
     "build:vite": "vite build",
     "dev": "tauri dev",
@@ -15,6 +16,7 @@
     "android:build:debug": "tauri android build --debug --target aarch64 --apk"
   },
   "dependencies": {
+    "@tauri-apps/plugin-fs": "^2.7.1",
     "jszip": "^3.10.1",
     "marked": "^18.1.2",
     "pdfjs-dist": "^6.4.299",

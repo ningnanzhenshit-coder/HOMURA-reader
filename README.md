@@ -161,7 +161,8 @@ homura-reader/
 │   │   ├── markdown.js         # marked + 安全渲染
 │   │   ├── storage.js          # IndexedDB homura_shelf
 │   │   ├── opfs.js             # Origin Private File System 原文件存储
-│   │   ├── restore.js          # 句柄 / OPFS / Blob 存档恢复
+│   │   ├── restore.js          # 原生 AppData / OPFS / 句柄 / Blob 存档恢复
+│   │   ├── nativeStorage.js    # Android 原生 AppData 原文件存储
 │   │   └── progress.js         # 阅读进度与排版记忆、节流落盘
 │   ├── composables/            # 导入、快捷键、视口、Toast、抽屉拖拽
 │   └── components/             # SideNav、LibraryHeader、BookShelf、BookCard、
@@ -179,7 +180,7 @@ PDF、Markdown 安全渲染和分页测量需要 DOM / Canvas，因此 `services
 ## 本地存储与隐私
 
 - IndexedDB 数据库名为 `homura_shelf`，包含 `books`、`sources`、`progress` 三个对象仓库，分别保存书籍元数据/封面、原始文件来源和阅读进度。
-- 原始文件优先保存 `FileSystemFileHandle`；无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。这样可尽量避免大图集撑爆数据库配额。
+- 原始文件在 Android Tauri 包中优先写入应用私有 AppData，失败再保留 IndexedDB Blob；其余平台优先保存 `FileSystemFileHandle`，无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。读取时会从原生 AppData、OPFS、句柄、Blob 逐层恢复。
 - 导入后会检查存储配额；已用空间达到 85% 或剩余不足 200 MB 时会提示。
 - 阅读进度写入做了 350 ms 防抖，并在关闭阅读器、页面卸载或切到后台时补写。
 - `localStorage` 只保存 `homura_theme_color` 和 `homura_surface_mode` 两个主题偏好；翻页过渡样式不持久化。

@@ -1,8 +1,8 @@
 /* ============================================================================
    HOMURA · OPFS 原始文件存储
    ----------------------------------------------------------------------------
-   移动端拿不到 FileSystemFileHandle，IndexedDB 直接塞 Blob 又容易撑爆配额；
-   这里把原文件写进 Origin Private File System，只回存一个相对路径。
+   OPFS 可用的平台把原文件写进 Origin Private File System，只回存一个相对路径；
+   Android WebView 无法稳定跨进程恢复 OPFS，由 restore.js 直接走 IndexedDB Blob。
    路径形如：<bookId>/<fileName> 或 <bookId>/<序号>/<fileName>。
    任一环境不支持 OPFS 时由调用方回落到 IndexedDB Blob。
    ========================================================================== */
@@ -23,6 +23,15 @@ async function getRoot(create) {
   }
   const root = await navigator.storage.getDirectory();
   return root.getDirectoryHandle(ROOT_DIR, { create });
+}
+
+async function resolveExistingParent(segments) {
+  const root = await getRoot(false);
+  let dir = root;
+  for (const segment of segments) {
+    dir = await dir.getDirectoryHandle(safeSegment(segment));
+  }
+  return dir;
 }
 
 // 逐级创建目录，最后一级当作文件名写盘
@@ -51,13 +60,19 @@ export async function getFile(path) {
   const segments = splitPath(path);
   if (segments.length < 2) throw new Error('OPFS 路径无效');
   const fileName = safeSegment(segments.pop());
-  const root = await getRoot(false);
-  let dir = root;
-  for (const segment of segments) {
-    dir = await dir.getDirectoryHandle(safeSegment(segment));
-  }
+  const dir = await resolveExistingParent(segments);
   const handle = await dir.getFileHandle(fileName);
   return handle.getFile();
+}
+
+export async function removeFile(path) {
+  try {
+    const segments = splitPath(path);
+    if (segments.length < 2) return;
+    const fileName = safeSegment(segments.pop());
+    const dir = await resolveExistingParent(segments);
+    await dir.removeEntry(fileName);
+  } catch (err) {}
 }
 
 export async function removeBookDir(bookId) {

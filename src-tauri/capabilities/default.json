@@ -4,6 +4,9 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "fs:default",
+    "fs:allow-appdata-meta-recursive",
+    "fs:allow-appdata-write-recursive",
     "core:window:allow-set-theme",
     "core:window:allow-set-background-color",
     "core:window:allow-set-fullscreen",
