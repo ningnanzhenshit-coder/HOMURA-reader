@@ -118,6 +118,7 @@ const query = ref('');
 const typeFilter = ref('all');
 const sortKey = ref('recent');
 const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
+const SPLASH_MIN_DURATION = 720;
 
 const visibleBooks = computed(() => {
   let list = shelf.library;
@@ -199,6 +200,35 @@ function onFullscreenKeydown(e) {
   ui.toggleFullscreen();
 }
 
+async function dismissStartupSplash() {
+  const splash = document.getElementById('homura-splash');
+  if (!splash) return;
+
+  const startedAt = window.__HOMURA_SPLASH_STARTED_AT__ || performance.now();
+  const remaining = Math.max(0, SPLASH_MIN_DURATION - (performance.now() - startedAt));
+  if (remaining > 0) {
+    await new Promise(resolve => window.setTimeout(resolve, remaining));
+  }
+
+  // 等一帧确认书架已经绘到遮罩后面，再开始淡出
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  splash.classList.add('is-leaving');
+  splash.setAttribute('aria-hidden', 'true');
+
+  let removed = false;
+  const removeSplash = () => {
+    if (removed) return;
+    removed = true;
+    splash.remove();
+    document.documentElement.classList.remove('homura-splashing');
+  };
+  splash.addEventListener('transitionend', event => {
+    if (event.target === splash && event.propertyName === 'opacity') removeSplash();
+  });
+  // prefers-reduced-motion 下没有 transitionend，用定时器兜底
+  window.setTimeout(removeSplash, 240);
+}
+
 onMounted(async () => {
   let savedTheme = 'blue';
   let savedMode = 'light';
@@ -215,11 +245,15 @@ onMounted(async () => {
   // 关窗 / 切后台时兜底刷写进度，防止防抖窗口内的最后一次翻页丢失
   installProgressFlushHooks(reader, shelf);
 
-  // 书架上一次导入的作品会从 IndexedDB 里恢复；第一次使用才放示例书
-  await shelf.loadLibrary();
+  try {
+    // 书架上一次导入的作品会从 IndexedDB 里恢复；第一次使用才放示例书
+    await shelf.loadLibrary();
 
-  if (HomuraStore.disabled) {
-    showToast('提示：当前环境无法保存书架，请通过本地服务器打开页面');
+    if (HomuraStore.disabled) {
+      showToast('提示：当前环境无法保存书架，请通过本地服务器打开页面');
+    }
+  } finally {
+    await dismissStartupSplash();
   }
 });
 

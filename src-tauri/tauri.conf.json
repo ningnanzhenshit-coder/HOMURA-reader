@@ -23,7 +23,7 @@
         "resizable": true,
         "dragDropEnabled": false,
         "visible": false,
-        "backgroundColor": "#090D16",
+        "backgroundColor": "#FFFFFF",
         "titleBarStyle": "Transparent"
       }
     ],

@@ -8,7 +8,67 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>HOMURA — ACGN GO 本地漫画与轻小说阅读器</title>
+  <link rel="preload" as="image" href="./splash-icon.png" fetchpriority="high" />
+  <style>
+    /* 启动层直接写进入口，首帧即可覆盖 WebView 的默认底色 */
+    html.homura-splashing,
+    html.homura-splashing body {
+      overflow: hidden;
+      overscroll-behavior: none;
+      scrollbar-gutter: auto;
+    }
+    #homura-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #FFFFFF;
+      opacity: 1;
+      touch-action: none;
+      transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    #homura-splash.is-leaving {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #homura-splash__icon {
+      display: block;
+      width: clamp(9rem, 16vw, 14rem);
+      height: auto;
+      max-width: 56vw;
+      user-select: none;
+      -webkit-user-drag: none;
+      animation: homura-splash-reveal 200ms cubic-bezier(0.2, 0, 0, 1) both;
+    }
+    @media (max-width: 767px) {
+      #homura-splash__icon {
+        width: clamp(8rem, 32vw, 10rem);
+      }
+    }
+    @keyframes homura-splash-reveal {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #homura-splash,
+      #homura-splash__icon {
+        animation: none;
+        transition: none;
+      }
+    }
+  </style>
   <script>
+    window.__HOMURA_SPLASH_STARTED_AT__ = performance.now();
+    document.documentElement.classList.add('homura-splashing');
+
     // 在首帧渲染前同步恢复主题色与阅读模式，避免启动时从亮色闪到夜间模式
     (function () {
       try {
@@ -36,6 +96,9 @@
   <script src="vendor/tailwind-config.js"></script>
 </head>
 <body class="min-h-screen flex flex-col font-sans select-none transition-colors duration-200">
+  <div id="homura-splash" role="status" aria-label="HOMURA 正在启动">
+    <img id="homura-splash__icon" src="./splash-icon.png" alt="" draggable="false" fetchpriority="high" />
+  </div>
   <div id="app" class="flex-1 flex flex-col"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
