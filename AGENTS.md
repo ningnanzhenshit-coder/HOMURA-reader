@@ -33,7 +33,7 @@ HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集
 | `npm run dev` | `dev:vite` + `tauri dev`，打开桌面窗口 |
 | `npm run build` | `build:vite` + `tauri build`，产物在 `src-tauri/target/release/bundle/` |
 | `npm run android:dev` | Android 开发 |
-| `npm run android:build` | Android arm64 APK（debug 签名） |
+| `npm run android:build` | Android arm64 release APK（需本地配置 release keystore） |
 
 环境要求：Node.js 22+、Rust stable ≥ 1.77.2，以及对应平台的 Tauri 依赖。
 
@@ -174,7 +174,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 
 - 提交信息按 **Conventional Commits**：`feat:` / `fix:` / `perf:` / `refactor:` / `docs:` / `build:` / `ci:` / `chore:`。Release 说明由 `scripts/release-notes.mjs` 按类别自动分组。
 - CI 只在推送 `v*` tag 或手动 `workflow_dispatch` 时运行，不响应 main 分支推送。
-- 平台产物：macOS Universal `.dmg`、Windows `.msi` / NSIS、Linux **仅 deb + rpm**（不出 AppImage）、Android arm64 debug APK。
+- 平台产物：macOS Universal `.dmg`、Windows `.msi` / NSIS、Linux **仅 deb + rpm**（不出 AppImage）、Android arm64 release APK（CI 使用 GitHub Secrets 中的 keystore 签名）。
 - 发版时版本号要同步 3 处：`package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
 - 不要提交：`node_modules/`、`dist/`、`public/pdfjs/`、`src-tauri/target/`、`src-tauri/gen/`、`.trae/`、`.trae-html-share-packages/`、`.DS_Store`。
 

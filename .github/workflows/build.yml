@@ -156,18 +156,111 @@ jobs:
       - name: Generate Android project
         run: npx tauri android init
 
-      # debug 签名，可直接侧载安装，无需 keystore Secrets
-      # 只出 arm64-v8a（覆盖绝大多数设备），并剔除调试符号，单个 APK 约 28MB
-      - name: Build APK
+      - name: Prepare Android release signing
         env:
-          CARGO_PROFILE_DEV_STRIP: debuginfo
-        run: npx tauri android build --apk --debug --split-per-abi -t aarch64
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/src-tauri/gen/android/app/homura-release.jks
+        run: |
+          set -euo pipefail
+
+          for name in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_KEYSTORE_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is not configured"
+              exit 1
+            fi
+          done
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          chmod 600 "$ANDROID_KEYSTORE_PATH"
+          keytool -list \
+            -keystore "$ANDROID_KEYSTORE_PATH" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" > /dev/null
+
+          # `tauri android init` 每次都会重新生成项目，因此在生成后注入 release 签名配置。
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("src-tauri/gen/android/app/build.gradle.kts")
+          source = path.read_text()
+          build_types_marker = "    buildTypes {"
+          release_marker = '        getByName("release") {'
+
+          if source.count(build_types_marker) != 1 or source.count(release_marker) != 1:
+              raise SystemExit("Unexpected generated Android build.gradle.kts layout")
+
+          signing_config = "\n".join(
+              [
+                  "    signingConfigs {",
+                  '        create("release") {',
+                  "            storeFile = file(",
+                  '                requireNotNull(System.getenv("ANDROID_KEYSTORE_PATH")) {',
+                  '                    "ANDROID_KEYSTORE_PATH is not set"',
+                  "                }",
+                  "            )",
+                  '            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")',
+                  '            keyAlias = System.getenv("ANDROID_KEY_ALIAS")',
+                  '            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")',
+                  "        }",
+                  "    }",
+                  "",
+                  "",
+              ]
+          )
+          source = source.replace(
+              build_types_marker, signing_config + build_types_marker, 1
+          )
+          source = source.replace(
+              release_marker,
+              release_marker
+              + '\n            signingConfig = signingConfigs.getByName("release")',
+              1,
+          )
+          path.write_text(source)
+          PY
+
+      # 只出 arm64-v8a（覆盖绝大多数设备），用正式 keystore 签名并剔除调试信息。
+      - name: Build signed release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/src-tauri/gen/android/app/homura-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CARGO_PROFILE_RELEASE_STRIP: debuginfo
+        run: npx tauri android build --apk --split-per-abi -t aarch64
+
+      - name: Verify signed release APK
+        run: |
+          set -euo pipefail
+
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk/arm64/release \
+            -name '*.apk' -print -quit)
+          if [ -z "$APK" ]; then
+            echo "::error::Release APK was not produced"
+            exit 1
+          fi
+
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f \
+            | sort -V | tail -1)
+          if [ ! -x "$APKSIGNER" ]; then
+            echo "::error::apksigner was not found in the Android SDK"
+            exit 1
+          fi
+
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: homura-android
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          name: homura-android-arm64-release
+          path: src-tauri/gen/android/app/build/outputs/apk/arm64/release/*.apk
           if-no-files-found: error
           retention-days: 14
 
