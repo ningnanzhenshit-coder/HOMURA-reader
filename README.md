@@ -1,139 +1,232 @@
-<img width="400" height="400" alt="1822a9f2-5767-4a06-9b29-824e91cf59ad" src="https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e" />
-
+![HOMURA](https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e)
 
 # HOMURA — 本地漫画与轻小说阅读器
 
-*（又让本鱼写 README……行吧，反正摸鱼也是摸。）*
+> 本鱼只负责把书塞进你的本地书架；上传云端那种事，想都别想。🐋
 
-HOMURA 是一个**本地优先**的桌面 ACGN 阅读器：漫画、轻小说、图集拖进来就能看，解析和渲染全在本机完成，**不上传任何文件**。基于 Tauri 2 打包，支持 macOS / Windows / Linux。
+HOMURA（ACGN GO）是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、PDF 和图集导入后即可阅读，解析、分页与渲染全部在本机完成，书籍内容不会上传。桌面端使用 Tauri 2 打包，同一套前端也提供 Android 构建。
 
 - 当前版本：**2.1.3**
+- 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（纯 JavaScript）
 - 仓库：[ningnanzhenshit-coder/homura-reader](https://github.com/ningnanzhenshit-coder/homura-reader)
-- 下载：[Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases)
+- 下载：[GitHub Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases)
 
----
+## 项目现状
 
-## 能吃什么格式
+| 项目 | 当前状态 |
+| --- | --- |
+| 发布版本 | `2.1.3`，`package.json`、`Cargo.toml`、`tauri.conf.json` 三处版本一致 |
+| 桌面平台 | macOS / Windows / Linux |
+| 移动平台 | Android arm64-v8a APK |
+| 核心链路 | 导入、本地存档、恢复、分页/滚动阅读、目录跳转、进度记忆均可用 |
+| 尚未完成 | 收藏、标签、设置仍是占位入口；书签尚未实现 |
+| 质量保障 | 仓库暂无自动化测试、ESLint 或 TypeScript，以构建检查和手动回归为主 |
+| 许可 | 尚未添加 `LICENSE` 文件 |
 
-| 格式 | 扩展名 | 说明 |
+## 功能概览
+
+- **多格式书架**：EPUB / KEPUB、PDF、MOBI、CBZ / ZIP、TXT、Markdown 和图片文件夹。
+- **两种阅读方式**：小说使用自动分页引擎；漫画支持单页、双页、首页单排和上下条漫。
+- **本地进度记忆**：按书保存页码、阅读比例、方向、单双页、字号和条漫尺寸，重开自动续读。
+- **Material Design 3 界面**：10 套主题色、白昼 / 护眼 / 夜间三种表面，桌面与窄屏分别适配。
+- **离线书库**：书籍元数据、封面、原文件与进度都保存在本机；应用不同步或上传书籍内容。
+
+## 支持格式
+
+| 格式 | 扩展名 | 当前能力 |
 | --- | --- | --- |
-| EPUB / KEPUB | `.epub`、`.kepub.epub` | 解析 OPF spine 与章节正文；图片占主导的 EPUB 会自动切成漫画模式 |
-| PDF | `.pdf` | 按页按需渲染成位图，保留原始版式；不支持重排与改字号，加密 PDF 暂不支持 |
-| MOBI | `.mobi`、`.prc`、`.azw` | 纯前端解析 PalmDOC 容器，提取正文、封面与内嵌图片，按分页标记切章；DRM 加密与 AZW3/KF8 暂不支持 |
-| 漫画压缩包 | `.cbz`、`.zip` | 提取压缩包内图片，按文件名自然序排序 |
-| 纯文本 / Markdown | `.txt`、`.md` | TXT 识别「第 X 章 / Chapter N / 序章 / 尾声」等标题切章；Markdown 按一/二级标题切章，并渲染标题、列表、引用、代码块与表格 |
-| 图片文件夹 | `.jpg` `.jpeg` `.png` `.webp` `.gif` `.avif` `.bmp` | 按所在子文件夹分组，一组图 = 一本书 |
+| EPUB / KEPUB | `.epub`、`.kepub.epub` | 读取 OPF spine 与章节正文；图片占主导的 EPUB 会自动按漫画阅读 |
+| PDF | `.pdf` | 按页懒加载并渲染为位图，保留原始版式；不支持重排或改字号，加密 PDF 暂不支持 |
+| MOBI | `.mobi`、`.prc`、`.azw` | 解析 PalmDOC 容器，提取正文、封面与内嵌图片；不支持 DRM、AZW3 / KF8 和 Huffman 压缩 |
+| 漫画压缩包 | `.cbz`、`.zip` | 提取图片并按文件名自然序排列，文件夹图片也可导入 |
+| 纯文本 / Markdown | `.txt`、`.md` | TXT 按常见章节标题切分；Markdown 按一级/二级标题切章并渲染常见 GFM 内容 |
+| 图片文件夹 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.avif`、`.bmp` | 按所在子文件夹分组，一组图片视为一本漫画 |
 
-导入方式：拖拽文件/文件夹到窗口、点「导入文件」、点「导入文件夹」，或者直接拖整个目录进来。书架为空时还会放两本示例书，打开就能试试手感。
+Markdown 输出会经过安全处理：原始 HTML 只作为文本显示，链接和图片仅放行相对路径与 `http`、`https`、`mailto`、`tel` 协议。
 
-## 阅读手感
+## 导入与书架
 
-- **方向与排版**：左→右、右→左（日漫）、上下条漫，配合单页 / 双页并排；双页模式可以开启「首页单排」，让跨页大图对齐。
-- **长文自动分页**：小说按窗口尺寸、字号和可用高度实时分页，改字号（14–28px）或改窗口大小都会重新排。
-- **条漫三档尺寸**：完整单张、适中宽幅、超宽满屏。
-- **翻页动画**：丝滑平移、柔和淡入、极速无动画，随便挑。
-- **视觉主题**：晴空蓝 / 绯红金 / 森系绿 / 星夜紫四种主色，白昼 / 暖色护眼 / 夜间三种阅读表面；护眼模式会给漫画图片加一层柔和的暖色滤镜。
-- **顺手操作**：滚轮翻页、键盘翻页；漫画页面懒加载，翻页动画结束后再后台预解码后面几页。
-- **书架**：作品元数据、封面和源文件存进本地 IndexedDB，重开自动恢复；可以单本移除或清空。
-- **进度与排版记忆**：翻页、滚轮、条漫滚动或拖进度条都会按书记住位置，重开自动回到上次那一页；每本书的阅读方向、单双页、首页单排、字号和条漫尺寸也会一起记住。书架封面底部显示进度条与「读至 N%」。
+- 点击右下角「导入」选择文件或文件夹；桌面端还支持把文件、目录直接拖进窗口。
+- 文件选择支持多选，一次可以连续导入多种格式。Android 的系统文件选择器只接受文件，不提供文件夹入口；iOS Safari 也不支持目录选择。
+- 图片文件夹会按子目录自动拆成多本书；空书架首次启动时会放入示例漫画与示例轻小说。
+- 书架支持类型筛选（全部 / 漫画 / 轻小说）、格式筛选（EPUB / PDF / MOBI / Markdown）和三种排序（最近添加 / 阅读进度 / 书名）。
+- 搜索目前只匹配**书名**；界面占位文案中的作者搜索尚未实现。
+- 可以单本移除或清空书架。清除应用数据会同时删除本地书架记录。
+- 收藏、标签和侧栏设置目前只显示「即将上线」提示，不是已完成功能。
 
-## 快捷键
+## 阅读器
+
+### 布局与操作
+
+- 阅读方向支持左到右、右到左（日漫）和上下条漫。
+- 漫画支持单页 / 双页与「首页单排」；窗口宽度小于 `768px` 时强制按单页显示。
+- 小说字号可在 `14–28px` 之间调整，窗口或字号变化后自动重新分页。
+- 条漫提供完整单张、适中宽幅、超宽满屏三档尺寸。
+- 翻页动画可选丝滑平移、柔和淡入和极速无动画。
+- 阅读工具栏在无操作 2.2 秒后自动隐藏；设置抽屉或目录抽屉打开时不会自动隐藏。
+- 触屏设备支持横向跟手翻页；点击画布左侧 30% 上一页、右侧 30% 下一页、中间切换工具栏。
+- 目录支持漫画页码与小说/EPUB 章节跳转；目录状态不会持久化，书签功能尚未实现。
+
+### 主题与表面
+
+10 套主题色：森系绿、薄荷青、海盐青、深海蓝（默认）、鸢尾紫、兰花紫、樱雾粉、落日赤陶、琥珀金、橄榄青。
+
+三种阅读表面：白昼、护眼、夜间。护眼模式会给漫画图片叠加柔和暖色滤镜；切换背景时会同步更新原生窗口标题栏和窗口底色。
+
+### 快捷键
 
 | 按键 | 作用 |
 | --- | --- |
-| `←` / `→` | 上一页 / 下一页（日漫右→左模式下按钮方向会反转） |
+| `←` / `→` | 上一页 / 下一页；右到左模式会反转翻页方向 |
 | `Space` | 下一页 |
 | `↑` / `↓` | 上一页 / 下一页 |
-| `Esc` | 关闭阅读器回到书架 |
-| `F` | 进入 / 退出全屏（Tauri 原生窗口全屏，Windows 下有效） |
+| `Esc` | 依次关闭设置/目录、唤出工具栏、退出阅读器 |
+| `F` | 进入 / 退出全屏；桌面端走 Tauri 原生窗口 API |
 
-条漫模式不用按键，滚轮或触控板直接往下滑；小说模式滑动底部进度条也能跳页。
+条漫模式保留原生纵向滚动，不使用左右翻页快捷键。输入框获得焦点时，键盘快捷键会自动让位。
 
-## 下载即用
+## 下载与安装
 
-到 [Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases) 找对应平台的包：
+到 [GitHub Releases](https://github.com/ningnanzhenshit-coder/homura-reader/releases) 下载对应安装包：
 
-| 平台 | 安装包 |
+| 平台 | 发布产物 |
 | --- | --- |
-| macOS | `.dmg`（Universal，Apple Silicon + Intel） |
+| macOS | `.dmg`，Universal 构建，支持 Apple Silicon 与 Intel；最低系统版本 10.15 |
 | Windows | `.msi` 或 NSIS `-setup.exe` |
-| Linux | `.deb` / `.rpm` |
-| Android | `.apk`（arm64-v8a，release 签名，需允许安装未知来源应用） |
+| Linux | 仅 `.deb` 与 `.rpm` |
+| Android | `.apk`，arm64-v8a，release keystore 签名 |
 
-> **macOS 首次打开**：当前包没有 Apple 开发者签名，系统可能提示「无法验证开发者」。右键 `HOMURA.app` → 打开，或执行 `xattr -cr /Applications/HOMURA.app` 即可。
+> **macOS**：当前安装包没有 Apple 开发者签名与公证，首次打开可能需要右键 `HOMURA.app` →「打开」，或执行 `xattr -cr /Applications/HOMURA.app`。
 >
-> **Android 说明**：官方 APK 使用项目 release keystore 签名，安装时需允许「未知来源应用」。此前 debug 签名版本与它不兼容，需先卸载旧版；之后使用同一 keystore 的版本可覆盖升级。移动端请用「导入文件」多选 EPUB / CBZ / ZIP / TXT / 图片；拖拽与文件夹导入仅桌面端可用。
+> **Android**：安装 release APK 时需要允许「安装未知来源应用」。debug 签名版本不能与 release 版本覆盖升级，切换前请先卸载旧版。
 
 ## 从源码构建
 
-需要 Node.js 22+、Rust stable（≥ 1.77.2）以及对应平台的 Tauri 依赖：macOS 装 Xcode Command Line Tools；Linux 装 `libwebkit2gtk-4.1-dev`、`libappindicator3-dev`、`librsvg2-dev`、`patchelf`；Windows 装 WebView2 与 MSVC 构建工具。
+### 环境要求
+
+- Node.js 22+
+- Rust stable ≥ 1.77.2
+- 对应平台的 Tauri 2 构建依赖
+
+macOS 需要 Xcode Command Line Tools；Windows 需要 WebView2 与 MSVC 构建工具；Linux 需要 WebKitGTK 4.1、AppIndicator、librsvg 和 patchelf。以 Ubuntu 为例：
+
+```bash
+sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+```
+
+### 常用命令
 
 ```bash
 npm install
-npm run dev      # 生成 dist/ 并启动 Tauri 开发窗口
-npm run build    # 打包安装包
+npm run dev        # tauri dev，Tauri 会自动执行 Vite 开发前置命令
+npm run build      # tauri build，Tauri 会先构建前端再打包安装包
 ```
-
-构建产物在 `src-tauri/target/release/bundle/`。
-
-> 前端经 Vite 构建，`dist/index.html` 不能直接双击用 `file://` 打开；请用 `npm run dev`，或在 `dist/` 目录下起一个本地静态服务器再访问。
-
-常用脚本：
 
 | 命令 | 作用 |
 | --- | --- |
-| `npm run dev:vite` | 启动 Vite 开发服务器（HMR，端口 5173） |
-| `npm run build:vite` | 用 Vite 把前端打包进 `dist/` |
-| `npm run dev` | `dev:vite` + `tauri dev` |
-| `npm run build` | `build:vite` + `tauri build` |
+| `npm run dev:vite` | 只启动 Vite 开发服务器，端口固定为 `5173`，支持 HMR |
+| `npm run build:vite` | 只构建前端到 `dist/`，是最快的构建验证 |
+| `npm run dev` | 启动 Tauri 开发窗口；`beforeDevCommand` 自动运行 Vite |
+| `npm run build` | 构建桌面安装包；`beforeBuildCommand` 自动构建前端 |
+| `npm run android:init` | 初始化 Android 工程 |
+| `npm run android:dev` | 运行 Android 开发版 |
+| `npm run android:build` | 构建 Android arm64 release APK，需要本地 release keystore |
+| `npm run android:build:debug` | 构建 Android arm64 debug APK |
+
+桌面构建产物位于 `src-tauri/target/release/bundle/`。Vite 资源通过相对路径加载，不能直接双击 `dist/index.html` 以 `file://` 打开；请使用开发服务器或本地静态服务器。
+
+`vite.config.js` 中的 PDF 资源同步插件会把 cmaps、标准字体、wasm 和 ICC 资源复制到 `public/pdfjs/`。该目录是构建产物并已加入 `.gitignore`，不要提交。
 
 ## 项目结构
 
 ```text
 homura-reader/
-├── index.html             # Vite 入口（保留防闪白内联脚本与 Tailwind 运行时）
-├── vite.config.js         # Vite 配置（Vue 插件 + 相对路径 base）
+├── index.html                  # Vite 入口，首帧前同步恢复主题
+├── vite.config.js              # Vue 插件、相对路径 base、PDF 资源同步
+├── AGENTS.md                   # 项目协作与实现约束
 ├── src/
-│   ├── main.js            # createApp + createPinia + 挂载
-│   ├── App.vue            # 总布局：Header / 书架 / ReaderModal / Toast / 分页测量器
-│   ├── assets/homura.css  # 主题变量、阅读表面、动效
-│   ├── stores/            # Pinia：theme（主题色/表面/过渡）、shelf（书架/进度）、reader（阅读器状态与翻页动作）
-│   ├── services/          # 纯逻辑无 DOM：storage（IndexedDB）、parsers（EPUB/CBZ/TXT）、pagination（智能分页）、progress（进度记忆）、restore（存档恢复）、demo（示例书）
-│   ├── composables/       # useImporter（导入）、useShortcuts（键盘/滚轮）、useToast
-│   └── components/        # AppHeader / DropZone / BookShelf / BookCard / ReaderModal / ReaderToolbar / ReaderBottomBar / PaginatedView（双缓冲引擎）/ WebtoonView / NovelCard / AppToast
-├── scripts/
-│   └── release-notes.mjs  # 用 Conventional Commits 生成 Release 说明
-├── src-tauri/             # Tauri 2 壳、图标与打包配置
-├── dist/                  # Vite 构建产物（已 gitignore）
-└── .github/workflows/     # 三平台自动打包
+│   ├── main.js                 # createApp + Pinia
+│   ├── App.vue                 # 书架布局、导入入口、离屏分页测量器
+│   ├── assets/homura.css       # MD3 token、阅读表面、组件样式与动效
+│   ├── stores/
+│   │   ├── theme.js            # 10 套主题色、3 种表面、翻页过渡
+│   │   ├── shelf.js            # 书架、进度映射、示例书、IndexedDB 恢复
+│   │   ├── reader.js           # 当前书籍、分页状态、阅读动作
+│   │   └── ui.js               # 阅读器工具栏、目录、设置与全屏状态
+│   ├── services/
+│   │   ├── parsers.js          # EPUB / CBZ / ZIP / TXT / MD / PDF / MOBI 总入口
+│   │   ├── pagination.js       # 小说智能分页、章节与图片页构建
+│   │   ├── pdf.js              # PDF 懒加载、页面位图与 LRU 缓存
+│   │   ├── mobi.js             # PalmDOC / MOBI 解析
+│   │   ├── markdown.js         # marked + 安全渲染
+│   │   ├── storage.js          # IndexedDB homura_shelf
+│   │   ├── opfs.js             # Origin Private File System 原文件存储
+│   │   ├── restore.js          # 句柄 / OPFS / Blob 存档恢复
+│   │   └── progress.js         # 阅读进度与排版记忆、节流落盘
+│   ├── composables/            # 导入、快捷键、视口、Toast、抽屉拖拽
+│   └── components/             # SideNav、LibraryHeader、BookShelf、BookCard、
+│                               # ReaderModal、PaginatedView、WebtoonView、
+│                               # ReaderTocDrawer、ReaderSettingsDrawer 等
+├── src-tauri/                  # Tauri 2 壳、权限、图标与打包配置
+├── public/vendor/              # 内置 Tailwind 运行时，断网可用
+├── scripts/release-notes.mjs   # Conventional Commits → Release 说明
+├── design-preview/             # 设计原型与截图，不是生产代码
+└── .github/workflows/build.yml # 三平台桌面与 Android 自动构建
 ```
 
-技术栈：Vue 3 + Pinia + Vite，UI 保留手写 Tailwind（运行时内置，断网可用）与 CSS 变量主题，JSZip 走 npm 依赖，桌面壳用 Tauri 2（Rust）。双缓冲翻页引擎在 `PaginatedView.vue` 内直操作 ref DOM + Web Animations API，不经过响应式重渲染。
+PDF、Markdown 安全渲染和分页测量需要 DOM / Canvas，因此 `services/` 并非全部是纯逻辑模块；`stores/` 负责状态与动作，`components/` 负责视图与交互。翻页引擎 `PaginatedView.vue` 与 `WebtoonView.vue` 直接操作 DOM 和 Web Animations API，不通过 `v-for` 重渲染翻页画面。
 
-## 数据与隐私
+## 本地存储与隐私
 
-- 书架数据存在本机 IndexedDB 数据库 `homura_shelf`，分 `books`（元数据 + 封面）、`sources`（原始文件）和 `progress`（每本书的阅读进度）三栏。
-- 支持文件句柄时会优先保存句柄，尽量不占本地存储；不支持时退化为保存原始 Blob。
-- 阅读主题和明暗模式记在 `localStorage`，只有两个键。
-- 应用不联网读取书籍、不上传文件；清除应用本地数据会一起清掉书架，卸载前记得留好原始文件。
-- 阅读进度与每本书的排版设置（方向 / 单双页 / 首页单排 / 字号 / 条漫尺寸）持久化在 `progress` 栏，进度按比例记录，所以改窗口大小或字号后仍能回到同一段内容；目录和书签目前**没有**做持久化。
+- IndexedDB 数据库名为 `homura_shelf`，包含 `books`、`sources`、`progress` 三个对象仓库，分别保存书籍元数据/封面、原始文件来源和阅读进度。
+- 原始文件优先保存 `FileSystemFileHandle`；无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。这样可尽量避免大图集撑爆数据库配额。
+- 导入后会检查存储配额；已用空间达到 85% 或剩余不足 200 MB 时会提示。
+- 阅读进度写入做了 350 ms 防抖，并在关闭阅读器、页面卸载或切到后台时补写。
+- `localStorage` 只保存 `homura_theme_color` 和 `homura_surface_mode` 两个主题偏好；翻页过渡样式不持久化。
+- 每本书会记住阅读方向、单双页、首页单排、字号和条漫尺寸；目录状态不会持久化，书签功能尚未实现。
+- 应用不上传书籍内容，也没有云同步。清除应用本地数据会一起清掉书架记录，重要文件请保留原始副本。
+- Google Fonts 需要联网，完全断网时会回退到系统字体；Tailwind 运行时已随应用分发，PDF 资源也随包构建。
 
 ## 已知限制
 
-- 安装包未做 Apple 签名 / 公证，macOS 首次打开需要手动放行。
-- 桌面 WebView 不支持文件句柄时会走 Blob 存档，大图集会占用更多本地空间。
-- EPUB 的复杂排版、固定版式、自定义字体不会完整还原，正文按自定义规则重新分页。
-- 暂不支持目录跳转与书签；进度按整本比例记忆，极端情况下（书籍内容大改）可能略有偏差。
-- 字体来自 Google Fonts，完全断网时会回退到系统字体；Tailwind 和 JSZip 已内置，不受影响。
+- 不支持 DRM 加密书籍、AZW3 / KF8、旧版 Huffman 压缩 MOBI 和加密 PDF。
+- PDF 按固定版式渲染，不能改字号或重排；EPUB 的固定版式、复杂 CSS 和自定义字体也不能完整还原。
+- 目录可以跳转，但目录状态不保存；书签功能尚未实现。
+- 书架搜索只匹配书名，收藏、标签和设置仍是占位功能。
+- macOS 安装包尚未签名/公证，首次启动需要手动放行。
+- 项目目前没有自动化测试、ESLint 和 TypeScript，改动后需要执行构建并手动回归关键阅读流程。
 
 ## 开发与发布
 
-推 `v*` 标签会触发 [build.yml](.github/workflows/build.yml)：macOS Universal、Linux、Windows 三平台并行构建，自动生成草稿 Release，并用 Conventional Commits 汇总更新日志；手动 `workflow_dispatch` 只上传构建产物（保留 14 天）。
+开发和代码约束以仓库根目录的 [`AGENTS.md`](AGENTS.md) 为准。提交前至少运行：
 
-提交信息按 Conventional Commits 写（`feat:` / `fix:` / `perf:` / `refactor:` / `docs:` / `build:` 等），Release 说明会按类别自动分组。发版提交本身会被过滤掉。
+```bash
+npm run build:vite
+```
+
+提交信息使用 Conventional Commits：`feat:`、`fix:`、`perf:`、`refactor:`、`docs:`、`build:`、`ci:`、`chore:`。发版时需同步修改以下三处版本号：
+
+- `package.json`
+- `src-tauri/Cargo.toml`
+- `src-tauri/tauri.conf.json`
+
+CI 只在推送 `v*` 标签或手动触发 `workflow_dispatch` 时运行，不响应普通 `main` 分支推送：
+
+- **macOS**：Universal `.dmg`
+- **Windows**：`.msi` / NSIS
+- **Linux**：仅 `.deb` 和 `.rpm`
+- **Android**：arm64-v8a release APK，使用 GitHub Secrets 中的 keystore 签名
+
+推送版本标签会创建草稿 Release，并把桌面安装包与 APK 一并上传；手动触发只保留构建产物 14 天。Release 说明由 `scripts/release-notes.mjs` 按提交类别自动生成。
+
+## 反馈
+
+发现 bug、格式兼容问题或有功能建议，请到 [Issues](https://github.com/ningnanzhenshit-coder/homura-reader/issues) 提交。反馈解析问题时可附上格式、复现步骤和必要的脱敏样本，别把带版权或隐私的原书直接扔进公开仓库。
 
 ## 许可
 
-仓库暂未附带 LICENSE 文件。在明确许可前，请勿直接商用或再分发；有需要先联系作者确认。
+仓库目前没有附带 `LICENSE` 文件，不能默认视为开源授权。使用、修改或分发前请先联系作者确认。
 
-*（README 写完了，本鱼先去吃小鱼干了。有问题提 issue，别私信戳我，戳也装死。）* 🐋
+---
+
+*README 按 v2.1.3 当前实现整理。功能状态以代码为准；本鱼写完先去吃小鱼干了。* 🐋
