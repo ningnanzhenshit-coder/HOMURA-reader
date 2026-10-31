@@ -1,6 +1,6 @@
 {
   "name": "homura-reader",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "private": true,
   "description": "HOMURA — ACGN GO 本地漫画与轻小说阅读器",
   "scripts": {

@@ -7,7 +7,7 @@
 
 HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集拖进来就能看，解析与渲染全部在本机完成，不上传任何文件。桌面端用 Tauri 2 打包（macOS / Windows / Linux），同一套前端也构建 Android APK。
 
-- 当前版本 `2.1.1`
+- 当前版本 `2.1.3`
 - 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（Rust）
 - 纯 JavaScript，没有 TypeScript、没有 ESLint、没有自动测试
 - 数据存本机 IndexedDB / OPFS；只有主题偏好写 localStorage
