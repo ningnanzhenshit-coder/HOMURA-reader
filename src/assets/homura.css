@@ -407,11 +407,50 @@
         opacity 300ms var(--md-ease-emphasized);
     }
 
+    html.reader-back-entering .reader-dismiss-layer {
+      animation: homura-reader-enter 300ms var(--md-ease-emphasized) both;
+    }
+
+    html.reader-back-entering .library-back-layer.is-under-reader {
+      animation: homura-library-enter 300ms var(--md-ease-emphasized) both;
+    }
+
+    html.reader-back-entering .reader-back-scrim {
+      animation: homura-scrim-enter 300ms var(--md-ease-emphasized) both;
+    }
+
+    @keyframes homura-reader-enter {
+      from {
+        transform: translate3d(100vw, 0, 0) scale(0.945);
+        border-radius: 26px;
+      }
+      to {
+        transform:
+          translate3d(var(--homura-back-reader-x), 0, 0)
+          scale(var(--homura-back-reader-scale));
+        border-radius: var(--homura-back-reader-radius);
+      }
+    }
+
+    @keyframes homura-library-enter {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(var(--homura-back-library-x), 0, 0); }
+    }
+
+    @keyframes homura-scrim-enter {
+      from { opacity: 0; }
+      to { opacity: var(--homura-back-scrim-opacity); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       html.reader-back-settling .reader-dismiss-layer,
       html.reader-back-settling .library-back-layer.is-under-reader,
-      html.reader-back-settling .reader-back-scrim {
+      html.reader-back-settling .reader-back-scrim,
+      html.reader-back-entering .reader-dismiss-layer,
+      html.reader-back-entering .library-back-layer.is-under-reader,
+      html.reader-back-entering .reader-back-scrim {
         transition: none;
+        animation: none;
       }
     }
 

@@ -42,7 +42,11 @@
         leave-from-class="translate-y-0 opacity-100"
         leave-to-class="-translate-y-3 opacity-0"
       >
-        <ReaderTopBar v-if="ui.readerChromeVisible" class="absolute top-0 inset-x-0 z-30" />
+        <ReaderTopBar
+          v-if="ui.readerChromeVisible"
+          class="absolute top-0 inset-x-0 z-30"
+          @back="dismissWithPredictiveBack"
+        />
       </Transition>
 
       <Transition

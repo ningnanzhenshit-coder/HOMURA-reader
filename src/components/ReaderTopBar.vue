@@ -5,7 +5,7 @@
     :style="{ paddingTop: 'env(safe-area-inset-top)' }"
   >
     <button
-      @click="reader.closeReader()"
+      @click="emit('back')"
       class="w-11 h-11 shrink-0 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
       title="返回书架 (Esc)"
     >
@@ -78,6 +78,7 @@ import { useUiStore } from '../stores/ui.js';
 
 const reader = useReaderStore();
 const ui = useUiStore();
+const emit = defineEmits(['back']);
 
 const subStatusParts = computed(() => {
   const total = reader.activePages.length;

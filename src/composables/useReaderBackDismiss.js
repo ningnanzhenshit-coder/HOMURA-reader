@@ -56,7 +56,32 @@ export function useReaderBackDismiss(reader, ui) {
     frameId = 0;
     pendingProgress = 0;
     document.documentElement.classList.remove('reader-back-settling');
+    document.documentElement.classList.remove('reader-back-entering');
     applyProgress(0);
+  }
+
+  function playEnter() {
+    if (!reader.currentBook) return;
+    const token = ++settleToken;
+    const reduceMotion = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      resetVisuals();
+      settling = false;
+      return;
+    }
+
+    settling = true;
+    cancelAnimationFrame(frameId);
+    frameId = 0;
+    resetVisuals();
+    document.documentElement.classList.add('reader-back-entering');
+
+    window.setTimeout(() => {
+      if (token !== settleToken) return;
+      document.documentElement.classList.remove('reader-back-entering');
+      settling = false;
+    }, SETTLE_DURATION);
   }
 
   function releasePointer(e) {
@@ -87,6 +112,7 @@ export function useReaderBackDismiss(reader, ui) {
 
     cancelAnimationFrame(frameId);
     frameId = 0;
+    document.documentElement.classList.remove('reader-back-entering');
     document.documentElement.classList.add('reader-back-settling');
     applyProgress(commit ? 1 : 0);
 
@@ -188,11 +214,12 @@ export function useReaderBackDismiss(reader, ui) {
 
   watch(
     () => reader.currentBook,
-    () => {
+    (book, previousBook) => {
       settleToken++;
       gesture = null;
       settling = false;
-      resetVisuals();
+      if (book && !previousBook) playEnter();
+      else resetVisuals();
     }
   );
 
@@ -200,6 +227,7 @@ export function useReaderBackDismiss(reader, ui) {
     settleToken++;
     cancelAnimationFrame(frameId);
     document.documentElement.classList.remove('reader-back-settling');
+    document.documentElement.classList.remove('reader-back-entering');
   });
 
   return {
