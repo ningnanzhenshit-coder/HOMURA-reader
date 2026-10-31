@@ -1,6 +1,17 @@
 <template>
   <!-- Reader Fullscreen Modal · 沉浸式：工具栏浮在画布上，默认自动隐藏 -->
-  <div v-show="!!reader.currentBook" class="fixed inset-0 bg-[var(--bg-reader)] z-50 flex flex-col transition-colors duration-200">
+  <div v-show="!!reader.currentBook" class="reader-dismiss-layer fixed inset-0 bg-[var(--bg-reader)] z-50 flex flex-col transition-colors duration-200">
+    <div
+      v-if="isCompact && !!reader.currentBook"
+      class="reader-back-edge"
+      aria-hidden="true"
+      @pointerdown="onBackPointerDown"
+      @pointermove="onBackPointerMove"
+      @pointerup="onBackPointerUp"
+      @pointercancel="onBackPointerCancel"
+      @lostpointercapture="onBackPointerLostCapture"
+    ></div>
+
     <div
       ref="viewportRef"
       class="relative flex-1 min-h-0 overflow-hidden select-text"
@@ -66,6 +77,7 @@ import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useShortcuts } from '../composables/useShortcuts.js';
+import { useReaderBackDismiss } from '../composables/useReaderBackDismiss.js';
 import ReaderTopBar from './ReaderTopBar.vue';
 import ReaderBottomBar from './ReaderBottomBar.vue';
 import ReaderTocDrawer from './ReaderTocDrawer.vue';
@@ -77,6 +89,14 @@ const reader = useReaderStore();
 const ui = useUiStore();
 const { isTouch, isCompact } = useViewport();
 const viewportRef = ref(null);
+const {
+  onPointerDown: onBackPointerDown,
+  onPointerMove: onBackPointerMove,
+  onPointerUp: onBackPointerUp,
+  onPointerCancel: onBackPointerCancel,
+  onPointerLostCapture: onBackPointerLostCapture,
+  dismissWithPredictiveBack
+} = useReaderBackDismiss(reader, ui);
 
 // 桌面设置侧栏宽度 372px：开启时为正文列预留空间
 const columnReserveStyle = computed(() =>
@@ -105,7 +125,6 @@ function onTouchStart(e) {
   tapInfo.x = e.clientX;
   tapInfo.y = e.clientY;
   tapInfo.t = Date.now();
-  tapInfo.canSwipeBack = isCompact.value && (e.clientX <= 28 || reader.currentIndex === 0);
 }
 
 function onTouchEnd(e) {
@@ -116,20 +135,6 @@ function onTouchEnd(e) {
   const dt = Math.max(1, Date.now() - tapInfo.t);
   const absX = Math.abs(dx);
   const absY = Math.abs(dy);
-  const threshold = Math.max(48, (window.innerWidth || 375) * 0.14);
-  const velocity = absX / dt;
-  if (
-    tapInfo.canSwipeBack
-    && dx > 0
-    && absX > 24
-    && absX > absY * 1.2
-    && (absX > threshold || (velocity > 0.45 && absX > 20))
-  ) {
-    // 等当前 pointer 序列的 click 走完再卸载阅读器，避免穿透到书架卡片
-    e.preventDefault();
-    requestAnimationFrame(() => reader.closeReader());
-    return;
-  }
   if (dt > 350) return;
   if (absX > 10 || absY > 10) return;
   if (e.target && e.target.closest && e.target.closest('button, input, a, select')) return;
@@ -143,5 +148,5 @@ watch(() => reader.currentBook, book => {
   if (book) ui.showChrome();
 });
 
-useShortcuts(reader, viewportRef);
+useShortcuts(reader, viewportRef, dismissWithPredictiveBack);
 </script>

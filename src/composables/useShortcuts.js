@@ -1,15 +1,57 @@
 /* ============================================================================
-   HOMURA · 阅读器快捷键与窗口事件
+   HOMURA · 阅读器快捷键、系统返回与窗口事件
    ----------------------------------------------------------------------------
    键盘（方向键 / 空格 / Esc）、视口滚轮翻页（190ms 节流）、
-   窗口尺寸变化时的小说重排。由 ReaderModal 挂载时安装。
+   Android 系统返回、窗口尺寸变化时的小说重排。由 ReaderModal 挂载时安装。
    ========================================================================== */
 
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount, watch } from 'vue';
 import { useUiStore } from '../stores/ui.js';
 
-export function useShortcuts(reader, viewportRef) {
+export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
   const ui = useUiStore();
+  let unlistenBack = null;
+  let backListenerToken = 0;
+
+  // 仅在阅读器打开时接管 Android 返回键；书架页保持系统默认的退出行为
+  async function enableAndroidBackListener() {
+    if (unlistenBack) return;
+    const token = ++backListenerToken;
+    const app = window.__TAURI__ && window.__TAURI__.app;
+    if (!reader.currentBook || !app || typeof app.onBackButtonPress !== 'function') return;
+
+    try {
+      const unlisten = await app.onBackButtonPress(() => {
+        if (!reader.currentBook) return;
+        if (ui.settingsOpen) {
+          ui.closeSettings();
+        } else if (ui.tocOpen) {
+          ui.closeToc();
+        } else {
+          dismissWithPredictiveBack();
+        }
+      });
+
+      // 注册是异步的：期间已关闭阅读器时必须立即注销，避免书架页吞掉返回键
+      if (token !== backListenerToken || !reader.currentBook) {
+        unlisten();
+        return;
+      }
+      unlistenBack = unlisten;
+    } catch (err) {
+      console.warn('[HOMURA] 注册 Android 返回键失败', err);
+    }
+  }
+
+  function disableAndroidBackListener() {
+    backListenerToken++;
+    if (typeof unlistenBack !== 'function') return;
+    const unlisten = unlistenBack;
+    unlistenBack = null;
+    Promise.resolve(unlisten()).catch(err => {
+      console.warn('[HOMURA] 注销 Android 返回键失败', err);
+    });
+  }
 
   function onKeydown(e) {
     if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
@@ -36,7 +78,7 @@ export function useShortcuts(reader, viewportRef) {
       } else if (!ui.readerChromeVisible) {
         ui.showChrome();
       } else {
-        reader.closeReader();
+        dismissWithPredictiveBack();
       }
     }
   }
@@ -87,6 +129,7 @@ export function useShortcuts(reader, viewportRef) {
   }
 
   onMounted(() => {
+    enableAndroidBackListener();
     window.addEventListener('keydown', onKeydown);
     window.addEventListener('resize', onResize);
     if (window.visualViewport) {
@@ -98,7 +141,17 @@ export function useShortcuts(reader, viewportRef) {
     }
   });
 
+  const stopBackWatch = watch(
+    () => reader.currentBook,
+    book => {
+      if (book) enableAndroidBackListener();
+      else disableAndroidBackListener();
+    }
+  );
+
   onBeforeUnmount(() => {
+    stopBackWatch();
+    disableAndroidBackListener();
     window.removeEventListener('keydown', onKeydown);
     window.removeEventListener('resize', onResize);
     if (window.visualViewport) {

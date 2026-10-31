@@ -1,5 +1,8 @@
 <template>
-  <div class="flex flex-1 min-h-0">
+  <div
+    class="library-back-layer flex flex-1 min-h-0"
+    :class="{ 'is-under-reader': !!reader.currentBook }"
+  >
     <SideNav v-model:appearance-open="appearanceOpen" @nav="onRailNav" />
 
     <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
@@ -20,7 +23,10 @@
   </div>
 
   <!-- 唯一主行动：扩展 FAB「导入」，点开选择导入文件 / 文件夹 -->
-  <div class="md-fab-pos flex flex-col items-end">
+  <div
+    class="md-fab-pos library-back-layer flex flex-col items-end"
+    :class="{ 'is-under-reader': !!reader.currentBook }"
+  >
     <div v-if="importMenuOpen" class="fixed inset-0" @click="importMenuOpen = false"></div>
 
     <Transition
@@ -72,6 +78,7 @@
   <input v-if="canPickFolder" ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
 
   <DragOverlay />
+  <div v-if="reader.currentBook" class="reader-back-scrim md-scrim" aria-hidden="true"></div>
   <ReaderModal />
   <AppToast />
 

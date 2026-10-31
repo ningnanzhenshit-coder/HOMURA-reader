@@ -356,6 +356,65 @@
       min-height: 100dvh;
     }
 
+    /* 预见式返回：顶层阅读器跟手右移，书架小幅复位，遮罩随进度退场 */
+    :root {
+      --homura-back-reader-x: 0px;
+      --homura-back-reader-scale: 1;
+      --homura-back-reader-radius: 0px;
+      --homura-back-library-x: -28px;
+      --homura-back-scrim-opacity: 1;
+    }
+
+    .reader-dismiss-layer {
+      transform-origin: center center;
+      transform:
+        translate3d(var(--homura-back-reader-x), 0, 0)
+        scale(var(--homura-back-reader-scale));
+      border-radius: var(--homura-back-reader-radius);
+      will-change: transform, border-radius;
+    }
+
+    .library-back-layer.is-under-reader {
+      transform: translate3d(var(--homura-back-library-x), 0, 0);
+      will-change: transform;
+    }
+
+    .reader-back-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      pointer-events: none;
+      opacity: var(--homura-back-scrim-opacity);
+      will-change: opacity;
+    }
+
+    .reader-back-edge {
+      position: fixed;
+      left: 0;
+      top: calc(env(safe-area-inset-top, 0px) + 56px);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+      z-index: 31;
+      width: 30px;
+      touch-action: pan-y;
+    }
+
+    html.reader-back-settling .reader-dismiss-layer,
+    html.reader-back-settling .library-back-layer.is-under-reader,
+    html.reader-back-settling .reader-back-scrim {
+      transition:
+        transform 300ms var(--md-ease-emphasized),
+        border-radius 300ms var(--md-ease-emphasized),
+        opacity 300ms var(--md-ease-emphasized);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.reader-back-settling .reader-dismiss-layer,
+      html.reader-back-settling .library-back-layer.is-under-reader,
+      html.reader-back-settling .reader-back-scrim {
+        transition: none;
+      }
+    }
+
     button,
     select,
     textarea {

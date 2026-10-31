@@ -301,8 +301,7 @@ const drag = {
   startTime: 0,
   dx: 0,
   dy: 0,
-  axis: null,
-  canSwipeBack: false
+  axis: null
 };
 
 function activeStageEl() {
@@ -338,8 +337,6 @@ function onPointerDown(e) {
   drag.dx = 0;
   drag.dy = 0;
   drag.axis = null;
-  // 移动端：第一页任意位置右滑，或任意页从左边缘右滑，返回书架
-  drag.canSwipeBack = isCompact.value && (drag.startX <= 28 || reader.currentIndex === 0);
   if (gestureEl.value) {
     try { gestureEl.value.setPointerCapture(e.pointerId); } catch (err) {}
   }
@@ -382,13 +379,6 @@ function onPointerUp(e) {
 
   if (horizontal) {
     const crossedThreshold = absX > threshold || (velocity > 0.45 && absX > 20);
-    if (drag.canSwipeBack && dx > 0 && crossedThreshold) {
-      resetStageTransform();
-      // 等当前 pointer 序列的 click 走完再卸载阅读器，避免穿透到书架卡片
-      event.preventDefault();
-      requestAnimationFrame(() => reader.closeReader());
-      return;
-    }
     if (crossedThreshold) {
       resetStageTransform();
       if (dx > 0) reader.onLeftButtonClick();
