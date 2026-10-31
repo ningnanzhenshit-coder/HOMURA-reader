@@ -100,7 +100,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
   
 ## 5. UI 规则（强约束）
 
-界面已全量 Material Design 3 化：**7 套主题 × 白昼/护眼/夜间 3 种表面**。新增或修改 UI 时必须遵守以下规则。
+界面已全量 Material Design 3 化：**10 套主题 × 白昼/护眼/夜间 3 种表面**。新增或修改 UI 时必须遵守以下规则。
 
 ### 5.1 颜色
 
@@ -113,9 +113,9 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 
 ### 5.2 主题与表面
 
-- 根节点靠 `data-theme`（blue/red/green/violet/sakura/mint/amber）+ `data-mode`（light/warm/dark）切换。组件不得自行切主题，统一调 `theme.setThemeColor()` / `theme.setSurfaceMode()`。
-- 新增主题必须同步 5 处：`homura.css` 的明色块、暗色块；`theme.js` 的 `THEME_NAMES`；`AppearancePanel.vue` 的 `swatches`；`ReaderSettingsDrawer.vue` 的 `swatches`；以及 MD3 token 文档（如本地存在）。
-- 外观面板宽 **280px**，7 个主题色点必须单行排布。
+- 根节点靠 `data-theme`（green/mint/cyan/blue/violet/orchid/sakura/red/amber/olive）+ `data-mode`（light/warm/dark）切换。组件不得自行切主题，统一调 `theme.setThemeColor()` / `theme.setSurfaceMode()`。
+- 新增主题必须同步：`homura.css` 的明色块、暗色块；`theme.js` 的 `THEME_OPTIONS`（名称与三阶预览色）；以及 MD3 token 文档（如本地存在）。两处入口共用 `ThemeSwatchGrid.vue`，不要再复制色板数组。
+- 外观面板宽 **280px**，10 个主题色块固定为 **5 列 × 2 行**；单个色块保持约 44px 的触控尺寸。
 
 ### 5.3 布局与断点
 
@@ -144,8 +144,8 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 这些是已经踩过坑、且用户明确要求保留的行为：
 
 1. **启动不许黑屏**：`tauri.conf.json` 里主窗口 `visible: false`，`src-tauri/src/lib.rs` 在 `PageLoadEvent::Finished` 后才 `show()`。不要改成启动即显示。
-2. **标题栏跟内容一起换色**：模式切换时，原生窗口 `setTheme` / `setBackgroundColor` 必须在动画**开始时**调用，不能等 1s 动画结束。逻辑在 `theme.js` 的 `setSurfaceMode`。
-3. **模式切换动画**：用原生 `clip-path` 圆形收缩（从右下角 `circle(150% at 100% 100%)` 收到 `circle(0%)`），1000ms `cubic-bezier(0.16, 1, 0.3, 1)`。WebKit 下 View Transitions API 不可靠，不要换回去。切换期间 `html.surface-switching` 会抑制全局过渡，别加冲突的全局 transition。
+2. **标题栏跟内容一起换色**：模式切换时，原生窗口 `setTheme` / `setBackgroundColor` 必须在动画**开始时**调用，不能等动画结束。逻辑在 `theme.js` 的 `setSurfaceMode`。
+3. **模式切换动画**：从被点击的「白昼 / 护眼 / 夜间」按钮中心圆形展开新配色。`theme.js` 用旧表面色遮罩与透明遮罩孔实现，持续 720ms；按钮坐标由 `MdSegmentedControl` 通过 `update:modelValue` 的第二个参数传入。WebKit 下 View Transitions API 不可靠，不要换回去。切换期间 `html.surface-switching` 会抑制全局过渡，别加冲突的全局 transition。
 4. **工具栏自动隐藏 2.2 秒**：`ui.js` 的 `AUTO_HIDE_DELAY = 2200`；点击阅读画布 / 轻点可唤出。抽屉打开时不自动隐藏。
 5. **移动端手势**：横向滑动跟手翻页，带阻尼与回弹；轻点左 30% 上一页、右 30% 下一页、中间切换工具栏。手势层 z-index 必须高于阅读舞台，否则会被图片层拦截。
 6. **窄屏强制单页**：`DOUBLE_SPREAD_MIN_WIDTH = 768`，`<768` 即使设置里选了双页也只按单页渲染。
@@ -185,7 +185,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - [ ] `npm run build:vite` 通过，控制台无报错、无 404。
 - [ ] 浏览器 390px / 899px / 900px / 1440px 四档宽度下无横向溢出、底部导航和 FAB 不压内容。
 - [ ] 白昼 / 护眼 / 夜间三种表面逐屏检查，没有硬编码白字或暗底发灰。
-- [ ] 改 UI：7 套主题都能切，外观面板 280px 单行，sheet 可关闭，`prefers-reduced-motion` 不崩。
+- [ ] 改 UI：10 套主题都能切，外观面板 280px 双行五列，sheet 可关闭，`prefers-reduced-motion` 不崩。
 - [ ] 改阅读器：LTR / RTL / 竖排、单页 / 双页、翻页动画、进度恢复都正常。
 - [ ] 改导入 / 解析：用真实样本验证对应格式；PDF 需覆盖中文文本与扫描件；Markdown 需测 `<script>` 与 `javascript:` 链接。
 - [ ] 改 Tauri / 窗口：跑 `npm run dev`，确认启动不黑屏、标题栏随模式换色、全屏可进出。
