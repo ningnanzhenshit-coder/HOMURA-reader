@@ -138,13 +138,7 @@
             <span class="text-[12px] font-semibold">阅读模式</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
           </div>
-          <MdSegmentedControl
-            class="w-full"
-            :model-value="theme.surfaceMode"
-            :options="modes"
-            aria-label="阅读模式"
-            @update:model-value="onSurfaceModeChange"
-          />
+          <SurfaceModePreview />
 
           <div class="flex items-baseline justify-between mt-4 mb-3">
             <span class="text-[12px] font-semibold">主题色</span>
@@ -181,12 +175,13 @@
 <script setup>
 import { computed } from 'vue';
 import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
-import { THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
+import { SURFACE_MODE_OPTIONS, THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { showToast } from '../composables/useToast.js';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
+import SurfaceModePreview from './SurfaceModePreview.vue';
 import ThemeSwatchGrid from './ThemeSwatchGrid.vue';
 
 const reader = useReaderStore();
@@ -215,20 +210,10 @@ const webtoonFits = [
   { value: 'wide', label: WEBTOON_FIT_LABELS.wide }
 ];
 
-const modes = [
-  { value: 'light', label: '白昼' },
-  { value: 'dark', label: '夜间' },
-  { value: 'warm', label: '护眼' }
-];
-
 const directionLabel = computed(() => (directions.find(d => d.value === config.direction) || directions[0]).label);
 const spreadLabel = computed(() => (isVertical.value ? '长卷' : (config.spread === 2 ? '双页' : '单页')));
-const modeLabel = computed(() => (modes.find(m => m.value === theme.surfaceMode) || modes[0]).label);
+const modeLabel = computed(() => (SURFACE_MODE_OPTIONS.find(option => option.value === theme.surfaceMode) || SURFACE_MODE_OPTIONS[0]).label);
 const themeLabel = computed(() => (THEME_OPTIONS.find(option => option.name === theme.themeColor) || THEME_OPTIONS[0]).title.replace(' (默认)', ''));
-
-function onSurfaceModeChange(value, origin) {
-  theme.setSurfaceMode(value, false, origin);
-}
 
 // 恢复默认：全部走 store 已有的公开动作，不改动 store API
 function resetDefaults() {

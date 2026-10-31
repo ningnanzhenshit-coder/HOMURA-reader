@@ -2,7 +2,7 @@
        1. MD3 Color Tokens · 10 套主题（默认 深海蓝 = seed #0061A4）
        ========================================================================== */
     :root,
-    html[data-theme="blue"] {
+    [data-theme="blue"] {
       --md-primary: #0061A4;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #D1E4FF;
@@ -14,7 +14,7 @@
       --md-tertiary-container: #F2DAFF;
       --md-on-tertiary-container: #251431;
     }
-    html[data-theme="red"] {
+    [data-theme="red"] {
       --md-primary: #9C4233;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #FFDAD4;
@@ -26,7 +26,7 @@
       --md-tertiary-container: #F7DFA5;
       --md-on-tertiary-container: #251A00;
     }
-    html[data-theme="green"] {
+    [data-theme="green"] {
       --md-primary: #386A20;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #B8F397;
@@ -38,7 +38,7 @@
       --md-tertiary-container: #BBEBE8;
       --md-on-tertiary-container: #002020;
     }
-    html[data-theme="violet"] {
+    [data-theme="violet"] {
       --md-primary: #4F5DA8;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #DFE0FF;
@@ -50,7 +50,7 @@
       --md-tertiary-container: #FFD7F3;
       --md-on-tertiary-container: #2D122A;
     }
-    html[data-theme="sakura"] {
+    [data-theme="sakura"] {
       --md-primary: #984061;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #FFD9E2;
@@ -62,7 +62,7 @@
       --md-tertiary-container: #FFDCC1;
       --md-on-tertiary-container: #2E1500;
     }
-    html[data-theme="mint"] {
+    [data-theme="mint"] {
       --md-primary: #006A60;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #74F8E5;
@@ -74,7 +74,7 @@
       --md-tertiary-container: #D0E4FF;
       --md-on-tertiary-container: #001D33;
     }
-    html[data-theme="amber"] {
+    [data-theme="amber"] {
       --md-primary: #785900;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #FFDF9E;
@@ -86,7 +86,7 @@
       --md-tertiary-container: #CCEBC3;
       --md-on-tertiary-container: #05210A;
     }
-    html[data-theme="cyan"] {
+    [data-theme="cyan"] {
       --md-primary: #006874;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #9CEFF7;
@@ -98,7 +98,7 @@
       --md-tertiary-container: #D0E4FF;
       --md-on-tertiary-container: #001D34;
     }
-    html[data-theme="orchid"] {
+    [data-theme="orchid"] {
       --md-primary: #7B4E9E;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #F3DAFF;
@@ -110,7 +110,7 @@
       --md-tertiary-container: #FFD8E4;
       --md-on-tertiary-container: #31111D;
     }
-    html[data-theme="olive"] {
+    [data-theme="olive"] {
       --md-primary: #5D6100;
       --md-on-primary: #FFFFFF;
       --md-primary-container: #E5EE8A;
@@ -124,7 +124,7 @@
     }
 
     /* 夜间：同色相深阶（primary / primary-container 对调为 tone 80 / 30） */
-    html[data-mode="dark"][data-theme="blue"] {
+    [data-mode="dark"][data-theme="blue"] {
       --md-primary: #A6C8FF;
       --md-on-primary: #003258;
       --md-primary-container: #00497D;
@@ -136,7 +136,7 @@
       --md-tertiary-container: #543F5E;
       --md-on-tertiary-container: #F9D8FF;
     }
-    html[data-mode="dark"][data-theme="red"] {
+    [data-mode="dark"][data-theme="red"] {
       --md-primary: #FFB4A8;
       --md-on-primary: #561F16;
       --md-primary-container: #7B2E22;
@@ -148,7 +148,7 @@
       --md-tertiary-container: #574500;
       --md-on-tertiary-container: #F7DFA5;
     }
-    html[data-mode="dark"][data-theme="green"] {
+    [data-mode="dark"][data-theme="green"] {
       --md-primary: #9CD67E;
       --md-on-primary: #0C3900;
       --md-primary-container: #235100;
@@ -160,7 +160,7 @@
       --md-tertiary-container: #1E4B49;
       --md-on-tertiary-container: #BBEBE8;
     }
-    html[data-mode="dark"][data-theme="violet"] {
+    [data-mode="dark"][data-theme="violet"] {
       --md-primary: #BCC2FF;
       --md-on-primary: #1D2960;
       --md-primary-container: #37458C;
@@ -172,7 +172,7 @@
       --md-tertiary-container: #5D3B56;
       --md-on-tertiary-container: #FFD7F3;
     }
-    html[data-mode="dark"][data-theme="sakura"] {
+    [data-mode="dark"][data-theme="sakura"] {
       --md-primary: #FFB1C8;
       --md-on-primary: #5E1133;
       --md-primary-container: #7B2949;
@@ -184,7 +184,7 @@
       --md-tertiary-container: #5E4218;
       --md-on-tertiary-container: #FFDCC1;
     }
-    html[data-mode="dark"][data-theme="mint"] {
+    [data-mode="dark"][data-theme="mint"] {
       --md-primary: #55DBCB;
       --md-on-primary: #003731;
       --md-primary-container: #005047;
@@ -196,7 +196,7 @@
       --md-tertiary-container: #2D4960;
       --md-on-tertiary-container: #D0E4FF;
     }
-    html[data-mode="dark"][data-theme="amber"] {
+    [data-mode="dark"][data-theme="amber"] {
       --md-primary: #F5BE48;
       --md-on-primary: #402D00;
       --md-primary-container: #5B4300;
@@ -208,7 +208,7 @@
       --md-tertiary-container: #334D30;
       --md-on-tertiary-container: #CCEBC3;
     }
-    html[data-mode="dark"][data-theme="cyan"] {
+    [data-mode="dark"][data-theme="cyan"] {
       --md-primary: #82D3DF;
       --md-on-primary: #00363D;
       --md-primary-container: #004F57;
@@ -220,7 +220,7 @@
       --md-tertiary-container: #304964;
       --md-on-tertiary-container: #D0E4FF;
     }
-    html[data-mode="dark"][data-theme="orchid"] {
+    [data-mode="dark"][data-theme="orchid"] {
       --md-primary: #E2B6FD;
       --md-on-primary: #45205F;
       --md-primary-container: #5D347A;
@@ -232,7 +232,7 @@
       --md-tertiary-container: #633B48;
       --md-on-tertiary-container: #FFD8E4;
     }
-    html[data-mode="dark"][data-theme="olive"] {
+    [data-mode="dark"][data-theme="olive"] {
       --md-primary: #D5D86D;
       --md-on-primary: #303300;
       --md-primary-container: #464A00;
@@ -248,7 +248,7 @@
     /* ==========================================================================
        2. MD3 Surface Scales（白昼 / 暖色护眼 / 夜间）
        ========================================================================== */
-    html[data-mode="light"] {
+    [data-mode="light"] {
       color-scheme: light;
       --md-surface: #F8FAFC;
       --md-surface-low: #F1F4F8;
@@ -263,7 +263,7 @@
     }
 
     /* Warm Eye-Care Mode (Sepia / Warm Paper) */
-    html[data-mode="warm"] {
+    [data-mode="warm"] {
       color-scheme: light;
       --md-surface: #FAF6EE;
       --md-surface-low: #F5F0E5;
@@ -278,7 +278,7 @@
     }
 
     /* Dark Mode */
-    html[data-mode="dark"] {
+    [data-mode="dark"] {
       color-scheme: dark;
       --md-surface: #0F1115;
       --md-surface-low: #14171C;
@@ -757,17 +757,13 @@
       aspect-ratio: 1;
       padding: 0;
       border: 0;
-      border-radius: 14px;
-      background: var(--md-surface-low);
+      background: transparent;
       color: var(--md-on-surface);
       cursor: pointer;
-      transition:
-        background-color var(--md-duration-short) var(--md-ease-emphasized),
-        transform var(--md-duration-short) var(--md-ease-emphasized),
-        box-shadow var(--md-duration-short) var(--md-ease-emphasized);
+      transition: transform var(--md-duration-short) var(--md-ease-emphasized);
     }
     .theme-swatch-disc {
-      width: 27px;
+      width: 30px;
       aspect-ratio: 1;
       border-radius: 9999px;
       background-color: var(--swatch-base);
@@ -775,7 +771,9 @@
       background-repeat: no-repeat;
       background-position: bottom;
       background-size: 100% 50%;
-      box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-on-surface) 12%, transparent);
+      box-shadow:
+        inset 0 0 0 0.5px color-mix(in oklab, var(--md-on-surface) 14%, transparent),
+        0 0 0 1px color-mix(in oklab, var(--md-on-surface) 22%, transparent);
       transition: transform var(--md-duration-short) var(--md-ease-emphasized);
     }
     .theme-swatch-check {
@@ -793,24 +791,16 @@
       width: 10px;
       height: 10px;
     }
-    .theme-swatch-tile.is-selected {
-      background: var(--md-primary-container);
-      box-shadow: inset 0 0 0 1.5px var(--md-primary);
-    }
     .theme-swatch-tile:focus-visible {
       outline: 2px solid var(--md-primary);
       outline-offset: 2px;
     }
     @media (hover: hover) and (pointer: fine) {
       .theme-swatch-tile:hover {
-        background: var(--md-surface-high);
         transform: translateY(-1px);
       }
       .theme-swatch-tile:hover .theme-swatch-disc {
         transform: scale(1.08);
-      }
-      .theme-swatch-tile.is-selected:hover {
-        background: var(--md-primary-container);
       }
     }
     @media (prefers-reduced-motion: reduce) {

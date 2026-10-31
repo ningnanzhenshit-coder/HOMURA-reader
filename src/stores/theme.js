@@ -26,11 +26,14 @@ export const THEME_OPTIONS = Object.freeze([
 const THEME_NAMES = Object.fromEntries(
   THEME_OPTIONS.map(option => [option.name, option.title.replace(' (默认)', '')])
 );
-const MODE_LABELS = {
-  light: '白昼清爽模式',
-  warm: '暖色护眼模式',
-  dark: '夜间深邃模式'
-};
+export const SURFACE_MODE_OPTIONS = Object.freeze([
+  { value: 'light', label: '白昼', note: '清透纸白', title: '白昼清爽模式' },
+  { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式' },
+  { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式' }
+]);
+const MODE_LABELS = Object.fromEntries(
+  SURFACE_MODE_OPTIONS.map(option => [option.value, option.title])
+);
 const SURFACE_REVEAL_DURATION = 720;
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];
 export const TRANSITION_LABELS = { slide: '丝滑平移', fade: '柔和淡入', none: '极速无动画' };
