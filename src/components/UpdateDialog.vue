@@ -9,142 +9,238 @@
         <section
           ref="dialogRef"
           class="update-dialog-panel"
+          :class="{
+            'is-progress': status === 'downloading',
+            'is-complete': status === 'downloaded',
+            'is-download-error': status === 'download-error'
+          }"
           role="dialog"
           aria-modal="true"
           aria-labelledby="update-dialog-title"
-          :aria-busy="status === 'loading'"
+          :aria-busy="status === 'loading' || status === 'downloading'"
+          tabindex="-1"
         >
-          <header class="update-dialog-head">
-            <span class="update-dialog-icon" aria-hidden="true">
-              <svg fill="none" viewBox="0 0 24 24">
-                <path
-                  d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                />
-                <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
-                <path
-                  d="M12 7.7V12l3.1 1.85"
-                  stroke="currentColor"
-                  stroke-width="2.35"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
+          <template v-if="status === 'downloading'">
+            <h2 id="update-dialog-title" class="update-download-title">正在下载更新</h2>
+            <p class="update-download-subtitle">
+              HOMURA v{{ release?.version || currentVersion }} ·
+              {{ download.packageLabel || packageInfo.label }}
+            </p>
 
-            <div class="update-dialog-copy">
-              <p class="update-dialog-kicker">{{ kicker }}</p>
-              <h2 id="update-dialog-title">{{ title }}</h2>
-              <p class="update-dialog-current">当前版本 v{{ currentVersion }} · 稳定通道</p>
-            </div>
-
-            <button
-              ref="closeButtonRef"
-              type="button"
-              class="update-dialog-icon-button"
-              title="关闭更新提示"
-              aria-label="关闭更新提示"
-              @click="$emit('close')"
-            >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-              </svg>
-            </button>
-          </header>
-
-          <div v-if="status === 'loading'" class="update-dialog-state" role="status">
-            <span class="update-dialog-spinner" aria-hidden="true"></span>
-            <div>
-              <b>正在连接 GitHub Releases</b>
-              <p>读取稳定版本与安装包信息，请稍候。</p>
-            </div>
-          </div>
-
-          <template v-else-if="status === 'available' && release">
-            <div class="update-release-summary">
-              <div class="update-release-heading">
-                <strong>本次更新</strong>
-                <span>{{ release.dateLabel }}</span>
-              </div>
-              <ul v-if="summaryItems.length" class="update-release-list">
-                <li v-for="item in summaryItems" :key="item">{{ item }}</li>
-              </ul>
-              <p v-else class="update-release-empty">该版本没有提供可展示的更新摘要。</p>
-            </div>
-
-            <div class="update-install-picker">
-              <span class="update-install-label">选择安装类型</span>
-              <button
-                type="button"
-                class="update-install-row"
-                :title="`下载 ${packageInfo.label}`"
-                @click="openPackage"
+            <div class="update-download-progress">
+              <div
+                class="update-download-track"
+                role="progressbar"
+                aria-label="更新下载进度"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-valuenow="Math.round(downloadPercent * 10) / 10"
               >
-                <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 20h14v-2H5v2ZM19 9h-4V3H9v6H5l7 7 7-7Z"/>
-                </svg>
-                <span class="update-install-copy">
-                  <b>{{ packageInfo.label }}</b>
-                  <span>{{ packageInfo.note }}</span>
-                </span>
-                <svg class="update-install-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
-                </svg>
-              </button>
+                <i :style="{ width: `${downloadPercent}%` }"></i>
+              </div>
+              <p>{{ downloadPercentLabel }}</p>
             </div>
 
-            <div class="update-dialog-actions">
-              <span class="update-actions-spacer"></span>
-              <button type="button" class="update-dialog-text-button" @click="$emit('close')">稍后提醒</button>
-              <button type="button" class="update-dialog-text-button" @click="openDetails">查看详情</button>
-              <button type="button" class="update-dialog-primary-button" @click="openPackage">前往下载</button>
+            <div class="update-download-actions">
+              <button
+                ref="cancelDownloadButtonRef"
+                type="button"
+                class="update-dialog-text-button"
+                @click="$emit('cancel-download')"
+              >取消</button>
             </div>
           </template>
 
-          <template v-else-if="status === 'latest'">
-            <div class="update-dialog-state is-success">
-              <span class="update-state-symbol" aria-hidden="true">
+          <template v-else-if="status === 'downloaded'">
+            <h2 id="update-dialog-title" class="update-download-title">下载完成</h2>
+
+            <div class="update-download-complete-status">
+              <span class="update-download-check" aria-hidden="true">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m5.5 12.5 4.2 4.2L18.5 8"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="m5 12.5 4.2 4.2L19 7"/>
                 </svg>
               </span>
-              <div>
-                <b>已经是最新稳定版</b>
-                <p>当前安装的 HOMURA 与 GitHub 最新版本一致。</p>
-              </div>
+              <span class="update-download-complete-copy">
+                <b>新版本 v{{ download.version }} 已下载完成</b>
+                <span>{{ installWarning }}</span>
+              </span>
             </div>
-            <div class="update-dialog-actions">
-              <span class="update-actions-spacer"></span>
-              <button type="button" class="update-dialog-text-button" @click="$emit('close')">关闭</button>
-              <button type="button" class="update-dialog-primary-button" @click="$emit('changelog')">
-                查看更新日志
+
+            <div class="update-download-file">
+              <span>文件位置</span>
+              <code><template v-for="(part, index) in downloadPathParts" :key="`${index}-${part}`">{{ part }}<wbr v-if="part === '/' || part === '\\'" /></template></code>
+            </div>
+
+            <div class="update-download-complete-actions">
+              <button type="button" class="update-dialog-text-button" @click="$emit('close')">
+                稍后安装
+              </button>
+              <button type="button" class="update-dialog-primary-button" @click="$emit('install')">
+                立即安装
               </button>
             </div>
+            <p v-if="downloadError" class="update-dialog-link-error" role="alert">
+              {{ downloadErrorMessage }}
+            </p>
           </template>
 
           <template v-else>
-            <div class="update-dialog-state is-error" role="alert">
-              <span class="update-state-symbol" aria-hidden="true">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
-                  <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
+            <header class="update-dialog-head">
+              <span class="update-dialog-icon" aria-hidden="true">
+                <svg fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  />
+                  <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
+                  <path
+                    d="M12 7.7V12l3.1 1.85"
+                    stroke="currentColor"
+                    stroke-width="2.35"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
               </span>
+
+              <div class="update-dialog-copy">
+                <p class="update-dialog-kicker">{{ kicker }}</p>
+                <h2 id="update-dialog-title">{{ title }}</h2>
+                <p class="update-dialog-current">当前版本 v{{ currentVersion }} · 稳定通道</p>
+              </div>
+
+              <button
+                ref="closeButtonRef"
+                type="button"
+                class="update-dialog-icon-button"
+                title="关闭更新提示"
+                aria-label="关闭更新提示"
+                @click="$emit('close')"
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+              </button>
+            </header>
+
+            <div v-if="status === 'loading'" class="update-dialog-state" role="status">
+              <span class="update-dialog-spinner" aria-hidden="true"></span>
               <div>
-                <b>暂时无法检查更新</b>
-                <p>{{ errorMessage }}</p>
+                <b>正在连接 GitHub Releases</b>
+                <p>读取稳定版本与安装包信息，请稍候。</p>
               </div>
             </div>
-            <div class="update-dialog-actions">
-              <span class="update-actions-spacer"></span>
-              <button type="button" class="update-dialog-text-button" @click="$emit('close')">关闭</button>
-              <button type="button" class="update-dialog-primary-button" @click="$emit('retry')">再试一次</button>
-            </div>
-          </template>
 
-          <p v-if="linkError" class="update-dialog-link-error" role="alert">{{ linkError }}</p>
+            <template v-else-if="status === 'available' && release">
+              <div class="update-release-summary">
+                <div class="update-release-heading">
+                  <strong>本次更新</strong>
+                  <span>{{ release.dateLabel }}</span>
+                </div>
+                <ul v-if="summaryItems.length" class="update-release-list">
+                  <li v-for="item in summaryItems" :key="item">{{ item }}</li>
+                </ul>
+                <p v-else class="update-release-empty">该版本没有提供可展示的更新摘要。</p>
+              </div>
+
+              <div class="update-install-picker">
+                <span class="update-install-label">选择安装类型</span>
+                <button
+                  type="button"
+                  class="update-install-row"
+                  :title="`下载 ${packageInfo.label}`"
+                  @click="$emit('download')"
+                >
+                  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 20h14v-2H5v2ZM19 9h-4V3H9v6H5l7 7 7-7Z"/>
+                  </svg>
+                  <span class="update-install-copy">
+                    <b>{{ packageInfo.label }}</b>
+                    <span>{{ packageInfo.note }}</span>
+                  </span>
+                  <svg class="update-install-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="update-dialog-actions">
+                <span class="update-actions-spacer"></span>
+                <button type="button" class="update-dialog-text-button" @click="$emit('close')">稍后提醒</button>
+                <button type="button" class="update-dialog-text-button" @click="openDetails">查看详情</button>
+                <button type="button" class="update-dialog-primary-button" @click="$emit('download')">
+                  立即更新
+                </button>
+              </div>
+            </template>
+
+            <template v-else-if="status === 'latest'">
+              <div class="update-dialog-state is-success">
+                <span class="update-state-symbol" aria-hidden="true">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m5.5 12.5 4.2 4.2L18.5 8"/>
+                  </svg>
+                </span>
+                <div>
+                  <b>已经是最新稳定版</b>
+                  <p>当前安装的 HOMURA 与 GitHub 最新版本一致。</p>
+                </div>
+              </div>
+              <div class="update-dialog-actions">
+                <span class="update-actions-spacer"></span>
+                <button type="button" class="update-dialog-text-button" @click="$emit('close')">关闭</button>
+                <button type="button" class="update-dialog-primary-button" @click="$emit('changelog')">
+                  查看更新日志
+                </button>
+              </div>
+            </template>
+
+            <template v-else-if="status === 'download-error'">
+              <div class="update-dialog-state is-error" role="alert">
+                <span class="update-state-symbol" aria-hidden="true">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
+                  </svg>
+                </span>
+                <div>
+                  <b>下载没有完成</b>
+                  <p>{{ errorMessage }}</p>
+                </div>
+              </div>
+              <div class="update-dialog-actions">
+                <span class="update-actions-spacer"></span>
+                <button type="button" class="update-dialog-text-button" @click="$emit('close')">关闭</button>
+                <button type="button" class="update-dialog-primary-button" @click="$emit('download')">
+                  重新下载
+                </button>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="update-dialog-state is-error" role="alert">
+                <span class="update-state-symbol" aria-hidden="true">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
+                    <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
+                  </svg>
+                </span>
+                <div>
+                  <b>暂时无法检查更新</b>
+                  <p>{{ errorMessage }}</p>
+                </div>
+              </div>
+              <div class="update-dialog-actions">
+                <span class="update-actions-spacer"></span>
+                <button type="button" class="update-dialog-text-button" @click="$emit('close')">关闭</button>
+                <button type="button" class="update-dialog-primary-button" @click="$emit('retry')">再试一次</button>
+              </div>
+            </template>
+
+            <p v-if="linkError" class="update-dialog-link-error" role="alert">{{ linkError }}</p>
+          </template>
         </section>
       </div>
     </Transition>
@@ -155,6 +251,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { openGitHubUrl } from '../services/external.js';
 import { getUpdateErrorMessage } from '../services/updates.js';
+import { getDownloadErrorMessage } from '../services/updateDownload.js';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -162,13 +259,29 @@ const props = defineProps({
   release: { type: Object, default: null },
   currentVersion: { type: String, required: true },
   packageInfo: { type: Object, required: true },
-  error: { type: Object, default: null }
+  error: { type: Object, default: null },
+  download: {
+    type: Object,
+    default: () => ({
+      progress: 0,
+      downloadedBytes: 0,
+      totalBytes: 0,
+      fileName: '',
+      path: '',
+      size: 0,
+      version: '',
+      packageLabel: '',
+      platform: ''
+    })
+  },
+  downloadError: { type: Object, default: null }
 });
 
-defineEmits(['close', 'retry', 'changelog']);
+const emit = defineEmits(['close', 'retry', 'changelog', 'download', 'cancel-download', 'install']);
 
 const dialogRef = ref(null);
 const closeButtonRef = ref(null);
+const cancelDownloadButtonRef = ref(null);
 const linkError = ref('');
 let dialogTrigger = null;
 
@@ -183,10 +296,40 @@ const title = computed(() => {
   if (props.status === 'loading') return '正在检查更新';
   if (props.status === 'available' && props.release) return `发现新版本 ${props.release.version}`;
   if (props.status === 'latest') return '已是最新版本';
+  if (props.status === 'download-error') return '下载未完成';
   return '检查更新失败';
 });
 
-const errorMessage = computed(() => getUpdateErrorMessage(props.error));
+const downloadErrorMessage = computed(() => getDownloadErrorMessage(props.downloadError));
+const errorMessage = computed(() =>
+  props.status === 'download-error'
+    ? downloadErrorMessage.value
+    : getUpdateErrorMessage(props.error)
+);
+const downloadPercent = computed(() => {
+  const progress = Number(props.download && props.download.progress);
+  return Math.min(100, Math.max(0, Number.isFinite(progress) ? progress * 100 : 0));
+});
+const downloadPercentLabel = computed(() => {
+  if (downloadPercent.value >= 100) return '100%';
+  return `${downloadPercent.value.toFixed(1)}%`;
+});
+const downloadPathParts = computed(() =>
+  String(props.download.path || '').split(/([\\/])/).filter(Boolean)
+);
+const installWarning = computed(() => {
+  const platform = props.download.platform || props.packageInfo.platform;
+  if (platform === 'android' || platform === 'windows') {
+    return '安装过程中应用将会退出';
+  }
+  if (platform === 'macos') {
+    return '打开 DMG 后，将 HOMURA 拖入“应用程序”';
+  }
+  if (platform === 'linux') {
+    return '将交由系统软件中心处理安装包';
+  }
+  return '将使用系统默认程序打开安装包';
+});
 
 const summaryItems = computed(() => {
   if (!props.release) return [];
@@ -211,10 +354,6 @@ function openDetails() {
   if (props.release) openExternal(props.release.htmlUrl);
 }
 
-function openPackage() {
-  openExternal(props.packageInfo.url);
-}
-
 function focusableButtons() {
   if (!dialogRef.value) return [];
   return Array.from(dialogRef.value.querySelectorAll('button:not(:disabled)'));
@@ -224,7 +363,13 @@ function onDialogKeydown(event) {
   if (!props.open) return;
   if (event.key === 'Escape') {
     event.preventDefault();
-    closeButtonRef.value?.click();
+    if (props.status === 'downloading') {
+      cancelDownloadButtonRef.value?.click();
+    } else if (closeButtonRef.value) {
+      closeButtonRef.value.click();
+    } else {
+      emit('close');
+    }
     return;
   }
   if (event.key !== 'Tab') return;
@@ -250,7 +395,12 @@ watch(
       dialogTrigger = document.activeElement;
       window.addEventListener('keydown', onDialogKeydown);
       await nextTick();
-      closeButtonRef.value?.focus();
+      if (props.status === 'downloading') {
+        cancelDownloadButtonRef.value?.focus();
+      } else {
+        closeButtonRef.value?.focus();
+        if (!closeButtonRef.value) dialogRef.value?.focus({ preventScroll: true });
+      }
       return;
     }
     window.removeEventListener('keydown', onDialogKeydown);
@@ -258,6 +408,21 @@ watch(
       await nextTick();
       if (dialogTrigger && typeof dialogTrigger.focus === 'function') dialogTrigger.focus();
       dialogTrigger = null;
+    }
+  }
+);
+
+watch(
+  () => props.status,
+  async status => {
+    if (!props.open) return;
+    await nextTick();
+    if (status === 'downloading') {
+      cancelDownloadButtonRef.value?.focus();
+    } else if (closeButtonRef.value) {
+      closeButtonRef.value.focus();
+    } else if (dialogRef.value) {
+      dialogRef.value.focus({ preventScroll: true });
     }
   }
 );
@@ -281,7 +446,7 @@ onBeforeUnmount(() => {
 }
 
 .update-dialog-panel {
-  width: min(520px, 100%);
+  width: min(520px, calc(100vw - 48px));
   max-height: min(760px, calc(100dvh - 48px));
   padding: 24px;
   overflow-y: auto;
@@ -292,6 +457,158 @@ onBeforeUnmount(() => {
   box-shadow:
     0 30px 80px -28px color-mix(in oklab, var(--md-on-surface) 58%, transparent),
     inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
+}
+
+.update-dialog-panel:focus {
+  outline: none;
+}
+
+.update-dialog-panel.is-progress {
+  width: min(420px, calc(100vw - 48px));
+}
+
+.update-dialog-panel.is-complete,
+.update-dialog-panel.is-download-error {
+  width: min(460px, calc(100vw - 48px));
+}
+
+.update-download-title {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 670;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+}
+
+.update-download-subtitle {
+  margin: 8px 0 0;
+  color: var(--md-on-surface-variant);
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.update-download-progress {
+  margin-top: 28px;
+}
+
+.update-download-track {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--md-surface-high);
+}
+
+.update-download-track i {
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--md-primary);
+  transition: width 160ms var(--md-ease-emphasized);
+}
+
+.update-download-track i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  box-shadow: 0 0 0 3px var(--md-surface-container);
+  transform: translateY(-50%);
+}
+
+.update-download-progress p {
+  margin: 12px 0 0;
+  color: var(--md-on-surface);
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 560;
+  text-align: center;
+}
+
+.update-download-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.update-download-complete-status {
+  margin-top: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.update-download-check {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.update-download-check svg {
+  width: 16px;
+  height: 16px;
+}
+
+.update-download-complete-copy {
+  min-width: 0;
+}
+
+.update-download-complete-copy b {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.update-download-complete-copy span {
+  display: block;
+  margin-top: 7px;
+  color: color-mix(in oklab, var(--md-primary) 62%, var(--md-on-surface));
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.55;
+}
+
+.update-download-file {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--md-surface-low);
+  box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 78%, transparent);
+}
+
+.update-download-file span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--md-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.update-download-file code {
+  display: block;
+  overflow-wrap: break-word;
+  color: var(--md-on-surface);
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.update-download-complete-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .update-dialog-head {
@@ -647,6 +964,7 @@ onBeforeUnmount(() => {
   }
 
   .update-dialog-panel {
+    width: min(520px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
     padding: 20px;
     border-radius: 26px;
@@ -665,6 +983,26 @@ onBeforeUnmount(() => {
 
   .update-dialog-copy h2 {
     font-size: 21px;
+  }
+
+  .update-download-title {
+    font-size: 23px;
+  }
+
+  .update-download-progress {
+    margin-top: 25px;
+  }
+
+  .update-download-complete-status {
+    margin-top: 21px;
+  }
+
+  .update-download-file {
+    margin-top: 18px;
+  }
+
+  .update-download-complete-actions {
+    margin-top: 18px;
   }
 
   .update-dialog-icon-button {
@@ -704,6 +1042,7 @@ onBeforeUnmount(() => {
   .update-install-row,
   .update-dialog-text-button,
   .update-dialog-primary-button,
+  .update-download-track i,
   .update-dialog-enter-active,
   .update-dialog-leave-active,
   .update-dialog-enter-active .update-dialog-panel,

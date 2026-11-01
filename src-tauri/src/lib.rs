@@ -6,6 +6,8 @@ use std::time::{Duration, Instant};
 #[cfg(desktop)]
 use tauri::{Manager, WindowEvent};
 
+mod update_downloader;
+
 // 全屏退出（macOS 的 Space 切换动画、Windows 的窗口样式重设）会让 WebView 丢掉键盘焦点，
 // 导致 F 键失灵。这里用一个常驻工作线程监听窗口尺寸变化：每次「全屏 → 窗口」后持续 2s
 // 把焦点塞回 WebView。状态是逐帧采样的，连续快速切换也不会漏掉过渡。
@@ -82,10 +84,17 @@ fn spawn_focus_worker(window: tauri::WebviewWindow) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(update_downloader::UpdateDownloadState::default())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_android_toast::init())
         .plugin(tauri_plugin_android_predictive_back::init())
+        .plugin(tauri_plugin_android_installer::init())
+        .invoke_handler(tauri::generate_handler![
+            update_downloader::download_update_asset,
+            update_downloader::cancel_update_download,
+            update_downloader::open_update_file,
+        ])
         .setup(|app| {
             #[cfg(desktop)]
             {

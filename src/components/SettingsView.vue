@@ -302,7 +302,7 @@
             <p class="about-description">漫画、轻小说与图集的解析、分页和阅读记录都在设备内完成，不上传任何服务器。</p>
 
             <div class="about-actions">
-              <button type="button" class="about-update-button" @click="checkForUpdates">
+              <button type="button" class="about-update-button" @click="handlePrimaryUpdateAction">
                 <svg fill="none" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
@@ -319,7 +319,7 @@
                     stroke-linejoin="round"
                   />
                 </svg>
-                检查更新
+                {{ hasPendingInstall ? '继续安装' : '检查更新' }}
               </button>
               <button type="button" class="about-log-button" @click="openChangelog">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -437,9 +437,14 @@
       :current-version="appVersion"
       :package-info="updatePackage"
       :error="updateError"
-      @close="updateDialogOpen = false"
+      :download="downloadState"
+      :download-error="downloadError"
+      @close="closeUpdateDialog"
       @retry="checkForUpdates"
       @changelog="openChangelogFromUpdate"
+      @download="startUpdateDownload"
+      @cancel-download="cancelCurrentDownload"
+      @install="installDownloadedUpdate"
     />
 
     <ChangelogSheet
@@ -462,6 +467,15 @@ import logoUrl from '../assets/logo.png';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
+import {
+  canDownloadUpdateInApp,
+  cancelUpdateDownload,
+  clearPendingUpdate,
+  downloadUpdateAsset,
+  installDownloadedUpdate as launchDownloadedUpdate,
+  loadPendingUpdate,
+  savePendingUpdate
+} from '../services/updateDownload.js';
 import {
   detectUpdatePlatform,
   fetchStableReleases,
@@ -499,10 +513,15 @@ const latestRelease = ref(null);
 const updateDialogOpen = ref(false);
 const updateStatus = ref('idle');
 const updateError = ref(null);
+const downloadError = ref(null);
 const changelogOpen = ref(false);
 const changelogStatus = ref('idle');
 const changelogError = ref(null);
 const aboutLinkError = ref('');
+const downloadedUpdate = ref(restorePendingUpdate());
+const downloadState = ref(emptyDownloadState());
+let activeDownloadId = '';
+let downloadRequestId = 0;
 
 const updatePackage = computed(() => selectReleaseAsset(
   latestRelease.value || { htmlUrl: RELEASES_PAGE_URL, assets: [] },
@@ -512,6 +531,10 @@ const hasNewRelease = computed(() => {
   const latest = releases.value[0];
   return !!latest && isVersionNewer(latest.version, appVersion);
 });
+const hasPendingInstall = computed(() =>
+  !!downloadedUpdate.value
+  && isVersionNewer(downloadedUpdate.value.version, appVersion)
+);
 
 const surfaceOptions = SURFACE_MODE_OPTIONS;
 const transitionOptions = TRANSITION_OPTIONS;
@@ -643,6 +666,7 @@ async function checkForUpdates() {
   updateDialogOpen.value = true;
   updateStatus.value = 'loading';
   updateError.value = null;
+  downloadError.value = null;
   latestRelease.value = null;
 
   try {
@@ -650,6 +674,10 @@ async function checkForUpdates() {
     if (requestId !== updateRequestId) return;
     releases.value = result;
     latestRelease.value = result[0] || null;
+    if (downloadedUpdate.value && downloadedUpdate.value.version !== latestRelease.value?.version) {
+      downloadedUpdate.value = null;
+      clearPendingUpdate();
+    }
     updateStatus.value = latestRelease.value && isVersionNewer(latestRelease.value.version, appVersion)
       ? 'available'
       : 'latest';
@@ -658,6 +686,172 @@ async function checkForUpdates() {
     console.warn('检查更新失败', error);
     updateError.value = error;
     updateStatus.value = 'error';
+  }
+}
+
+function emptyDownloadState() {
+  return {
+    progress: 0,
+    downloadedBytes: 0,
+    totalBytes: 0,
+    fileName: '',
+    path: '',
+    size: 0,
+    version: ''
+  };
+}
+
+function restorePendingUpdate() {
+  const pending = loadPendingUpdate();
+  if (
+    !pending
+    || pending.platform !== updatePlatform
+    || !isVersionNewer(pending.version, appVersion)
+  ) {
+    if (pending) clearPendingUpdate();
+    return null;
+  }
+  return pending;
+}
+
+function createDownloadId() {
+  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `update_${random.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+}
+
+function handlePrimaryUpdateAction() {
+  if (hasPendingInstall.value) {
+    downloadState.value = {
+      ...emptyDownloadState(),
+      ...downloadedUpdate.value,
+      progress: 1,
+      downloadedBytes: downloadedUpdate.value.size,
+      totalBytes: downloadedUpdate.value.size
+    };
+    updateDialogOpen.value = true;
+    updateStatus.value = 'downloaded';
+    return;
+  }
+  checkForUpdates();
+}
+
+async function startUpdateDownload() {
+  const release = latestRelease.value;
+  const asset = updatePackage.value && updatePackage.value.asset;
+  downloadError.value = null;
+  if (!release || !asset) {
+    try {
+      await openGitHubUrl(updatePackage.value?.url || RELEASES_PAGE_URL);
+    } catch (error) {
+      downloadError.value = { message: '无法打开系统浏览器，请稍后再试。' };
+      console.warn('打开更新下载页失败', error);
+    }
+    return;
+  }
+
+  if (!canDownloadUpdateInApp()) {
+    try {
+      await openGitHubUrl(asset.url);
+    } catch (error) {
+      downloadError.value = { message: '无法打开系统浏览器，请稍后再试。' };
+      console.warn('打开更新下载页失败', error);
+    }
+    return;
+  }
+
+  const requestId = ++downloadRequestId;
+  const downloadId = createDownloadId();
+  activeDownloadId = downloadId;
+  downloadedUpdate.value = null;
+  clearPendingUpdate();
+  downloadState.value = {
+    ...emptyDownloadState(),
+    fileName: asset.name,
+    version: release.version
+  };
+  updateStatus.value = 'downloading';
+
+  try {
+    const result = await downloadUpdateAsset({
+      downloadId,
+      url: asset.url,
+      fileName: asset.name,
+      expectedSize: asset.size,
+      onProgress(progress) {
+        if (requestId !== downloadRequestId) return;
+        downloadState.value = {
+          ...downloadState.value,
+          progress: Number(progress.fraction) || 0,
+          downloadedBytes: Number(progress.downloadedBytes) || 0,
+          totalBytes: Number(progress.totalBytes) || 0
+        };
+      }
+    });
+    if (requestId !== downloadRequestId) return;
+    const pendingUpdate = {
+      ...result,
+      version: release.version,
+      packageLabel: updatePackage.value.label,
+      platform: updatePlatform
+    };
+    downloadedUpdate.value = pendingUpdate;
+    savePendingUpdate(pendingUpdate);
+    downloadState.value = {
+      ...downloadState.value,
+      ...result,
+      progress: 1,
+      totalBytes: result.size,
+      downloadedBytes: result.size
+    };
+    updateStatus.value = 'downloaded';
+  } catch (error) {
+    if (requestId !== downloadRequestId) return;
+    if (error?.code === 'CANCELLED') {
+      updateStatus.value = 'available';
+      return;
+    }
+    console.warn('下载更新失败', error);
+    downloadError.value = error;
+    updateStatus.value = 'download-error';
+  } finally {
+    if (activeDownloadId === downloadId) activeDownloadId = '';
+  }
+}
+
+async function cancelCurrentDownload() {
+  const downloadId = activeDownloadId;
+  downloadRequestId += 1;
+  activeDownloadId = '';
+  downloadState.value = emptyDownloadState();
+  downloadError.value = null;
+  updateStatus.value = 'available';
+  if (!downloadId) return;
+  try {
+    await cancelUpdateDownload(downloadId);
+  } catch (error) {
+    console.warn('取消更新下载失败', error);
+  }
+}
+
+async function closeUpdateDialog() {
+  downloadError.value = null;
+  if (updateStatus.value === 'downloading') {
+    await cancelCurrentDownload();
+  }
+  updateDialogOpen.value = false;
+}
+
+async function installDownloadedUpdate() {
+  if (!downloadedUpdate.value) return;
+  downloadError.value = null;
+  try {
+    await launchDownloadedUpdate(downloadedUpdate.value);
+    updateDialogOpen.value = false;
+  } catch (error) {
+    console.warn('启动更新安装失败', error);
+    downloadError.value = typeof error === 'string' ? { message: error } : error;
   }
 }
 

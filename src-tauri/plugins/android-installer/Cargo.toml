@@ -1,0 +1,13 @@
+[package]
+name = "tauri-plugin-android-installer"
+version = "0.1.0"
+description = "Minimal Android APK installer bridge for HOMURA"
+authors = ["HOMURA"]
+edition = "2021"
+links = "tauri-plugin-android-installer"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

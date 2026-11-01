@@ -1,0 +1,8 @@
+[default]
+description = "Allows starting the Android package installer for a downloaded HOMURA APK."
+permissions = ["allow-install"]
+
+[[permission]]
+identifier = "allow-install"
+description = "Allows starting the Android package installer for a downloaded HOMURA APK."
+commands.allow = ["install"]
