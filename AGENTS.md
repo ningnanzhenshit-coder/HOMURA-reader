@@ -7,7 +7,7 @@
 
 HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集拖进来就能看，解析与渲染全部在本机完成，不上传任何文件。桌面端用 Tauri 2 打包（macOS / Windows / Linux），同一套前端也构建 Android APK。
 
-- 当前版本 `2.1.4`
+- 当前版本 `2.1.5`
 - 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（Rust）
 - 纯 JavaScript，没有 TypeScript、没有 ESLint、没有自动测试
 - 数据存本机 IndexedDB；原文件在 Android 写 AppData，其余平台按能力写 OPFS 或 IndexedDB Blob；主题偏好写 localStorage
@@ -172,7 +172,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 
 ## 8. 提交与发布
 
-- 提交信息按 **Conventional Commits**：`feat:` / `fix:` / `perf:` / `refactor:` / `docs:` / `build:` / `ci:` / `chore:`。Release 说明由 `scripts/release-notes.mjs` 按类别自动分组。
+- 提交信息按 **Conventional Commits**：`feat:` / `fix:` / `perf:` / `refactor:` / `docs:` / `build:` / `ci:` / `chore:`。冒号后的描述必须使用中文；Release 说明会原样复用该描述，不做自动翻译。
 - CI 只在推送 `v*` tag 或手动 `workflow_dispatch` 时运行，不响应 main 分支推送。
 - 平台产物：macOS Universal `.dmg`、Windows `.msi` / NSIS、Linux **仅 deb + rpm**（不出 AppImage）、Android arm64 release APK（CI 使用 GitHub Secrets 中的 keystore 签名）。
 - 发版时版本号要同步 3 处：`package.json`、`src-tauri/Cargo.toml`、`src-tauri/tauri.conf.json`。
