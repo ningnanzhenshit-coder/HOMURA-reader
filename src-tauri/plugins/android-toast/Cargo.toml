@@ -1,0 +1,13 @@
+[package]
+name = "tauri-plugin-android-toast"
+version = "0.1.0"
+description = "Minimal Android native toast plugin for HOMURA"
+authors = ["HOMURA"]
+edition = "2021"
+links = "tauri-plugin-android-toast"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

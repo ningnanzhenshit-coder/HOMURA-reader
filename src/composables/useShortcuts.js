@@ -10,18 +10,23 @@ import { useUiStore } from '../stores/ui.js';
 
 export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
   const ui = useUiStore();
-  let unlistenBack = null;
+  let backListener = null;
   let backListenerToken = 0;
+
+  function unregisterBackListener(listener) {
+    if (typeof listener === 'function') return listener();
+    if (listener && typeof listener.unregister === 'function') return listener.unregister();
+  }
 
   // 仅在阅读器打开时接管 Android 返回键；书架页保持系统默认的退出行为
   async function enableAndroidBackListener() {
-    if (unlistenBack) return;
+    if (backListener) return;
     const token = ++backListenerToken;
     const app = window.__TAURI__ && window.__TAURI__.app;
     if (!reader.currentBook || !app || typeof app.onBackButtonPress !== 'function') return;
 
     try {
-      const unlisten = await app.onBackButtonPress(() => {
+      const listener = await app.onBackButtonPress(() => {
         if (!reader.currentBook) return;
         if (ui.settingsOpen) {
           ui.closeSettings();
@@ -34,10 +39,10 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
 
       // 注册是异步的：期间已关闭阅读器时必须立即注销，避免书架页吞掉返回键
       if (token !== backListenerToken || !reader.currentBook) {
-        unlisten();
+        await unregisterBackListener(listener);
         return;
       }
-      unlistenBack = unlisten;
+      backListener = listener;
     } catch (err) {
       console.warn('[HOMURA] 注册 Android 返回键失败', err);
     }
@@ -45,10 +50,10 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
 
   function disableAndroidBackListener() {
     backListenerToken++;
-    if (typeof unlistenBack !== 'function') return;
-    const unlisten = unlistenBack;
-    unlistenBack = null;
-    Promise.resolve(unlisten()).catch(err => {
+    if (!backListener) return;
+    const listener = backListener;
+    backListener = null;
+    Promise.resolve(unregisterBackListener(listener)).catch(err => {
       console.warn('[HOMURA] 注销 Android 返回键失败', err);
     });
   }

@@ -83,7 +83,7 @@
   <AppToast />
 
   <!-- Offscreen Measurer for Smart Novel Screen-Fit Pagination -->
-  <div ref="measurerRef" id="novelPaginationMeasurer" class="fixed -left-[9999px] top-0 pointer-events-none invisible z-[-1] epub-content font-serif leading-relaxed"></div>
+  <div ref="measurerRef" id="novelPaginationMeasurer" class="fixed -left-[9999px] top-0 pointer-events-none invisible z-[-1] epub-content font-sans leading-relaxed"></div>
 </template>
 
 <script setup>
@@ -99,6 +99,7 @@ import { installProgressFlushHooks } from './services/progress.js';
 import { useImporter } from './composables/useImporter.js';
 import { useViewport } from './composables/useViewport.js';
 import { showToast } from './composables/useToast.js';
+import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
 import BookShelf from './components/BookShelf.vue';
@@ -126,6 +127,18 @@ const typeFilter = ref('all');
 const sortKey = ref('recent');
 const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
 const SPLASH_MIN_DURATION = 720;
+
+useAndroidBackExit(reader, () => {
+  if (importMenuOpen.value) {
+    importMenuOpen.value = false;
+    return true;
+  }
+  if (appearanceOpen.value) {
+    appearanceOpen.value = false;
+    return true;
+  }
+  return false;
+});
 
 const visibleBooks = computed(() => {
   let list = shelf.library;

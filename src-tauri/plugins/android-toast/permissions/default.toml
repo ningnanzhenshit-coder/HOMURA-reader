@@ -1,0 +1,8 @@
+[default]
+description = "Allows showing native Android toast messages."
+permissions = ["allow-show"]
+
+[[permission]]
+identifier = "allow-show"
+description = "Allows showing a native Android toast message."
+commands.allow = ["show"]
