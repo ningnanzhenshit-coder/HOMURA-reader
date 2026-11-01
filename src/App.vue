@@ -6,27 +6,34 @@
     class="library-back-layer flex flex-1 min-h-0"
     :class="{ 'is-under-reader': !!reader.currentBook }"
   >
-    <SideNav v-model:appearance-open="appearanceOpen" @nav="onRailNav" />
+    <SideNav
+      :active="activeNav"
+      v-model:appearance-open="appearanceOpen"
+      @nav="onRailNav"
+    />
 
     <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
-      <LibraryHeader
-        :count="shelf.library.length"
-        :appearance-open="appearanceOpen"
-        @toggle-appearance="appearanceOpen = !appearanceOpen"
-        v-model:query="query"
-        v-model:type="typeFilter"
-        v-model:sort="sortKey"
-      />
+      <SettingsView v-if="activeNav === 'settings'" />
+      <template v-else>
+        <LibraryHeader
+          :count="shelf.library.length"
+          :appearance-open="appearanceOpen"
+          @toggle-appearance="appearanceOpen = !appearanceOpen"
+          v-model:query="query"
+          v-model:type="typeFilter"
+          v-model:sort="sortKey"
+        />
 
-      <main class="flex-1 w-full flex flex-col pb-24">
-        <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
-        <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
-      </main>
+        <main class="flex-1 w-full flex flex-col pb-24">
+          <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
+          <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
+        </main>
+      </template>
     </div>
   </div>
 
   <!-- 唯一主行动：扩展 FAB「导入」，点开选择导入文件 / 文件夹 -->
-  <div class="md-fab-pos flex flex-col items-end">
+  <div v-if="activeNav !== 'settings'" class="md-fab-pos flex flex-col items-end">
     <div v-if="importMenuOpen" class="fixed inset-0" @click="importMenuOpen = false"></div>
 
     <Transition
@@ -101,6 +108,7 @@ import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
 import BookShelf from './components/BookShelf.vue';
 import EmptyShelf from './components/EmptyShelf.vue';
+import SettingsView from './components/SettingsView.vue';
 import DragOverlay from './components/DragOverlay.vue';
 import ReaderModal from './components/ReaderModal.vue';
 
@@ -116,6 +124,7 @@ const fileInput = ref(null);
 const folderInput = ref(null);
 const importMenuOpen = ref(false);
 const appearanceOpen = ref(false);
+const activeNav = ref('shelf');
 
 // 书架视图状态
 const query = ref('');
@@ -125,6 +134,11 @@ const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
 const SPLASH_MIN_DURATION = 720;
 
 useAndroidBackExit(reader, () => {
+  if (activeNav.value === 'settings') {
+    activeNav.value = 'shelf';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  }
   if (importMenuOpen.value) {
     importMenuOpen.value = false;
     return true;
@@ -193,12 +207,19 @@ function pickFolder() {
   openFolderPicker();
 }
 
-// Navigation Rail：书架 = 恢复全部 / 最近添加；最近 = 按阅读进度排序
+// Navigation Rail：设置是一级页面；书架 / 最近继续复用同一份筛选状态
 function onRailNav(key) {
-  if (key !== 'shelf' && key !== 'recent') return;
+  importMenuOpen.value = false;
+  appearanceOpen.value = false;
+  activeNav.value = key;
+  if (key === 'settings') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
   query.value = '';
   typeFilter.value = 'all';
-  sortKey.value = key === 'recent' ? 'progress' : 'recent';
+  if (key === 'recent') sortKey.value = 'progress';
+  else if (key === 'shelf') sortKey.value = 'recent';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

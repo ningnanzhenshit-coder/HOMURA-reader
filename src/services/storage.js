@@ -90,6 +90,10 @@ export const HomuraStore = (() => {
     return run(STORE_PROGRESS, 'readonly', store => store.getAll()).then(list => list || []);
   }
 
+  function clearProgress() {
+    return run(STORE_PROGRESS, 'readwrite', store => store.clear());
+  }
+
   function deleteBook(id) {
     removeBookDir(id).catch(() => {});
     removeNativeBookDir(id).catch(() => {});
@@ -155,6 +159,7 @@ export const HomuraStore = (() => {
     saveProgress,
     getProgress,
     listProgress,
+    clearProgress,
     deleteBook,
     clear,
     estimateStorage,

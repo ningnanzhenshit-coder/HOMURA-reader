@@ -1,5 +1,11 @@
 <template>
-  <div class="theme-swatch-grid" role="group" aria-label="主题色">
+  <div
+    class="theme-swatch-grid"
+    :class="{ 'is-wide': wide }"
+    :style="{ '--swatch-columns': columns }"
+    role="group"
+    aria-label="主题色"
+  >
     <button
       v-for="option in THEME_OPTIONS"
       :key="option.name"
@@ -24,6 +30,11 @@
 <script setup>
 import { THEME_OPTIONS, useThemeStore } from '../stores/theme.js';
 
+defineProps({
+  columns: { type: Number, default: 5 },
+  wide: { type: Boolean, default: false }
+});
+
 const theme = useThemeStore();
 
 function swatchStyle(option) {
@@ -35,3 +46,20 @@ function swatchStyle(option) {
   };
 }
 </script>
+
+<style scoped>
+.theme-swatch-grid.is-wide {
+  grid-template-columns: repeat(var(--swatch-columns, 10), minmax(0, 1fr));
+  gap: 8px;
+  max-width: none;
+}
+
+.theme-swatch-grid.is-wide .theme-swatch-tile {
+  min-height: 44px;
+  aspect-ratio: auto;
+}
+
+.theme-swatch-grid.is-wide .theme-swatch-disc {
+  width: 32px;
+}
+</style>

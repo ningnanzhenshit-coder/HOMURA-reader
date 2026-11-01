@@ -17,6 +17,7 @@
         @click="select(item.key)"
         class="w-full flex flex-col items-center gap-1 cursor-pointer group"
         :title="item.label"
+        :aria-current="active === item.key ? 'page' : undefined"
       >
         <span
           class="w-14 h-8 rounded-2xl grid place-items-center transition-colors duration-200"
@@ -36,8 +37,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17.3l5.4 3.2-1.4-6.1 4.7-4.1-6.2-.5L12 4l-2.5 5.8-6.2.5 4.7 4.1-1.4 6.1z"/>
             </template>
             <template v-else>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.5 7.5l-9-4.5-9 4.5v9l9 4.5 9-4.5z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.5 7.5L11.5 12l8-4.5"/>
+              <circle cx="12" cy="12" r="3" stroke-width="2"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </template>
           </svg>
         </span>
@@ -48,7 +49,7 @@
       </button>
     </nav>
 
-    <!-- 底部固定：外观 / 设置 -->
+    <!-- 底部固定：外观快捷面板 -->
     <div class="mt-auto flex flex-col items-center gap-1.5 w-full">
       <button
         @click="appearanceOpen = !appearanceOpen"
@@ -67,15 +68,6 @@
         </span>
         <em class="not-italic text-[12px] font-semibold" :class="appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'">外观</em>
       </button>
-      <button class="w-full flex flex-col items-center gap-1 group" title="设置（占位）">
-        <span class="w-14 h-8 rounded-2xl grid place-items-center text-[var(--md-on-surface-variant)] group-hover:bg-[var(--md-surface-container)] transition-colors duration-200">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="3" stroke-width="2"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-          </svg>
-        </span>
-        <em class="not-italic text-[12px] font-semibold text-[var(--md-on-surface-variant)]">设置</em>
-      </button>
     </div>
   </aside>
 
@@ -92,6 +84,7 @@
         class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
         :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
         :title="item.label"
+        :aria-current="active === item.key ? 'page' : undefined"
       >
         <span
           class="w-[52px] h-[30px] rounded-[15px] grid place-items-center"
@@ -107,6 +100,10 @@
             <template v-else-if="item.key === 'recent'">
               <circle cx="12" cy="12" r="9" stroke-width="2"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 2"/>
+            </template>
+            <template v-else>
+              <circle cx="12" cy="12" r="3" stroke-width="2"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </template>
           </svg>
         </span>
@@ -176,18 +173,18 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, watch, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import AppearancePanel from './AppearancePanel.vue';
 
 const { isCompact } = useViewport();
 const props = defineProps({
+  active: { type: String, default: 'shelf' },
   appearanceOpen: { type: Boolean, default: false }
 });
 const emit = defineEmits(['nav', 'update:appearanceOpen']);
 
-const active = ref('shelf');
 const appearanceOpen = computed({
   get: () => props.appearanceOpen,
   set: value => emit('update:appearanceOpen', value)
@@ -238,17 +235,17 @@ const railItems = [
   { key: 'shelf', label: '书架' },
   { key: 'recent', label: '最近' },
   { key: 'favorite', label: '收藏' },
-  { key: 'tag', label: '标签' }
+  { key: 'settings', label: '设置' }
 ];
 
 const bottomItems = [
   { key: 'shelf', label: '书架' },
   { key: 'recent', label: '最近' },
-  { key: 'favorite', label: '收藏' }
+  { key: 'favorite', label: '收藏' },
+  { key: 'settings', label: '设置' }
 ];
 
 function select(key) {
-  active.value = key;
   appearanceOpen.value = false;
   emit('nav', key);
 }

@@ -24,12 +24,28 @@ export const THEME_OPTIONS = Object.freeze([
 ]);
 export const SURFACE_MODE_OPTIONS = Object.freeze([
   { value: 'light', label: '白昼', note: '清透纸白', title: '白昼清爽模式' },
-  { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式' },
-  { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式' }
+  { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式' },
+  { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式' }
 ]);
 const SURFACE_REVEAL_DURATION = 720;
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];
-export const TRANSITION_LABELS = { slide: '丝滑平移', fade: '柔和淡入', none: '极速无动画' };
+export const TRANSITION_OPTIONS = Object.freeze([
+  { value: 'slide', label: '丝滑平移' },
+  { value: 'fade', label: '柔和淡入' },
+  { value: 'none', label: '无动画' }
+]);
+export const TRANSITION_LABELS = Object.fromEntries(
+  TRANSITION_OPTIONS.map(option => [option.value, option.label])
+);
+
+function readTransitionStyle() {
+  try {
+    const saved = localStorage.getItem('homura_transition_style');
+    return TRANSITION_ORDER.includes(saved) ? saved : 'slide';
+  } catch (err) {
+    return 'slide';
+  }
+}
 
 // 同步原生窗口外观（macOS 标题栏与窗口底色），避免夜间模式下启动闪白
 function applyNativeWindowChrome(modeName) {
@@ -45,7 +61,7 @@ function applyNativeWindowChrome(modeName) {
 export const useThemeStore = defineStore('theme', () => {
   const themeColor = ref('blue');
   const surfaceMode = ref('light');
-  const transitionStyle = ref('slide');
+  const transitionStyle = ref(readTransitionStyle());
   let surfaceModeToken = 0;
   let surfaceRevealFrame = 0;
   let surfaceRevealEl = null;
@@ -153,9 +169,15 @@ export const useThemeStore = defineStore('theme', () => {
     surfaceRevealFrame = requestAnimationFrame(animate);
   }
 
+  function setTransitionStyle(style) {
+    if (!TRANSITION_ORDER.includes(style)) return;
+    transitionStyle.value = style;
+    try { localStorage.setItem('homura_transition_style', style); } catch (e) {}
+  }
+
   function toggleTransitionStyle() {
     const nextIdx = (TRANSITION_ORDER.indexOf(transitionStyle.value) + 1) % TRANSITION_ORDER.length;
-    transitionStyle.value = TRANSITION_ORDER[nextIdx];
+    setTransitionStyle(TRANSITION_ORDER[nextIdx]);
   }
 
   return {
@@ -164,6 +186,7 @@ export const useThemeStore = defineStore('theme', () => {
     transitionStyle,
     setThemeColor,
     setSurfaceMode,
+    setTransitionStyle,
     toggleTransitionStyle
   };
 });

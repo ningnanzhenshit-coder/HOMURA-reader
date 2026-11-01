@@ -154,14 +154,17 @@
           </div>
           <ThemeSwatchGrid />
 
-          <button
-            @click="theme.toggleTransitionStyle()"
-            class="w-full min-h-11 flex items-center justify-between mt-2"
-            title="切换翻页过渡动画效果"
-          >
-            <span class="text-[12px] font-medium">翻页过渡</span>
-            <span class="font-mono text-[12px] text-[var(--md-primary)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</span>
-          </button>
+          <div class="flex items-baseline justify-between mt-4 mb-3">
+            <span class="text-[12px] font-semibold">翻页过渡</span>
+            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</b>
+          </div>
+          <MdSegmentedControl
+            class="w-full"
+            :model-value="theme.transitionStyle"
+            :options="transitionOptions"
+            aria-label="翻页过渡"
+            @update:model-value="theme.setTransitionStyle"
+          />
         </section>
       </div>
 
@@ -183,7 +186,13 @@
 <script setup>
 import { computed } from 'vue';
 import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
-import { SURFACE_MODE_OPTIONS, THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
+import {
+  SURFACE_MODE_OPTIONS,
+  THEME_OPTIONS,
+  TRANSITION_LABELS,
+  TRANSITION_OPTIONS,
+  useThemeStore
+} from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
@@ -218,6 +227,8 @@ const directions = [
   { value: 'rtl', label: '从右到左', title: '日漫' },
   { value: 'vertical', label: '条漫模式', title: '条漫长卷' }
 ];
+
+const transitionOptions = TRANSITION_OPTIONS;
 
 const spreadOptions = [
   { value: 1, label: '单页' },

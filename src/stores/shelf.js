@@ -38,9 +38,23 @@ export const useShelfStore = defineStore('shelf', () => {
     HomuraStore.deleteBook(id).catch(() => {});
   }
 
-  function clearShelf() {
+  async function clearShelf() {
     library.value = [];
-    HomuraStore.clear().catch(() => {});
+    progressMap.value = {};
+    try {
+      await HomuraStore.clear();
+    } catch (err) {
+      console.error('[HOMURA] 清空书架存档失败', err);
+    }
+  }
+
+  async function clearProgress() {
+    progressMap.value = {};
+    try {
+      await HomuraStore.clearProgress();
+    } catch (err) {
+      console.error('[HOMURA] 清空阅读进度失败', err);
+    }
   }
 
   // hydrateBook 会就地改写 book 字段，调用后触发一次浅刷新让卡片更新
@@ -86,6 +100,7 @@ export const useShelfStore = defineStore('shelf', () => {
     unshiftBook,
     removeBook,
     clearShelf,
+    clearProgress,
     touchBook,
     setProgressRecord,
     progressInfoFor,

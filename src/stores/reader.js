@@ -12,6 +12,7 @@
 import { defineStore } from 'pinia';
 import { ref, shallowRef, reactive } from 'vue';
 import { useShelfStore } from './shelf.js';
+import { useSettingsStore } from './settings.js';
 import { hydrateBook } from '../services/restore.js';
 import { buildActivePages, ensureChapterImagesResolved } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
@@ -21,6 +22,7 @@ const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 export const WEBTOON_FIT_LABELS = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
 
 export const useReaderStore = defineStore('reader', () => {
+  const settings = useSettingsStore();
   const currentBook = shallowRef(null);
   const currentIndex = ref(0);
   const activePages = shallowRef([]);
@@ -52,12 +54,8 @@ export const useReaderStore = defineStore('reader', () => {
 
   // 排版配置（纯数据，可安全响应式）
   const layoutConfig = reactive({
-    direction: 'ltr',          // 'ltr' | 'rtl' | 'vertical'
-    spread: 2,                 // 1 | 2
-    coverOffset: true,
-    fontSize: 18,
-    rtlInvertButtons: true,    // 日漫右→左模式下默认「左边是下一页」
-    webtoonFit: 'screen'       // 'screen' | 'medium' | 'wide'
+    ...settings.readerDefaults,
+    rtlInvertButtons: true     // 日漫右→左模式下默认「左边是下一页」
   });
 
   // ---- 纯派生逻辑（原 reader.js 的查询函数） ----
@@ -138,11 +136,12 @@ export const useReaderStore = defineStore('reader', () => {
 
   // ---- 打开 / 关闭 ----
 
-  // 打开书籍时恢复这本书上次的排版；没有存档的书沿用当前全局设置
+  // 打开书籍时先套用设置页默认值，再用这本书自己的排版记录覆盖
   function applyLayoutForBook(book) {
     const shelf = useShelfStore();
     const rec = shelf.progressMap[book.id];
     const saved = rec && rec.layout;
+    applyReaderDefaults();
     // PDF 版式固定、字号小，双页并排会挤成一团：首次打开默认单页
     if (!saved) {
       if (book.format === 'pdf') layoutConfig.spread = 1;
@@ -154,6 +153,14 @@ export const useReaderStore = defineStore('reader', () => {
     if (typeof saved.coverOffset === 'boolean') layoutConfig.coverOffset = saved.coverOffset;
     if (typeof saved.fontSize === 'number') layoutConfig.fontSize = Math.min(28, Math.max(14, saved.fontSize));
     if (WEBTOON_FITS.includes(saved.webtoonFit)) layoutConfig.webtoonFit = saved.webtoonFit;
+  }
+
+  function applyReaderDefaults() {
+    layoutConfig.direction = settings.readerDefaults.direction;
+    layoutConfig.spread = settings.readerDefaults.spread;
+    layoutConfig.coverOffset = settings.readerDefaults.coverOffset;
+    layoutConfig.fontSize = settings.readerDefaults.fontSize;
+    layoutConfig.webtoonFit = settings.readerDefaults.webtoonFit;
   }
 
   async function openBook(id) {
@@ -377,6 +384,7 @@ export const useReaderStore = defineStore('reader', () => {
     closeReader,
     recalculateNovelPaginationAndRender,
     handleViewportChange,
+    applyReaderDefaults,
     setDirection,
     setSpreadCount,
     toggleCoverOffset,
