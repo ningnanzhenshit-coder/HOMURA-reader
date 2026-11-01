@@ -154,7 +154,7 @@ jobs:
         run: npm ci
 
       - name: Generate Android project
-        run: npx tauri android init
+        run: npm run android:init
 
       - name: Prepare Android release signing
         env:
