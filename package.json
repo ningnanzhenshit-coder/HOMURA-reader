@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@tauri-apps/plugin-fs": "^2.7.1",
+    "@tauri-apps/plugin-opener": "^2.7.2",
     "jszip": "^3.10.1",
     "marked": "^18.1.2",
     "pdfjs-dist": "^6.4.299",

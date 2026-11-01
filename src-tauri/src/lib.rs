@@ -83,6 +83,7 @@ fn spawn_focus_worker(window: tauri::WebviewWindow) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_android_toast::init())
         .plugin(tauri_plugin_android_predictive_back::init())
         .setup(|app| {

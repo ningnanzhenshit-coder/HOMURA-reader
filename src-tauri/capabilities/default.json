@@ -10,6 +10,17 @@
     "fs:default",
     "fs:allow-appdata-meta-recursive",
     "fs:allow-appdata-write-recursive",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/ningnanzhenshit-coder/HOMURA-reader"
+        },
+        {
+          "url": "https://github.com/ningnanzhenshit-coder/HOMURA-reader/*"
+        }
+      ]
+    },
     "core:window:allow-set-theme",
     "core:window:allow-set-background-color",
     "core:window:allow-set-fullscreen",
