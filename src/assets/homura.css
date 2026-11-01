@@ -338,6 +338,8 @@
     html {
       /* 阅读器进出时隐藏 body 滚动不会让整页横向跳动 */
       scrollbar-gutter: stable;
+      /* 预见式返回平移书架时禁止横向溢出，避免 WebView 放大布局视口把 fixed 底栏推下屏幕 */
+      overflow-x: clip;
     }
 
     /* 阅读器隐藏真实滚动条，但保留原来的可用宽度，避免退出时书架回流 */
