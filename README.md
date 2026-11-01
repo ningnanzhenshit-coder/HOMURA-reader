@@ -1,4 +1,4 @@
-![HOMURA](https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e)
+<img src="https://github.com/user-attachments/assets/a87c9e6a-7b28-4dd3-a3de-e3805930060e" width="400" height="400" />
 
 # HOMURA — 本地漫画与轻小说阅读器
 
