@@ -67,7 +67,7 @@
         </span>
         <em class="not-italic text-[12px] font-semibold" :class="appearanceOpen ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'">外观</em>
       </button>
-      <button @click="onSettings" class="w-full flex flex-col items-center gap-1 group" title="设置（占位）">
+      <button class="w-full flex flex-col items-center gap-1 group" title="设置（占位）">
         <span class="w-14 h-8 rounded-2xl grid place-items-center text-[var(--md-on-surface-variant)] group-hover:bg-[var(--md-surface-container)] transition-colors duration-200">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" stroke-width="2"/>
@@ -80,39 +80,40 @@
   </aside>
 
   <!-- 手机：MD3 Bottom Navigation -->
-  <nav
-    v-else
-    class="fixed inset-x-0 bottom-0 z-40 flex items-center px-1.5 pt-1.5 bg-[var(--md-surface-container)] border-t-[0.5px] border-[var(--md-outline-variant)]"
-    style="height: calc(5rem + env(safe-area-inset-bottom)); padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));"
-  >
-    <button
-      v-for="item in bottomItems"
-      :key="item.key"
-      @click="select(item.key)"
-      class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
-      :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
-      :title="item.label"
+  <Teleport v-else to="#homura-mobile-nav-root">
+    <nav
+      class="fixed inset-x-0 bottom-0 z-40 flex items-center px-1.5 pt-1.5 bg-[var(--md-surface-container)] border-t-[0.5px] border-[var(--md-outline-variant)]"
+      style="height: calc(5rem + env(safe-area-inset-bottom)); padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));"
     >
-      <span
-        class="w-[52px] h-[30px] rounded-[15px] grid place-items-center"
-        :class="active === item.key ? 'bg-[var(--md-primary-container)]' : ''"
+      <button
+        v-for="item in bottomItems"
+        :key="item.key"
+        @click="select(item.key)"
+        class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
+        :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
+        :title="item.label"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <template v-if="item.key === 'shelf'">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/>
-          </template>
-          <template v-else-if="item.key === 'favorite'">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17.3l5.4 3.2-1.4-6.1 4.7-4.1-6.2-.5L12 4l-2.5 5.8-6.2.5 4.7 4.1-1.4 6.1z"/>
-          </template>
-          <template v-else-if="item.key === 'recent'">
-            <circle cx="12" cy="12" r="9" stroke-width="2"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 2"/>
-          </template>
-        </svg>
-      </span>
-      <span>{{ item.label }}</span>
-    </button>
-  </nav>
+        <span
+          class="w-[52px] h-[30px] rounded-[15px] grid place-items-center"
+          :class="active === item.key ? 'bg-[var(--md-primary-container)]' : ''"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <template v-if="item.key === 'shelf'">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/>
+            </template>
+            <template v-else-if="item.key === 'favorite'">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 17.3l5.4 3.2-1.4-6.1 4.7-4.1-6.2-.5L12 4l-2.5 5.8-6.2.5 4.7 4.1-1.4 6.1z"/>
+            </template>
+            <template v-else-if="item.key === 'recent'">
+              <circle cx="12" cy="12" r="9" stroke-width="2"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 2"/>
+            </template>
+          </svg>
+        </span>
+        <span>{{ item.label }}</span>
+      </button>
+    </nav>
+  </Teleport>
 
   <!-- 外观浮层：桌面右侧弹出卡片 / 手机底部 sheet -->
   <Transition
@@ -175,10 +176,9 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, watchEffect, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
-import { showToast } from '../composables/useToast.js';
 import AppearancePanel from './AppearancePanel.vue';
 
 const { isCompact } = useViewport();
@@ -251,20 +251,7 @@ function select(key) {
   active.value = key;
   appearanceOpen.value = false;
   emit('nav', key);
-  if (key === 'favorite') showToast('收藏功能即将上线');
-  if (key === 'tag') showToast('标签功能即将上线');
 }
-
-function onSettings() {
-  showToast('设置功能即将上线');
-}
-
-// rail 宽度同步到全局 CSS 变量：toast 等 fixed 元素据此在书架内容区居中
-// 手机底部导航占满宽度，记为 0
-watchEffect(() => {
-  const width = isCompact.value ? '0px' : '96px';
-  document.documentElement.style.setProperty('--sidenav-width', width);
-});
 
 watch([appearanceOpen, isCompact], ([open, compact]) => {
   if (open && compact) lockShelfScroll();

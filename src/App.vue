@@ -1,4 +1,7 @@
 <template>
+  <!-- 手机底栏挂在阅读器预见式返回的 transform 容器外，避免长书架把 fixed 底栏带出视口 -->
+  <div id="homura-mobile-nav-root"></div>
+
   <div
     class="library-back-layer flex flex-1 min-h-0"
     :class="{ 'is-under-reader': !!reader.currentBook }"
@@ -23,10 +26,7 @@
   </div>
 
   <!-- 唯一主行动：扩展 FAB「导入」，点开选择导入文件 / 文件夹 -->
-  <div
-    class="md-fab-pos library-back-layer flex flex-col items-end"
-    :class="{ 'is-under-reader': !!reader.currentBook }"
-  >
+  <div class="md-fab-pos flex flex-col items-end">
     <div v-if="importMenuOpen" class="fixed inset-0" @click="importMenuOpen = false"></div>
 
     <Transition
@@ -80,7 +80,6 @@
   <DragOverlay />
   <div v-if="reader.currentBook" class="reader-back-scrim md-scrim" aria-hidden="true"></div>
   <ReaderModal />
-  <AppToast />
 
   <!-- Offscreen Measurer for Smart Novel Screen-Fit Pagination -->
   <div ref="measurerRef" id="novelPaginationMeasurer" class="fixed -left-[9999px] top-0 pointer-events-none invisible z-[-1] epub-content font-sans leading-relaxed"></div>
@@ -92,13 +91,11 @@ import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
-import { HomuraStore } from './services/storage.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
 import { resolveBookFormat } from './services/utils.js';
 import { installProgressFlushHooks } from './services/progress.js';
 import { useImporter } from './composables/useImporter.js';
 import { useViewport } from './composables/useViewport.js';
-import { showToast } from './composables/useToast.js';
 import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
@@ -106,7 +103,6 @@ import BookShelf from './components/BookShelf.vue';
 import EmptyShelf from './components/EmptyShelf.vue';
 import DragOverlay from './components/DragOverlay.vue';
 import ReaderModal from './components/ReaderModal.vue';
-import AppToast from './components/AppToast.vue';
 
 const theme = useThemeStore();
 const shelf = useShelfStore();
@@ -173,10 +169,7 @@ function openFilePicker() {
 }
 
 function openFolderPicker() {
-  if (!canPickFolder) {
-    showToast('当前浏览器不支持文件夹导入，请改用「导入文件」逐个添加');
-    return;
-  }
+  if (!canPickFolder) return;
   if (window.showDirectoryPicker) {
     importer.pickFolderViaFSA();
     return;
@@ -257,7 +250,7 @@ onMounted(async () => {
     savedMode = localStorage.getItem('homura_surface_mode') || 'light';
   } catch (e) {}
 
-  theme.setThemeColor(savedTheme, true);
+  theme.setThemeColor(savedTheme);
   theme.setSurfaceMode(savedMode, true);
 
   reader.measurerEl = measurerRef.value;
@@ -268,10 +261,6 @@ onMounted(async () => {
   try {
     // 书架上一次导入的作品会从 IndexedDB 里恢复；第一次使用才放示例书
     await shelf.loadLibrary();
-
-    if (HomuraStore.disabled) {
-      showToast('提示：当前环境无法保存书架，请通过本地服务器打开页面');
-    }
   } finally {
     await dismissStartupSplash();
   }

@@ -345,6 +345,17 @@
       width: calc(100vw - var(--homura-reader-scrollbar-width, 0px));
     }
 
+    /* fixed 元素不受 body 宽度补偿影响，需同步补上滚动条偏移 */
+    html.reader-scroll-reserved .md-fab-pos {
+      right: calc(28px + var(--homura-reader-scrollbar-width, 0px));
+    }
+
+    @media (max-width: 899px) {
+      html.reader-scroll-reserved .md-fab-pos {
+        right: calc(18px + var(--homura-reader-scrollbar-width, 0px));
+      }
+    }
+
     body {
       background-color: var(--bg-canvas);
       color: var(--fg-main);
@@ -361,7 +372,7 @@
       min-height: 100dvh;
     }
 
-    /* 预见式返回：顶层阅读器跟手右移，书架小幅复位，遮罩随进度退场 */
+    /* 预见式返回：系统 BackEvent / 本地指针共用进度，驱动阅读器、书架和遮罩 */
     :root {
       --homura-back-reader-x: 0px;
       --homura-back-reader-scale: 1;
@@ -719,12 +730,11 @@
       }
     }
 
-    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色；
-       toast 例外，否则它的淡入淡出会被一起掐掉 */
+    /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色 */
     html.surface-switching,
-    html.surface-switching *:not(.homura-toast),
-    html.surface-switching *:not(.homura-toast)::before,
-    html.surface-switching *:not(.homura-toast)::after {
+    html.surface-switching *,
+    html.surface-switching *::before,
+    html.surface-switching *::after {
       transition: none !important;
     }
 
