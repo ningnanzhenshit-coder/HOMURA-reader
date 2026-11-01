@@ -36,7 +36,7 @@
           <i class="block w-[0.5px] h-3 shrink-0 bg-current opacity-30"></i>
           <span class="shrink-0">第 {{ p.pageNumber }} 章</span>
         </div>
-        <div class="epub-content font-serif leading-relaxed" v-html="p.html"></div>
+        <div class="epub-content font-sans leading-relaxed" v-html="p.html"></div>
       </section>
     </div>
     <div class="shrink-0" style="height: calc(4.5rem + env(safe-area-inset-bottom));" aria-hidden="true"></div>

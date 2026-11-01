@@ -6,7 +6,7 @@
   >
     <div
       class="w-11 h-11 shrink-0 rounded-[14px] grid place-items-center mb-[22px] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] select-none"
-      style="font-family: 'Songti SC', 'Instrument Serif', serif; font-style: italic; font-size: 26px; line-height: 1;"
+      style="font-family: system-ui; font-style: italic; font-size: 26px; line-height: 1;"
       title="HOMURA"
     >H</div>
 

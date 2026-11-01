@@ -29,6 +29,11 @@
       touch-action: none;
       transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
     }
+    html.homura-native-splash #homura-splash__icon {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
     #homura-splash.is-leaving {
       opacity: 0;
       pointer-events: none;
@@ -66,6 +71,10 @@
     }
   </style>
   <script>
+    // Android 系统启动页退出后，用同尺寸静态图标无缝接棒到 WebView
+    if (/Android/i.test(navigator.userAgent) && location.hostname === 'tauri.localhost') {
+      document.documentElement.classList.add('homura-native-splash');
+    }
     window.__HOMURA_SPLASH_STARTED_AT__ = performance.now();
     document.documentElement.classList.add('homura-splashing');
 
@@ -89,9 +98,6 @@
   </script>
   <!-- Favicon: HOMURA 红色圆角方块 + 白毛猫耳少女 + 金色打开的书 -->
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <script src="vendor/tailwind.js"></script>
   <script src="vendor/tailwind-config.js"></script>
 </head>

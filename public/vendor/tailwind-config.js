@@ -1,11 +1,25 @@
+    const systemSans = [
+      'system-ui',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      '"PingFang SC"',
+      '"Hiragino Sans GB"',
+      '"Microsoft YaHei"',
+      'sans-serif'
+    ];
+
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
-            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace']
+            sans: systemSans,
+            display: systemSans,
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
           }
         }
       }

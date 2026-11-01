@@ -7,7 +7,7 @@
     class="md-featured-cell w-full h-full min-h-[96px] min-w-0 text-left rounded-[16px] overflow-hidden flex bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]"
     :title="`继续阅读：${featured.book.title}`"
   >
-    <!-- 竖排衬线书封 -->
+    <!-- 竖排书封 -->
     <div
       class="relative shrink-0 overflow-hidden"
       :class="compactCard ? 'w-[78px]' : 'w-[150px]'"
@@ -100,13 +100,13 @@ const coverLabel = computed(() => {
   return compactCard.value ? label.slice(0, 3) : label.slice(0, 12);
 });
 
-// 桌面：竖排衬线书名（手机退化为左下角横排小字）
+// 桌面：竖排书名（手机退化为左下角横排小字）
 const coverTitleStyle = computed(() => {
   if (compactCard.value) return null;
   const n = coverLabel.value.length;
   return {
     writingMode: 'vertical-rl',
-    fontFamily: "'Songti SC', 'Instrument Serif', serif",
+    fontFamily: 'system-ui',
     letterSpacing: '0.16em',
     lineHeight: 1.25,
     fontSize: (n <= 6 ? 26 : n <= 9 ? 20 : 15) + 'px'

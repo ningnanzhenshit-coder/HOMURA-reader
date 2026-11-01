@@ -8,7 +8,7 @@
         <span class="truncate">{{ page ? page.title : '章节' }}</span>
         <span class="font-mono shrink-0 ml-2">{{ page ? `${sideLabel} ${page.pageNumber} / ${total}` : '' }}</span>
       </div>
-      <div class="epub-content font-serif leading-relaxed flex-1 overflow-hidden" v-html="page ? page.html : ''"></div>
+      <div class="epub-content font-sans leading-relaxed flex-1 overflow-hidden" v-html="page ? page.html : ''"></div>
     </div>
     <div class="pt-3 text-center text-[12px] font-mono text-[var(--fg-muted)] shrink-0">
       {{ page ? `— 第 ${page.pageNumber} 页 —` : '' }}
