@@ -2,7 +2,7 @@
   <!-- Reader Fullscreen Modal · 沉浸式：工具栏浮在画布上，默认自动隐藏 -->
   <div v-show="!!reader.currentBook" class="reader-dismiss-layer fixed inset-0 bg-[var(--bg-reader)] z-50 flex flex-col transition-colors duration-200">
     <div
-      v-if="isCompact && !!reader.currentBook"
+      v-if="isCompact && !!reader.currentBook && !nativePredictiveBackSupported"
       class="reader-back-edge"
       aria-hidden="true"
       @pointerdown="onBackPointerDown"
@@ -99,7 +99,8 @@ const {
   onPointerUp: onBackPointerUp,
   onPointerCancel: onBackPointerCancel,
   onPointerLostCapture: onBackPointerLostCapture,
-  dismissWithPredictiveBack
+  dismissWithPredictiveBack,
+  nativePredictiveBackSupported
 } = useReaderBackDismiss(reader, ui);
 
 // 桌面设置侧栏宽度 372px：开启时为正文列预留空间
@@ -153,19 +154,21 @@ function pageScrollsVertically() {
 }
 
 function measureScrollbarWidth() {
+  // 用 fixed 探针直接量 fixed 元素实际可用的视口宽度；overlay 滚动条为 0
   const probe = document.createElement('div');
   probe.style.cssText = [
-    'position:absolute',
-    'top:-9999px',
-    'left:-9999px',
-    'width:100px',
-    'height:100px',
-    'overflow:scroll'
+    'position:fixed',
+    'top:0',
+    'right:0',
+    'width:1px',
+    'height:1px',
+    'visibility:hidden',
+    'pointer-events:none'
   ].join(';');
   document.body.appendChild(probe);
-  const width = probe.offsetWidth - probe.clientWidth;
+  const width = window.innerWidth - probe.getBoundingClientRect().right;
   probe.remove();
-  return Math.max(0, width);
+  return Math.max(0, Math.round(width));
 }
 
 function setReaderScrollLock(locked) {

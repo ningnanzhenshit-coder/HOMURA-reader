@@ -7,7 +7,6 @@
 
 import { onMounted, onBeforeUnmount, watch } from 'vue';
 import { isAndroid } from '../services/platform.js';
-import { showToast } from './useToast.js';
 
 const EXIT_CONFIRM_WINDOW = 2000;
 const EXIT_TOAST_TEXT = '再按一次退出';
@@ -25,16 +24,12 @@ export function useAndroidBackExit(reader, dismissOverlay) {
 
   async function showExitToast() {
     const core = window.__TAURI__ && window.__TAURI__.core;
-    if (!core || typeof core.invoke !== 'function') {
-      showToast(EXIT_TOAST_TEXT);
-      return;
-    }
+    if (!core || typeof core.invoke !== 'function') return;
 
     try {
       await core.invoke('plugin:android-toast|show', { message: EXIT_TOAST_TEXT });
     } catch (err) {
       console.warn('[HOMURA] 显示 Android 退出提示失败', err);
-      showToast(EXIT_TOAST_TEXT);
     }
   }
 

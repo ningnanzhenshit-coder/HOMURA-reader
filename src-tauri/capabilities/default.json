@@ -6,6 +6,7 @@
     "core:default",
     "core:app:allow-exit",
     "android-toast:default",
+    "android-predictive-back:default",
     "fs:default",
     "fs:allow-appdata-meta-recursive",
     "fs:allow-appdata-write-recursive",
