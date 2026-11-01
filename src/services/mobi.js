@@ -310,10 +310,3 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
   }
   return chapters;
 }
-
-export function mobiErrorText(err) {
-  if (err && err.code === 'DRM') return '该 MOBI 文件带有 DRM 加密，暂不支持打开，请先去除 DRM 后重试';
-  if (err && err.code === 'COMPRESSION') return '该 MOBI 使用了旧版 Huffman 压缩，暂不支持，请转换为 EPUB 后导入';
-  if (err && err.code === 'BAD_FILE') return err.message;
-  return 'MOBI 解析失败：' + (err && err.message ? err.message : '未知错误');
-}

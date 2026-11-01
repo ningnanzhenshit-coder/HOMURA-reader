@@ -164,7 +164,7 @@ homura-reader/
 │   │   ├── restore.js          # 原生 AppData / OPFS / 句柄 / Blob 存档恢复
 │   │   ├── nativeStorage.js    # Android 原生 AppData 原文件存储
 │   │   └── progress.js         # 阅读进度与排版记忆、节流落盘
-│   ├── composables/            # 导入、快捷键、视口、Toast、抽屉拖拽
+│   ├── composables/            # 导入、快捷键、视口、抽屉拖拽
 │   └── components/             # SideNav、LibraryHeader、BookShelf、BookCard、
 │                               # ReaderModal、PaginatedView、WebtoonView、
 │                               # ReaderTocDrawer、ReaderSettingsDrawer 等

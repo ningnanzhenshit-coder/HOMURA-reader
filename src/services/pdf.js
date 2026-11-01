@@ -8,7 +8,6 @@
    ========================================================================== */
 
 import PdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
-import { showToast } from '../composables/useToast.js';
 
 // 正文页按 1600px 宽渲染：桌面全屏显示足够清晰，缩放阅读也不糊
 const RENDER_TARGET_WIDTH = 1600;
@@ -104,7 +103,6 @@ export function createPdfPageItems(pdfDoc, pageCount) {
         return url;
       } catch (err) {
         console.error('[HOMURA] PDF 页面渲染失败', pageIndex, err);
-        showToast(`PDF 第 ${pageIndex + 1} 页渲染失败`);
         return '';
       }
     };

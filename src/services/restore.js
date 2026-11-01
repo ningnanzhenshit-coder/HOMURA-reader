@@ -16,7 +16,6 @@ import {
   removeNativeFile
 } from './nativeStorage.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
-import { showToast } from '../composables/useToast.js';
 
 
 export function makeFileSource(file) {
@@ -411,25 +410,23 @@ export async function hydrateBook(book) {
   }
   if (sourceError) {
     console.error('[HOMURA] 读取本地存档失败', sourceError);
-    showToast('本地存档读取失败，请稍后重试或重新导入该作品');
     return false;
   }
   if (!source) {
-    showToast('本地存档已丢失，请重新导入该作品');
+    console.warn('[HOMURA] 本地存档已丢失', book.id);
     return false;
   }
 
-  showToast(`正在从本地存档恢复《${book.title}》...`);
   let parsed = null;
   if (source.kind === 'folder') {
     const { files, failures } = await resolveFolderFiles(source);
     logSourceFailures(book.id, failures);
     if (files.length === 0) {
-      showToast(sourceFailureMessage(source, failures, true));
+      console.warn('[HOMURA] 原文件夹恢复失败', sourceFailureMessage(source, failures, true));
       return false;
     }
     if (failures.length > 0) {
-      showToast(`有 ${failures.length} 张图片未从本地存档恢复，当前内容可能不完整`);
+      console.warn(`[HOMURA] 有 ${failures.length} 张图片未从本地存档恢复`);
     }
     const groups = buildImageFolderBooks(files);
     parsed = groups.length > 0 ? groups[0].book : null;
@@ -437,19 +434,18 @@ export async function hydrateBook(book) {
     const { file, failures } = await resolveStoredFile(source, source.name || 'book');
     logSourceFailures(book.id, failures);
     if (!file) {
-      showToast(sourceFailureMessage(source, failures, false));
+      console.warn('[HOMURA] 原文件恢复失败', sourceFailureMessage(source, failures, false));
       return false;
     }
     try {
       parsed = await parseStoredFile(file);
     } catch (err) {
       console.error('[HOMURA] 本地存档解析失败', err);
-      showToast('本地存档解析失败，请重新导入该作品');
       return false;
     }
     if (!parsed) {
       if (!isStoredFileFormatSupported(file)) {
-        showToast('无法识别本地存档格式，请重新导入该作品');
+        console.warn('[HOMURA] 无法识别本地存档格式', file.name);
       }
       return false;
     }

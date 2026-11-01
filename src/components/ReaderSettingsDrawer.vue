@@ -187,7 +187,6 @@ import { SURFACE_MODE_OPTIONS, THEME_OPTIONS, useThemeStore, TRANSITION_LABELS }
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
-import { showToast } from '../composables/useToast.js';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
 import SurfaceModePreview from './SurfaceModePreview.vue';
@@ -244,6 +243,5 @@ function resetDefaults() {
   reader.setWebtoonFit('screen');
   while (reader.layoutConfig.fontSize > 18) reader.changeFontSize(-2);
   while (reader.layoutConfig.fontSize < 18) reader.changeFontSize(2);
-  showToast('已恢复默认阅读设置');
 }
 </script>

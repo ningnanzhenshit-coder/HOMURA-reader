@@ -189,7 +189,6 @@ import { useViewport } from '../composables/useViewport.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
-import { showToast } from '../composables/useToast.js';
 
 const props = defineProps({
   count: { type: Number, default: 0 },
@@ -262,13 +261,11 @@ function pickSort(value) {
 function addDemoManga() {
   shelf.unshiftBook(createDemoManga());
   menu.value = null;
-  showToast('已添加《示例漫画》到书架');
 }
 
 function addDemoNovel() {
   shelf.unshiftBook(createDemoNovel());
   menu.value = null;
-  showToast('已添加《示例轻小说》到书架');
 }
 
 function onClear() {

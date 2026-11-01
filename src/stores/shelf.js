@@ -12,7 +12,6 @@ import { HomuraStore } from '../services/storage.js';
 import { restoreLibrary, persistBook } from '../services/restore.js';
 import { loadProgressMap } from '../services/progress.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
-import { showToast } from '../composables/useToast.js';
 
 export const useShelfStore = defineStore('shelf', () => {
   const library = shallowRef([]);
@@ -22,7 +21,7 @@ export const useShelfStore = defineStore('shelf', () => {
     library.value = [book, ...library.value];
   }
 
-  // 新增书籍并落盘；写入失败由导入层统一汇总提示
+  // 新增书籍并落盘；写入失败由导入层汇总记录
   async function addBook(book, source) {
     unshiftBook(book);
     if (!source) throw new Error('缺少原文件来源');
@@ -37,13 +36,11 @@ export const useShelfStore = defineStore('shelf', () => {
   function removeBook(id) {
     library.value = library.value.filter(b => b.id !== id);
     HomuraStore.deleteBook(id).catch(() => {});
-    showToast('已从书架移除该作品');
   }
 
   function clearShelf() {
     library.value = [];
     HomuraStore.clear().catch(() => {});
-    showToast('已清空书架');
   }
 
   // hydrateBook 会就地改写 book 字段，调用后触发一次浅刷新让卡片更新

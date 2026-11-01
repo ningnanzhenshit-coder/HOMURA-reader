@@ -70,7 +70,6 @@ src/
   composables/
     useImporter.js         文件/文件夹/拖拽导入、配额预警
     useShortcuts.js        键盘 / 滚轮翻页
-    useToast.js            showToast
     useViewport.js         宽度、触屏、断点
   components/              Vue 组件（见下方 UI 说明）
 src-tauri/                 Tauri 2 壳：lib.rs、tauri.conf.json、capabilities
@@ -97,7 +96,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - Tauri 通过 `window.__TAURI__` 全局对象与 `@tauri-apps/plugin-*` 调用，项目不直接依赖 `@tauri-apps/api`。新增原生能力时必须同步 Rust 插件注册与 `src-tauri/capabilities/default.json` 的 permissions。
 - 图标全部内联 SVG，不引入图标库 / 组件库。新增依赖需要明确理由。
 - 注释用中文；复杂模块顶部保留现有的 banner 注释风格。只在逻辑不直观处写注释，不要给没改动的代码补注释。
-- 用户可见的提示统一走 `showToast()`，不要自己写 alert / 自制 toast。
+- 全局 Toast 已移除：不要重新引入 toast / alert；可恢复错误记录到 console，Android 原生返回提示除外。
   
 ## 5. UI 规则（强约束）
 
@@ -127,7 +126,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - 手机底部导航固定 `height: calc(5rem + env(safe-area-inset-bottom))`，内容区必须挂 `.md-bottom-nav-space`。
 - 网格只用 `.md-shelf-grid`，跨列用 `.md-featured-cell`；FAB 用 `.md-fab-pos`。不要在组件里另写 `grid-cols-*`。
 - 抽屉：桌面右侧 `w-[372px]`；手机底部 `max-h-[78dvh] rounded-t-[28px]` + 拖拽条 + 安全区 padding。遮罩用 `.md-scrim`，进出场用 `md-sheet-enter-active` / `md-sheet-leave-active`。
-- z-index 阶梯：sticky 顶栏 20，rail / 菜单 30，手机底部导航 40，遮罩 40，sheet / 浮层 50，toast 10000。新增层先沿用现有层级，不要压过 toast。
+- z-index 阶梯：sticky 顶栏 20，rail / 菜单 30，手机底部导航 40，遮罩 40，sheet / 浮层 50。新增层先沿用现有层级。
 
 ### 5.4 文字与动效
 

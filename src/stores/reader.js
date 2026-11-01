@@ -15,7 +15,6 @@ import { useShelfStore } from './shelf.js';
 import { hydrateBook } from '../services/restore.js';
 import { buildActivePages, ensureChapterImagesResolved } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
-import { showToast } from '../composables/useToast.js';
 
 const LAYOUT_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
 const WEBTOON_FITS = ['screen', 'medium', 'wide'];
@@ -186,7 +185,6 @@ export const useReaderStore = defineStore('reader', () => {
     const restoredIdx = applyRestoredProgress(book, activePages.value, shelf.progressMap);
     if (restoredIdx >= 0) {
       currentIndex.value = restoredIdx;
-      showToast(`已回到上次阅读位置，第 ${restoredIdx + 1} / ${activePages.value.length} 页`);
     }
     // PaginatedView / WebtoonView 可能尚未挂载（Vue 在下个微任务才 patch），
     // 那时由组件 onMounted 自检 activePages 非空后自行首渲染
@@ -301,8 +299,6 @@ export const useReaderStore = defineStore('reader', () => {
     } else if (currentIndex.value < activePages.value.length - 1) {
       currentIndex.value = activePages.value.length - 1;
       requestRender(slideDir);
-    } else {
-      showToast('已经是最后一页了');
     }
   }
 
@@ -321,18 +317,12 @@ export const useReaderStore = defineStore('reader', () => {
     } else if (currentIndex.value > 0) {
       currentIndex.value = 0;
       requestRender(slideDir);
-    } else {
-      showToast('已经是第一页了');
     }
   }
 
   function toggleRtlTapInvert() {
-    if (layoutConfig.direction !== 'rtl') {
-      showToast('当前为左→右模式，支持鼠标滚轮直接翻页');
-      return;
-    }
+    if (layoutConfig.direction !== 'rtl') return;
     layoutConfig.rtlInvertButtons = !layoutConfig.rtlInvertButtons;
-    showToast(layoutConfig.rtlInvertButtons ? '已切换：左边是下一页 (日漫原生手势)' : '已切换：右边是下一页');
   }
 
   function onLeftButtonClick() {

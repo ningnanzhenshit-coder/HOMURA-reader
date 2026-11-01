@@ -7,7 +7,6 @@
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { showToast } from '../composables/useToast.js';
 
 // 原生窗口 / 浏览器地址栏底色，与 homura.css 的 --md-surface 保持一致
 const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#FAF6EE', dark: '#0F1115' };
@@ -23,17 +22,11 @@ export const THEME_OPTIONS = Object.freeze([
   { name: 'amber', title: '琥珀金', tones: ['#FFDDB9', '#FDB967', '#C08537'] },
   { name: 'olive', title: '橄榄青', tones: ['#F1E580', '#D4C967', '#9C9338'] }
 ]);
-const THEME_NAMES = Object.fromEntries(
-  THEME_OPTIONS.map(option => [option.name, option.title.replace(' (默认)', '')])
-);
 export const SURFACE_MODE_OPTIONS = Object.freeze([
   { value: 'light', label: '白昼', note: '清透纸白', title: '白昼清爽模式' },
   { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式' },
   { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式' }
 ]);
-const MODE_LABELS = Object.fromEntries(
-  SURFACE_MODE_OPTIONS.map(option => [option.value, option.title])
-);
 const SURFACE_REVEAL_DURATION = 720;
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];
 export const TRANSITION_LABELS = { slide: '丝滑平移', fade: '柔和淡入', none: '极速无动画' };
@@ -57,11 +50,10 @@ export const useThemeStore = defineStore('theme', () => {
   let surfaceRevealFrame = 0;
   let surfaceRevealEl = null;
 
-  function setThemeColor(colorName, silent = false) {
+  function setThemeColor(colorName) {
     themeColor.value = colorName;
     document.documentElement.setAttribute('data-theme', colorName);
     try { localStorage.setItem('homura_theme_color', colorName); } catch (e) {}
-    if (!silent) showToast(`已切换 UI 主题色：${THEME_NAMES[colorName] || colorName}`);
   }
 
   function setSurfaceMode(modeName, silent = false, origin = null) {
@@ -111,7 +103,6 @@ export const useThemeStore = defineStore('theme', () => {
     if (reducedMotion) {
       applyMode();
       applyNativeWindowChrome(modeName);
-      showToast(`已切换：${MODE_LABELS[modeName]}`);
       finishNextFrame();
       return;
     }
@@ -146,7 +137,6 @@ export const useThemeStore = defineStore('theme', () => {
     applyMode();
     // 标题栏与窗口底色和内容区在同一帧切到新色
     applyNativeWindowChrome(modeName);
-    showToast(`已切换：${MODE_LABELS[modeName]}`);
 
     const startedAt = performance.now();
     const animate = (now) => {
@@ -166,7 +156,6 @@ export const useThemeStore = defineStore('theme', () => {
   function toggleTransitionStyle() {
     const nextIdx = (TRANSITION_ORDER.indexOf(transitionStyle.value) + 1) % TRANSITION_ORDER.length;
     transitionStyle.value = TRANSITION_ORDER[nextIdx];
-    showToast('翻页过渡效果：' + TRANSITION_LABELS[transitionStyle.value]);
   }
 
   return {

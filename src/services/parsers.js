@@ -6,11 +6,10 @@
    ========================================================================== */
 
 import JSZip from 'jszip';
-import { showToast } from '../composables/useToast.js';
 import { escapeHtml } from './utils.js';
 import { renderMarkdown } from './markdown.js';
 import { sanitizeEpubHtml } from './sanitize.js';
-import { parseMobiBuffer, mobiErrorText } from './mobi.js';
+import { parseMobiBuffer } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 
 
@@ -33,7 +32,6 @@ function resolveRelativePath(basePath, relativePath) {
 
 export async function parseEpubFileLazy(file) {
   try {
-    showToast(`正在快速索引《${file.name}》...`);
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(file);
 
@@ -165,14 +163,12 @@ export async function parseEpubFileLazy(file) {
     };
   } catch (err) {
     console.error(err);
-    showToast('EPUB 解析失败：' + err.message);
     return null;
   }
 }
 
 export async function parseCbzFileLazy(file) {
   try {
-    showToast(`正在快速索引压缩包《${file.name}》...`);
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(file);
     const imgEntries = [];
@@ -207,22 +203,14 @@ export async function parseCbzFileLazy(file) {
     };
   } catch (err) {
     console.error(err);
-    showToast('压缩包解析失败：' + err.message);
     return null;
   }
 }
 
 // ---- PDF：每页按需渲染成位图，直接复用漫画渲染管道 ----
 
-function pdfErrorText(err) {
-  if (err && err.name === 'PasswordException') return '该 PDF 已加密，暂不支持需要密码的文件';
-  if (err && err.name === 'InvalidPDFException') return 'PDF 文件已损坏或格式不合法';
-  return 'PDF 解析失败：' + (err && err.message ? err.message : '未知错误');
-}
-
 export async function parsePdfFileLazy(file) {
   try {
-    showToast(`正在解析 PDF《${file.name}》...`);
     const pdfDoc = await openPdfDocument(file);
     const pageCount = pdfDoc.numPages || 0;
     if (pageCount === 0) throw new Error('PDF 中没有可显示的页面');
@@ -243,7 +231,6 @@ export async function parsePdfFileLazy(file) {
     };
   } catch (err) {
     console.error(err);
-    showToast(pdfErrorText(err));
     return null;
   }
 }
@@ -383,7 +370,6 @@ export function parseMarkdownFile(mdFile) {
 
 export async function parseMobiFileLazy(file) {
   try {
-    showToast(`正在解析 MOBI《${file.name}》...`);
     const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
     const data = parseMobiBuffer(await file.arrayBuffer(), fallbackTitle);
     const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
@@ -400,7 +386,6 @@ export async function parseMobiFileLazy(file) {
     };
   } catch (err) {
     console.error(err);
-    showToast(mobiErrorText(err));
     return null;
   }
 }

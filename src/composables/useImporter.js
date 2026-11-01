@@ -9,7 +9,6 @@ import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from '../services/parsers.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
-import { showToast } from './useToast.js';
 
 let quotaWarned = false;
 
@@ -21,7 +20,7 @@ async function warnIfStorageTight() {
   const free = info.quota - info.usage;
   if (info.ratio >= 0.85 || free < 200 * 1024 * 1024) {
     quotaWarned = true;
-    showToast(`存储空间紧张：已用 ${formatBytes(info.usage)} / ${formatBytes(info.quota)}，建议清理书架或移除不看的作品`);
+    console.warn(`[HOMURA] 存储空间紧张：已用 ${formatBytes(info.usage)} / ${formatBytes(info.quota)}`);
   }
 }
 
@@ -90,18 +89,12 @@ export function useImporter() {
     const importedCount = importedBooks.length;
     const savedCount = importedCount - failedBooks.length;
 
-    if (importedCount > 0) {
-      if (failedBooks.length === 0) {
-        showToast(`已添加 ${importedCount} 部作品到书架`);
-      } else if (savedCount > 0) {
-        showToast(`已添加 ${importedCount} 部作品，其中 ${failedBooks.length} 部未能保存，重启后需要重新导入`);
-      } else {
-        showToast('作品已加入当前书架，但本地存档失败，重启后需要重新导入');
-      }
-      if (savedCount > 0) await warnIfStorageTight();
-    } else {
-      showToast('未找到支持的漫画或小说格式 (.epub / .pdf / .mobi / .cbz / .zip / .txt / .md / 图片)');
+    if (failedBooks.length > 0) {
+      console.warn(`[HOMURA] ${failedBooks.length} 部作品未能保存到本地存档`);
+    } else if (importedCount === 0) {
+      console.warn('[HOMURA] 未找到支持的漫画或小说格式');
     }
+    if (savedCount > 0) await warnIfStorageTight();
   }
 
   // ---- 拖拽：递归遍历 webkitGetAsEntry 目录树 ----
@@ -156,7 +149,6 @@ export function useImporter() {
         }
       }
       if (entries.length > 0) {
-        showToast('正在扫描文件夹内容...');
         for (const entry of entries) {
           await traverseFileTree(entry, '', collectedFiles);
         }
@@ -202,7 +194,7 @@ export function useImporter() {
     const files = [];
     await collectFilesFromDirHandle(dirHandle, dirHandle.name + '/', files);
     if (files.length > 0) await handleFiles(files);
-    else showToast('该文件夹内没有可导入的文件');
+    else console.warn('[HOMURA] 该文件夹内没有可导入的文件');
   }
 
   // ---- 递归遍历目录句柄，收集文件 ----
