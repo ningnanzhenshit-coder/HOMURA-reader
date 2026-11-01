@@ -76,7 +76,7 @@
    设置与目录改为左右抽屉，不再占用顶栏。
    ========================================================================== */
 
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -145,11 +145,63 @@ function onTouchEnd(e) {
   ui.toggleChrome();
 }
 
+// 阅读器隐藏 body 滚动前，记录页面滚动条宽度。部分 WebView 不支持
+// scrollbar-gutter，若只隐藏滚动条，返回结束时书架会被突然挤窄。
+function pageScrollsVertically() {
+  const root = document.documentElement;
+  return root.scrollHeight > root.clientHeight + 1 || window.scrollY > 0;
+}
+
+function measureScrollbarWidth() {
+  const probe = document.createElement('div');
+  probe.style.cssText = [
+    'position:absolute',
+    'top:-9999px',
+    'left:-9999px',
+    'width:100px',
+    'height:100px',
+    'overflow:scroll'
+  ].join(';');
+  document.body.appendChild(probe);
+  const width = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+  return Math.max(0, width);
+}
+
+function setReaderScrollLock(locked) {
+  const body = document.body;
+  const bodyLocked = body.classList.contains('overflow-hidden');
+  if (locked === bodyLocked) return;
+
+  if (locked) {
+    if (pageScrollsVertically()) {
+      const scrollbarWidth = measureScrollbarWidth();
+      if (scrollbarWidth > 0) {
+        document.documentElement.style.setProperty(
+          '--homura-reader-scrollbar-width',
+          `${scrollbarWidth}px`
+        );
+        document.documentElement.classList.add('reader-scroll-reserved');
+      }
+    }
+    body.classList.add('overflow-hidden');
+    return;
+  }
+
+  body.classList.remove('overflow-hidden');
+  document.documentElement.classList.remove('reader-scroll-reserved');
+  document.documentElement.style.removeProperty('--homura-reader-scrollbar-width');
+}
+
 // 阅读器是全屏遮罩，锁住底层书架页的滚动，避免右侧多出无用的长滚动条
 watch(() => reader.currentBook, book => {
-  document.body.classList.toggle('overflow-hidden', !!book);
+  setReaderScrollLock(!!book);
   ui.resetReaderUi();
   if (book) ui.showChrome();
+});
+
+onBeforeUnmount(() => {
+  setReaderScrollLock(false);
 });
 
 useShortcuts(reader, viewportRef, dismissWithPredictiveBack);

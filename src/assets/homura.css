@@ -340,6 +340,11 @@
       scrollbar-gutter: stable;
     }
 
+    /* 阅读器隐藏真实滚动条，但保留原来的可用宽度，避免退出时书架回流 */
+    html.reader-scroll-reserved body {
+      width: calc(100vw - var(--homura-reader-scrollbar-width, 0px));
+    }
+
     body {
       background-color: var(--bg-canvas);
       color: var(--fg-main);
@@ -374,8 +379,13 @@
       will-change: transform, border-radius;
     }
 
+    /* 整页只做二维平移，避免 WebView 把书架合成层当纹理缩放 */
     .library-back-layer.is-under-reader {
-      transform: translate3d(var(--homura-back-library-x), 0, 0);
+      transform: translateX(var(--homura-back-library-x));
+    }
+
+    html.reader-back-settling .library-back-layer.is-under-reader,
+    html.reader-back-entering .library-back-layer.is-under-reader {
       will-change: transform;
     }
 
@@ -433,8 +443,8 @@
     }
 
     @keyframes homura-library-enter {
-      from { transform: translate3d(0, 0, 0); }
-      to { transform: translate3d(var(--homura-back-library-x), 0, 0); }
+      from { transform: translateX(0); }
+      to { transform: translateX(var(--homura-back-library-x)); }
     }
 
     @keyframes homura-scrim-enter {
