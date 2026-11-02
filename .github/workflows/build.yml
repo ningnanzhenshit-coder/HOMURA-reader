@@ -256,11 +256,27 @@ jobs:
 
           "$APKSIGNER" verify --verbose --print-certs "$APK"
 
+      - name: Rename APK with app name and version
+        run: |
+          set -euo pipefail
+
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk/arm64/release \
+            -name '*.apk' -print -quit)
+          if [ -z "$APK" ]; then
+            echo "::error::Release APK was not produced"
+            exit 1
+          fi
+
+          VERSION=$(node -p "require('./package.json').version")
+          APK_PATH="$(dirname "$APK")/HOMURA_${VERSION}_arm64.apk"
+          mv "$APK" "$APK_PATH"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: homura-android-arm64-release
-          path: src-tauri/gen/android/app/build/outputs/apk/arm64/release/*.apk
+          path: ${{ env.APK_PATH }}
           if-no-files-found: error
           retention-days: 14
 
@@ -269,5 +285,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' -exec \
-            gh release upload "${GITHUB_REF_NAME}" {} --clobber \;
+          gh release upload "${GITHUB_REF_NAME}" "$APK_PATH" --clobber
