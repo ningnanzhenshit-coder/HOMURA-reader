@@ -13,6 +13,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 use tokio::io::AsyncWriteExt;
+#[cfg(target_os = "android")]
+use webpki_root_certs::TLS_SERVER_ROOT_CERTS;
 
 const DOWNLOAD_DIR: &str = "updates";
 const DOWNLOAD_ID_MAX_LEN: usize = 80;
@@ -181,6 +183,16 @@ where
         .timeout(Duration::from_secs(30 * 60))
         .redirect(reqwest::redirect::Policy::limited(10))
         .user_agent(format!("HOMURA/{}", env!("CARGO_PKG_VERSION")));
+    // Android 的 rustls 平台校验器需要先经 JNI 初始化，否则请求线程会直接 panic。
+    // 更新源固定为 GitHub HTTPS，这里改用随包分发的 Mozilla 根证书。
+    #[cfg(target_os = "android")]
+    let client_builder = client_builder.tls_certs_only(
+        TLS_SERVER_ROOT_CERTS
+            .iter()
+            .map(|certificate| reqwest::Certificate::from_der(certificate.as_ref()))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| command_error("NETWORK", error.to_string()))?,
+    );
     #[cfg(test)]
     let client_builder = client_builder.no_proxy();
     let client = client_builder

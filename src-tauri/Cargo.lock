@@ -1571,6 +1571,7 @@ dependencies = [
  "tauri-plugin-fs",
  "tauri-plugin-opener",
  "tokio",
+ "webpki-root-certs",
 ]
 
 [[package]]
