@@ -38,6 +38,10 @@
               <ellipse cx="12" cy="5" rx="8" ry="3" stroke-width="1.8"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/>
             </template>
+            <template v-else-if="section.key === 'debug'">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 3h6M10 3v6l-5 8a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-5-8V3"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16h10"/>
+            </template>
             <template v-else>
               <circle cx="12" cy="12" r="9" stroke-width="1.8"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 11v5M12 8h.01"/>
@@ -261,6 +265,36 @@
         </section>
 
         <section
+          v-else-if="activeSection === 'debug'"
+          id="settings-debug"
+          class="settings-section settings-page-panel"
+        >
+          <div class="settings-section-heading">
+            <h2>调试</h2>
+            <span>仅保存在本机</span>
+          </div>
+
+          <div class="settings-block">
+            <div class="settings-head">
+              <span class="settings-title">全屏入口</span>
+              <span class="settings-value">{{ isWindows ? 'Windows · 默认显示' : '非 Windows · 默认隐藏' }}</span>
+            </div>
+            <MdSwitch
+              :model-value="settings.debugForceFullscreen"
+              title="在非 Windows 系统也显示全屏入口"
+              @update:model-value="settings.setDebugForceFullscreen"
+            >
+              <span class="settings-value-copy">
+                <b>强制显示全屏组件</b>
+                <span>在阅读器与主页顶栏显示全屏按钮，不受系统限制。</span>
+              </span>
+            </MdSwitch>
+          </div>
+
+          <p class="settings-action-note">关闭后恢复系统默认策略：仅 Windows 显示全屏组件。</p>
+        </section>
+
+        <section
           v-else
           id="settings-about"
           class="settings-section settings-page-panel"
@@ -424,7 +458,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia';
 import packageInfo from '../../package.json';
 import { HomuraStore } from '../services/storage.js';
-import { formatBytes } from '../services/platform.js';
+import { formatBytes, isWindows } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
 import { REPOSITORY_URL } from '../services/updates.js';
 import { useShelfStore } from '../stores/shelf.js';
@@ -474,6 +508,7 @@ const webtoonOptions = [
 const sections = [
   { key: 'appearance', label: '外观与阅读', shortLabel: '外观' },
   { key: 'storage', label: '存储与数据', shortLabel: '存储' },
+  { key: 'debug', label: '调试', shortLabel: '调试' },
   { key: 'about', label: '关于 HOMURA', shortLabel: '关于' }
 ];
 const activeSection = ref('appearance');

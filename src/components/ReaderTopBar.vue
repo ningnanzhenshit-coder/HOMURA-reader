@@ -25,8 +25,9 @@
     </div>
 
     <div class="flex items-center gap-1 shrink-0">
-      <!-- 全屏切换：桌面专属，移动端窗口本身即全屏，不占位 -->
+      <!-- 全屏切换：默认仅 Windows 桌面显示，移动端窗口本身即全屏，不占位 -->
       <button
+        v-if="settings.showFullscreenButton"
         @click="ui.toggleFullscreen()"
         class="hidden min-[900px]:grid w-11 h-11 rounded-full place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
         :title="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
@@ -89,10 +90,12 @@
 import { computed, ref, watch } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
 import { useShelfStore } from '../stores/shelf.js';
+import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 
 const reader = useReaderStore();
 const shelf = useShelfStore();
+const settings = useSettingsStore();
 const favoriteBusy = ref(false);
 const favoriteError = ref('');
 const isFavorite = computed(() => !!shelf.library.find(book => book.id === reader.currentBook?.id)?.favorite);

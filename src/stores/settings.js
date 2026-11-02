@@ -2,13 +2,15 @@
    HOMURA · 应用设置 Store
    ----------------------------------------------------------------------------
    保存全局外观之外的用户偏好。阅读默认值只影响尚未留下排版记录的作品，
-   已读作品继续使用各自的排版记忆。
+   已读作品继续使用各自的排版记忆；调试开关用于覆盖平台相关的界面能力。
    ========================================================================== */
 
 import { defineStore } from 'pinia';
-import { reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
+import { isWindows } from '../services/platform.js';
 
 const READER_DEFAULTS_KEY = 'homura_reader_defaults';
+const DEBUG_FORCE_FULLSCREEN_KEY = 'homura_debug_force_fullscreen';
 const DIRECTIONS = ['ltr', 'rtl', 'vertical'];
 const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 
@@ -59,8 +61,18 @@ function writeReaderDefaults(value) {
   }
 }
 
+function readDebugForceFullscreen() {
+  try {
+    return localStorage.getItem(DEBUG_FORCE_FULLSCREEN_KEY) === '1';
+  } catch (err) {
+    return false;
+  }
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   const readerDefaults = reactive(readReaderDefaults());
+  const debugForceFullscreen = ref(readDebugForceFullscreen());
+  const showFullscreenButton = computed(() => isWindows || debugForceFullscreen.value);
 
   function persistReaderDefaults() {
     writeReaderDefaults(readerDefaults);
@@ -77,9 +89,22 @@ export const useSettingsStore = defineStore('settings', () => {
     persistReaderDefaults();
   }
 
+  function setDebugForceFullscreen(value) {
+    const next = !!value;
+    debugForceFullscreen.value = next;
+    try {
+      localStorage.setItem(DEBUG_FORCE_FULLSCREEN_KEY, next ? '1' : '0');
+    } catch (err) {
+      console.warn('[HOMURA] 调试开关保存失败', err);
+    }
+  }
+
   return {
     readerDefaults,
+    debugForceFullscreen,
+    showFullscreenButton,
     setReaderDefault,
-    resetReaderDefaults
+    resetReaderDefaults,
+    setDebugForceFullscreen
   };
 });

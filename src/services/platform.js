@@ -18,6 +18,11 @@ export const isIOS = /iPad|iPhone|iPod/.test(ua)
 
 export const isAndroid = /Android/i.test(ua);
 
+// Tauri 的 WebView2 与桌面浏览器都会把 Windows 写进平台信息，
+// 浏览器调试环境（macOS / Linux）不会误判。
+export const isWindows = typeof navigator !== 'undefined'
+  && (/^Win/i.test(navigator.platform || '') || /Windows/i.test(ua));
+
 // Android WebView 会偷偷暴露 showOpenFilePicker，但存下来的 content:// 句柄
 // 跨进程重启后没有持久读取权限，因此移动端强制走 Blob 文件输入。
 export const hasFileSystemAccess = !isAndroid && typeof window !== 'undefined'
