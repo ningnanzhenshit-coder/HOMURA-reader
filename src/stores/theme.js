@@ -14,9 +14,9 @@ export const THEME_OPTIONS = Object.freeze([
   { name: 'green', title: '森系绿', tones: ['#BEF0A7', '#A3D48D', '#6F9D5C'] },
   { name: 'mint', title: '薄荷青', tones: ['#98F4D7', '#7BD7BC', '#42A087'] },
   { name: 'cyan', title: '海盐青', tones: ['#99F0FF', '#74D4E4', '#369EAD'] },
-  { name: 'blue', title: '深海蓝 (默认)', tones: ['#CCE5FF', '#92CCFF', '#5996C7'] },
+  { name: 'blue', title: '深海蓝', tones: ['#CCE5FF', '#92CCFF', '#5996C7'] },
   { name: 'violet', title: '鸢尾紫', tones: ['#DFE0FF', '#BCC2FF', '#848CD0'] },
-  { name: 'orchid', title: '兰花紫', tones: ['#F3DAFF', '#E2B6FD', '#A981C3'] },
+  { name: 'orchid', title: '兰花紫 (默认)', tones: ['#F3DAFF', '#E2B6FD', '#A981C3'] },
   { name: 'sakura', title: '樱雾粉', tones: ['#FFD8E8', '#FFAFD5', '#C679A0'] },
   { name: 'red', title: '落日赤陶', tones: ['#FFDBD0', '#FFB59F', '#D07A5F'] },
   { name: 'amber', title: '琥珀金', tones: ['#FFDDB9', '#FDB967', '#C08537'] },
@@ -59,7 +59,7 @@ function applyNativeWindowChrome(modeName) {
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const themeColor = ref('blue');
+  const themeColor = ref('orchid');
   const surfaceMode = ref('light');
   const transitionStyle = ref(readTransitionStyle());
   let surfaceModeToken = 0;

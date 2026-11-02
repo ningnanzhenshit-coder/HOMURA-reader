@@ -345,10 +345,10 @@ async function dismissStartupSplash() {
 }
 
 onMounted(async () => {
-  let savedTheme = 'blue';
+  let savedTheme = 'orchid';
   let savedMode = 'light';
   try {
-    savedTheme = localStorage.getItem('homura_theme_color') || 'blue';
+    savedTheme = localStorage.getItem('homura_theme_color') || 'orchid';
     savedMode = localStorage.getItem('homura_surface_mode') || 'light';
   } catch (e) {}
 
