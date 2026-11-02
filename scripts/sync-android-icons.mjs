@@ -32,9 +32,15 @@ if (!iconDirs.length) {
 }
 
 for (const dir of iconDirs) {
-  const destination = path.join(target, dir);
+  const destination = path.resolve(target, dir);
+  if (!destination.startsWith(path.resolve(target) + path.sep)) throw new Error('Android 图标目标目录超出预期路径');
   rmSync(destination, { recursive: true, force: true });
   cpSync(path.join(source, dir), destination, { recursive: true });
+}
+
+// 只同步图标颜色文件，不替换应用现有的 values / 主题 / 字符串资源。
+if (existsSync(path.join(source, 'values'))) {
+  cpSync(path.join(source, 'values'), path.join(target, 'values'), { recursive: true });
 }
 
 console.log(`Synced Android launcher icons: ${iconDirs.join(', ')}`);

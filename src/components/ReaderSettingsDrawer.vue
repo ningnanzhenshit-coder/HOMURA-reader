@@ -51,7 +51,8 @@
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto overscroll-contain px-[22px] pb-2">
+      <div ref="scrollRef" class="reader-settings-scroll flex-1 min-h-0 overscroll-contain px-[22px]" :class="{ 'has-overflow': hasOverflow }" :style="{ overflowY: hasOverflow ? 'auto' : 'hidden' }">
+        <div ref="contentRef" class="pb-2">
         <!-- 阅读方向 -->
         <section class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
           <div class="flex items-baseline justify-between mb-3">
@@ -123,21 +124,25 @@
           </div>
           <div class="flex items-center gap-3">
             <button
-              @click="reader.changeFontSize(-2)"
-              class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              @click="reader.changeFontSize(-1)"
+              :disabled="config.fontSize <= NOVEL_FONT_MIN"
+              class="w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
               title="减小字号"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
             </button>
-            <span class="flex-1 text-center font-mono text-[12px]">A</span>
+            <input class="reader-font-number" type="number" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号数值" @change="onFontNumberChange" />
             <button
-              @click="reader.changeFontSize(2)"
-              class="w-11 h-11 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              @click="reader.changeFontSize(1)"
+              :disabled="config.fontSize >= NOVEL_FONT_MAX"
+              class="w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
               title="增大字号"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
             </button>
           </div>
+          <input type="range" class="reader-font-range mt-3 w-full" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号滑块" @input="reader.setFontSize($event.target.value)" />
+          <p class="mt-2 text-[11px] leading-relaxed text-[var(--md-on-surface-variant)]">{{ NOVEL_FONT_MIN }}–{{ NOVEL_FONT_MAX }} px · 每页行数随字号和窗口自动调整，按书记忆。</p>
         </section>
 
         <!-- 外观 -->
@@ -163,6 +168,24 @@
             <span class="font-mono text-[12px] text-[var(--md-primary)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</span>
           </button>
         </section>
+        <section class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
+          <h4 class="text-[12px] font-semibold mb-3">自定义封面</h4>
+          <div class="flex gap-3 items-center">
+            <div class="reader-cover-preview">
+              <img v-if="currentCover" :src="currentCover" alt="当前书本封面" />
+              <span v-else class="text-[11px] text-center px-1">暂无封面</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <input ref="coverInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.bmp" class="hidden" aria-label="选择自定义封面图片" @change="onCoverSelected" />
+              <button class="md-library-tonal-button w-full" :disabled="coverBusy" @click="coverInput?.click()">{{ coverBusy ? '正在保存…' : '选择封面图片' }}</button>
+              <button v-if="hasCustomCover" class="md-library-text-button w-full mt-1" :disabled="coverBusy" @click="saveCover(null)">恢复原封面</button>
+              <p class="mt-2 text-[11px] leading-relaxed text-[var(--md-on-surface-variant)]">图片仅保存在本机，不修改原书文件。</p>
+            </div>
+          </div>
+          <p v-if="reader.currentBook?.id.startsWith('demo_')" class="mt-2 text-[11px] text-[var(--md-on-surface-variant)]">示例书封面仅在本次打开期间保留。</p>
+          <p v-if="coverError" role="alert" class="mt-2 text-[13px] text-[var(--md-error)]">{{ coverError }}</p>
+        </section>
+        </div>
       </div>
 
       <!-- 底部操作 -->
@@ -181,8 +204,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useReaderStore, WEBTOON_FIT_LABELS } from '../stores/reader.js';
+import { computed, ref, shallowRef, watch, nextTick } from 'vue';
+import { useReaderStore, WEBTOON_FIT_LABELS, NOVEL_FONT_MIN, NOVEL_FONT_MAX } from '../stores/reader.js';
+import { useShelfStore } from '../stores/shelf.js';
 import { SURFACE_MODE_OPTIONS, THEME_OPTIONS, useThemeStore, TRANSITION_LABELS } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -193,6 +217,50 @@ import SurfaceModePreview from './SurfaceModePreview.vue';
 import ThemeSwatchGrid from './ThemeSwatchGrid.vue';
 
 const reader = useReaderStore();
+const shelf = useShelfStore();
+const scrollRef = shallowRef(null);
+const contentRef = shallowRef(null);
+const coverInput = shallowRef(null);
+const hasOverflow = ref(false);
+const coverBusy = ref(false);
+const coverError = ref('');
+const coverBook = computed(() => shelf.library.find(book => book.id === reader.currentBook?.id));
+const currentCover = computed(() => coverBook.value?.cover || null);
+const hasCustomCover = computed(() => !!coverBook.value?.customCoverBlob);
+watch(() => reader.currentBook?.id, () => { coverError.value = ''; });
+watch([scrollRef, contentRef], ([scroll, content], previous, onCleanup) => {
+  if (!scroll || !content) return;
+  const update = () => { hasOverflow.value = scroll.scrollHeight > scroll.clientHeight + 1; };
+  const observer = new ResizeObserver(update);
+  observer.observe(scroll);
+  observer.observe(content);
+  nextTick(update);
+  onCleanup(() => observer.disconnect());
+}, { flush: 'post' });
+
+function onFontNumberChange(event) {
+  if (event.target.value !== '') reader.setFontSize(event.target.value);
+  event.target.value = config.fontSize;
+}
+
+async function saveCover(file) {
+  if (coverBusy.value) return;
+  coverError.value = '';
+  coverBusy.value = true;
+  try {
+    await reader.setCustomCover(file);
+  } catch (err) {
+    coverError.value = err.message || '封面保存失败，请重试';
+  } finally {
+    coverBusy.value = false;
+  }
+}
+
+function onCoverSelected(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (file) saveCover(file);
+}
 const theme = useThemeStore();
 const ui = useUiStore();
 const { isPhone, isCompact } = useViewport();
@@ -241,7 +309,18 @@ function resetDefaults() {
   if (reader.layoutConfig.spread !== 2) reader.setSpreadCount(2);
   if (!reader.layoutConfig.coverOffset) reader.toggleCoverOffset();
   reader.setWebtoonFit('screen');
-  while (reader.layoutConfig.fontSize > 18) reader.changeFontSize(-2);
-  while (reader.layoutConfig.fontSize < 18) reader.changeFontSize(2);
+  reader.setFontSize(18);
 }
 </script>
+
+<style scoped>
+.reader-settings-scroll { scrollbar-gutter: auto; }
+.reader-settings-scroll:not(.has-overflow) { scrollbar-width: none; }
+.reader-settings-scroll:not(.has-overflow)::-webkit-scrollbar { display: none; }
+.reader-settings-scroll::-webkit-scrollbar-thumb { background: var(--md-outline); }
+.reader-font-number { flex: 1; width: 0; min-width: 0; height: 44px; border-radius: 12px; text-align: center; font-size: 13px; background: var(--md-surface-high); color: var(--md-on-surface); }
+.reader-font-range { accent-color: var(--md-primary); min-height: 28px; }
+.reader-cover-preview { width: 60px; aspect-ratio: 3 / 4; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: 8px; background: var(--md-surface-high); color: var(--md-on-surface-variant); }
+.reader-cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+button:disabled { opacity: 0.45; }
+</style>

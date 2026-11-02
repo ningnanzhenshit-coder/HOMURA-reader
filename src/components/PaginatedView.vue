@@ -1,20 +1,20 @@
 <template>
-  <!-- 触屏手势层：左 1/3 上一页 / 中 1/3 切换工具栏 / 右 1/3 下一页，横向滑动跟手
+  <!-- 鼠标 / 触屏手势层：左 1/4、右 1/4 翻页，中间一半切换工具栏
        z-30 必须高于翻页舞台激活层的 z-20，否则指针事件会被图片层吃掉 -->
   <div
-    v-if="showGestures"
     ref="gestureEl"
-    class="reader-gesture-layer fixed inset-0 z-30 select-none"
-    @click.stop.prevent="onGestureClick"
+    class="reader-gesture-layer absolute inset-0 z-30 select-none"
+    @click.stop.prevent
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerCancel"
+    @lostpointercapture="onPointerCancel"
     @contextmenu.prevent
   ></div>
 
   <!-- Hardware-Accelerated Double-Buffer Stage -->
-  <div class="relative w-full h-full overflow-hidden">
+  <div ref="pageStage" data-reader-stage class="relative w-full h-full overflow-hidden">
     <div
       v-for="slot in [0, 1]"
       :key="slot"
@@ -89,17 +89,16 @@ import { useThemeStore } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { ensurePageUrlLoaded, decodeImgIntoElement } from '../services/pagination.js';
+import { classifyReaderGesture } from '../services/readerGestures.js';
 import NovelCard from './NovelCard.vue';
 
 const reader = useReaderStore();
 const theme = useThemeStore();
 const ui = useUiStore();
-const { isTouch, isPhone, isCompact } = useViewport();
-
-// 触屏或手机宽度都启用手势层：部分 WebView 的 pointer/hover 媒体查询会失真
-const showGestures = computed(() => isTouch.value || isPhone.value);
-
-const gestureEl = ref(null);
+const { isCompact } = useViewport();
+const gestureEl = shallowRef(null);
+const pageStage = shallowRef(null);
+let stageResizeObserver = null;
 
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
 const paperSafeAreaStyle = computed(() => (
@@ -292,7 +291,7 @@ function scheduleIdlePreload() {
   }, 280);
 }
 
-// ---- 触屏手势：横向滑动跟手 + 三段式点击 ----
+// ---- 统一指针手势：移动越过阈值后，即使回到原位也不再当成点击 ----
 const drag = {
   active: false,
   pointerId: null,
@@ -301,7 +300,8 @@ const drag = {
   startTime: 0,
   dx: 0,
   dy: 0,
-  axis: null
+  axis: null,
+  maxDistance: 0
 };
 
 function activeStageEl() {
@@ -323,7 +323,9 @@ function resetStageTransform() {
 }
 
 function onPointerDown(e) {
-  if (e.pointerType === 'mouse' || !reader.currentBook) return;
+  if (!reader.currentBook || reader.openingBook || ui.readerDrawerOpen || document.querySelector('dialog[open]')) return;
+  if (e.isPrimary === false) { onPointerCancel(); return; }
+  if (drag.active || (e.pointerType === 'mouse' && e.button !== 0)) return;
   // 打断进行中的翻页动画，避免手势与动画争抢同一层的 transform
   reader.activeTransitionAnims.forEach(anim => {
     try { anim.cancel(); } catch (err) {}
@@ -337,6 +339,7 @@ function onPointerDown(e) {
   drag.dx = 0;
   drag.dy = 0;
   drag.axis = null;
+  drag.maxDistance = 0;
   if (gestureEl.value) {
     try { gestureEl.value.setPointerCapture(e.pointerId); } catch (err) {}
   }
@@ -348,6 +351,7 @@ function onPointerMove(e) {
   drag.dy = e.clientY - drag.startY;
   const absX = Math.abs(drag.dx);
   const absY = Math.abs(drag.dy);
+  drag.maxDistance = Math.max(drag.maxDistance, absX, absY);
   if (!drag.axis && (absX > 8 || absY > 8)) {
     drag.axis = absX >= absY ? 'x' : 'y';
   }
@@ -363,67 +367,51 @@ function onPointerMove(e) {
 
 function onPointerUp(e) {
   if (!drag.active || e.pointerId !== drag.pointerId) return;
+  onPointerMove(e);
   drag.active = false;
   drag.pointerId = null;
 
   const dx = drag.dx;
   const dy = drag.dy;
   const dt = Math.max(1, Date.now() - drag.startTime);
-  const velocity = Math.abs(dx) / dt;
-  const threshold = Math.max(48, (window.innerWidth || 375) * 0.14);
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
-  // 以最终位移比例判定是否横向翻页，避免起始抖动把意图锁死成纵向
-  const horizontal = absX > 24 && absX > absY * 1.2;
+  const bounds = gestureEl.value.getBoundingClientRect();
+  const result = classifyReaderGesture({ dx, dy, duration: dt, maxDistance: drag.maxDistance, width: bounds.width, x: e.clientX - bounds.left });
   const el = activeStageEl();
 
-  if (horizontal) {
-    const crossedThreshold = absX > threshold || (velocity > 0.45 && absX > 20);
-    if (crossedThreshold) {
-      resetStageTransform();
-      if (dx > 0) reader.onLeftButtonClick();
-      else reader.onRightButtonClick();
-      return;
-    }
-    // 未过阈值：回弹
-    if (el && el.animate) {
+  if (result.type === 'swipe' || result.type === 'tap') {
+    resetStageTransform();
+    if (result.zone === 'left') reader.onLeftButtonClick();
+    else if (result.zone === 'right') reader.onRightButtonClick();
+    else ui.toggleChrome();
+    return;
+  }
+  // 长按未移动不翻页；拖动不足距离时回弹，且不补发点击。
+  if (drag.axis === 'x' && dx && el && el.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.style.transform = 'translate3d(0, 0, 0)';
       el.animate(
         [
           { transform: `translate3d(${dampedOffset(dx)}px, 0, 0)` },
           { transform: 'translate3d(0, 0, 0)' }
         ],
-        { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+        { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
       );
-    } else {
-      resetStageTransform();
-    }
-    return;
-  }
-
-  // 轻点：左 1/3 上一页，右 1/3 下一页，中间切换工具栏
-  if (absX < 8 && absY < 8 && dt < 350) {
-    const ratio = e.clientX / (window.innerWidth || 1);
-    if (ratio < 0.3) reader.onLeftButtonClick();
-    else if (ratio > 0.7) reader.onRightButtonClick();
-    else ui.toggleChrome();
-  }
+  } else resetStageTransform();
 }
 
-function onPointerCancel() {
+function onPointerCancel(event) {
+  if (event?.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
   if (!drag.active) return;
   drag.active = false;
   drag.pointerId = null;
   resetStageTransform();
 }
 
-// 手势层只认触摸指针；窄窗口用鼠标调试时补一条「轻点中间切换工具栏」
-function onGestureClick() {
-  if (isTouch.value) return;
-  ui.toggleChrome();
-}
-
 onMounted(() => {
+  stageResizeObserver = new ResizeObserver(() => {
+    if (!isManga.value) reader.handleViewportChange();
+  });
+  if (pageStage.value) stageResizeObserver.observe(pageStage.value);
+  window.addEventListener('blur', onPointerCancel);
   reader.renderFn = renderReaderViewport;
   // store 动作可能在组件挂载前就已完成分页，这里自检后直接首渲染
   if (reader.activePages.length > 0) {
@@ -432,6 +420,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  stageResizeObserver?.disconnect();
+  window.removeEventListener('blur', onPointerCancel);
   reader.renderFn = null;
   reader.activeTransitionAnims.forEach(anim => {
     try { anim.cancel(); } catch (e) {}

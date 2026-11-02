@@ -205,6 +205,7 @@ export async function persistBook(book, source) {
     type: book.type,
     format: book.format || null,
     title: book.title,
+    favorite: !!book.favorite,
     pageCount: book.pageCount,
     addedAt: Date.now(),
     coverBlob: book.coverBlob || null
@@ -235,8 +236,11 @@ export async function restoreLibrary() {
     type: meta.type,
     format: meta.format || null,
     title: meta.title,
+    favorite: !!meta.favorite,
     pageCount: meta.pageCount,
-    cover: meta.coverBlob ? URL.createObjectURL(meta.coverBlob) : null,
+    cover: (meta.customCoverBlob || meta.coverBlob) ? URL.createObjectURL(meta.customCoverBlob || meta.coverBlob) : null,
+    coverBlob: meta.coverBlob || null,
+    customCoverBlob: meta.customCoverBlob || null,
     restored: true
   }));
 }
@@ -459,7 +463,8 @@ export async function hydrateBook(book) {
   book.zipContent = parsed.zipContent;
   book.pdfDoc = parsed.pdfDoc;
   book.chapters = parsed.chapters;
-  book.cover = parsed.cover || book.cover;
+  if (!book.customCoverBlob) book.cover = parsed.cover || book.cover;
+  else if (parsed.cover?.startsWith('blob:')) URL.revokeObjectURL(parsed.cover);
   book.coverBlob = parsed.coverBlob;
   book.restored = false;
   return true;

@@ -4,8 +4,9 @@
   "private": true,
   "description": "HOMURA — ACGN GO 本地漫画与轻小说阅读器",
   "scripts": {
+    "test": "node --test tests/*.test.mjs",
     "tauri": "tauri",
-    "icons:generate": "tauri icon src-tauri/app-icon.json",
+    "icons:generate": "node scripts/generate-icons.mjs",
     "dev:vite": "vite",
     "build:vite": "vite build",
     "dev": "tauri dev",
@@ -22,6 +23,7 @@
     "marked": "^18.1.2",
     "pdfjs-dist": "^6.4.299",
     "pinia": "^3.0.3",
+    "pinyin-pro": "^3.29.5",
     "vue": "^3.5.18"
   },
   "devDependencies": {

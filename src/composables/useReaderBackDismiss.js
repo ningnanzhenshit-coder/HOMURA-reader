@@ -157,7 +157,7 @@ export function useReaderBackDismiss(reader, ui) {
   }
 
   function onPointerDown(e) {
-    if (settling || !reader.currentBook || ui.settingsOpen || ui.tocOpen) return;
+    if (settling || !reader.currentBook || ui.readerDrawerOpen) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     activeDirection = 1;
@@ -243,12 +243,13 @@ export function useReaderBackDismiss(reader, ui) {
   }
 
   function hasOpenDrawer() {
-    return ui.settingsOpen || ui.tocOpen;
+    return ui.readerDrawerOpen;
   }
 
   function closeOpenDrawer() {
     if (ui.settingsOpen) ui.closeSettings();
     else if (ui.tocOpen) ui.closeToc();
+    else if (ui.collectionTocOpen) ui.closeCollectionToc();
   }
 
   function onNativeBackEvent(event) {

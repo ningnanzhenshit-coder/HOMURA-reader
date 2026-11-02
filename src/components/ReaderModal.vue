@@ -15,10 +15,11 @@
     <div
       ref="viewportRef"
       class="relative flex-1 min-h-0 overflow-hidden select-text"
-      @mousemove="onMouseMove"
-      @click="onViewportClick"
+      @pointermove="onViewportPointerMove"
       @pointerdown="onTouchStart"
       @pointerup="onTouchEnd"
+      @pointercancel="cancelVerticalGesture"
+      @lostpointercapture="cancelVerticalGesture"
     >
       <template v-if="reader.currentBook">
         <!-- 桌面打开设置侧栏时为正文留出 372px，避免被 sheet 遮挡 -->
@@ -62,6 +63,10 @@
 
       <ReaderTocDrawer />
       <ReaderSettingsDrawer />
+      <ReaderCollectionDrawer />
+      <div v-if="reader.openingBook || reader.openError" class="absolute top-[72px] inset-x-4 z-50 px-4 py-3 rounded-2xl bg-[var(--md-surface-container)] text-[var(--md-on-surface)] text-[13px] flex items-center gap-3" :role="reader.openError ? 'alert' : 'status'">
+        <span class="flex-1 break-words">{{ reader.openError || '正在打开书本…' }}</span><button v-if="reader.openError" class="md-library-text-button" @click="reader.clearOpenError()">关闭</button>
+      </div>
     </div>
   </div>
 </template>
@@ -76,7 +81,8 @@
    设置与目录改为左右抽屉，不再占用顶栏。
    ========================================================================== */
 
-import { ref, watch, computed, onBeforeUnmount } from 'vue';
+import { shallowRef, watch, computed, onBeforeUnmount } from 'vue';
+import { classifyReaderGesture } from '../services/readerGestures.js';
 import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -86,13 +92,14 @@ import ReaderTopBar from './ReaderTopBar.vue';
 import ReaderBottomBar from './ReaderBottomBar.vue';
 import ReaderTocDrawer from './ReaderTocDrawer.vue';
 import ReaderSettingsDrawer from './ReaderSettingsDrawer.vue';
+import ReaderCollectionDrawer from './ReaderCollectionDrawer.vue';
 import PaginatedView from './PaginatedView.vue';
 import WebtoonView from './WebtoonView.vue';
 
 const reader = useReaderStore();
 const ui = useUiStore();
-const { isTouch, isCompact } = useViewport();
-const viewportRef = ref(null);
+const { isCompact } = useViewport();
+const viewportRef = shallowRef(null);
 const {
   onPointerDown: onBackPointerDown,
   onPointerMove: onBackPointerMove,
@@ -110,41 +117,57 @@ const columnReserveStyle = computed(() =>
 
 // 桌面：鼠标贴近上下边缘唤出工具栏；工具栏可见时，移动鼠标会重新计时
 function onMouseMove(e) {
+  if (e.pointerType !== 'mouse' || e.buttons) return;
   if (!reader.currentBook) return;
   const nearEdge = e.clientY <= 72 || e.clientY >= window.innerHeight - 72;
   if (nearEdge || ui.readerChromeVisible) ui.showChrome();
 }
 
-// 桌面点击画布唤出工具栏；触屏交给手势层 / 轻点逻辑处理
-function onViewportClick() {
-  if (isTouch.value) return;
-  ui.showChrome();
-}
-
-// 条漫模式没有 PaginatedView 手势层，这里用「轻点不移动」切换工具栏
-const tapInfo = { x: 0, y: 0, t: 0 };
+// 条漫保留原生纵向滚动，鼠标按住正文也可上下拖动，短点沿用四分区。
+const tapInfo = { active: false, pointerId: null, x: 0, y: 0, t: 0, maxDistance: 0, scrollTop: 0 };
 
 function onTouchStart(e) {
-  if (e.pointerType === 'mouse' || reader.layoutConfig.direction !== 'vertical') return;
-  if (ui.settingsOpen || ui.tocOpen) return;
+  if (reader.layoutConfig.direction !== 'vertical' || e.isPrimary === false) return;
+  if (ui.readerDrawerOpen) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (e.target.closest?.('button, input, a, select, textarea, [role="dialog"]')) return;
+  tapInfo.active = true;
+  tapInfo.pointerId = e.pointerId;
   tapInfo.x = e.clientX;
   tapInfo.y = e.clientY;
   tapInfo.t = Date.now();
+  tapInfo.maxDistance = 0;
+  tapInfo.scrollTop = viewportRef.value.querySelector('[data-reader-scroll]')?.scrollTop || 0;
+}
+
+function onViewportPointerMove(e) {
+  onMouseMove(e);
+  if (!tapInfo.active || tapInfo.pointerId !== e.pointerId) return;
+  const dx = e.clientX - tapInfo.x;
+  const dy = e.clientY - tapInfo.y;
+  tapInfo.maxDistance = Math.max(tapInfo.maxDistance, Math.abs(dx), Math.abs(dy));
+  if (e.pointerType === 'mouse' && Math.abs(dy) >= 8 && Math.abs(dy) > Math.abs(dx)) {
+    const root = viewportRef.value.querySelector('[data-reader-scroll]');
+    if (root) root.scrollTop = tapInfo.scrollTop - dy;
+    e.preventDefault();
+    try { viewportRef.value.setPointerCapture(e.pointerId); } catch (err) {}
+  }
 }
 
 function onTouchEnd(e) {
-  if (e.pointerType === 'mouse' || reader.layoutConfig.direction !== 'vertical') return;
-  if (ui.settingsOpen || ui.tocOpen) return;
-  const dx = e.clientX - tapInfo.x;
-  const dy = e.clientY - tapInfo.y;
-  const dt = Math.max(1, Date.now() - tapInfo.t);
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
-  if (dt > 350) return;
-  if (absX > 10 || absY > 10) return;
-  if (e.target && e.target.closest && e.target.closest('button, input, a, select')) return;
-  ui.toggleChrome();
+  if (!tapInfo.active || tapInfo.pointerId !== e.pointerId) return;
+  tapInfo.active = false;
+  const bounds = viewportRef.value.getBoundingClientRect();
+  const result = classifyReaderGesture({ dx: e.clientX - tapInfo.x, dy: e.clientY - tapInfo.y, duration: Date.now() - tapInfo.t, maxDistance: tapInfo.maxDistance, width: bounds.width, x: e.clientX - bounds.left });
+  if (ui.readerDrawerOpen || result.type === 'cancel') return;
+  if (result.zone === 'left') reader.onLeftButtonClick();
+  else if (result.zone === 'right') reader.onRightButtonClick();
+  else ui.toggleChrome();
 }
+
+function cancelVerticalGesture() { tapInfo.active = false; }
+
+watch(() => reader.currentCollection?.id, id => { if (!id && ui.collectionTocOpen) ui.closeCollectionToc(); });
 
 // 阅读器隐藏 body 滚动前，记录页面滚动条宽度。部分 WebView 不支持
 // scrollbar-gutter，若只隐藏滚动条，返回结束时书架会被突然挤窄。
@@ -197,10 +220,11 @@ function setReaderScrollLock(locked) {
 }
 
 // 阅读器是全屏遮罩，锁住底层书架页的滚动，避免右侧多出无用的长滚动条
-watch(() => reader.currentBook, book => {
-  setReaderScrollLock(!!book);
+watch(() => reader.currentBook?.id, id => {
+  cancelVerticalGesture();
+  setReaderScrollLock(!!id);
   ui.resetReaderUi();
-  if (book) ui.showChrome();
+  if (id) ui.showChrome();
 });
 
 onBeforeUnmount(() => {

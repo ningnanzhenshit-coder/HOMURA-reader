@@ -7,19 +7,21 @@
     class="md-featured-cell w-full h-full min-h-[96px] min-w-0 text-left rounded-[16px] overflow-hidden flex bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]"
     :title="`继续阅读：${featured.book.title}`"
   >
-    <!-- 竖排书封 -->
+    <!-- 封面只占原有窄栏，左侧裁切，右缘融入卡片底色；无封面时保留文字书脊。 -->
     <div
-      class="relative shrink-0 overflow-hidden"
+      class="relative shrink-0"
       :class="compactCard ? 'w-[78px]' : 'w-[150px]'"
-      :style="{ background: 'linear-gradient(155deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 42%, var(--md-tertiary)))' }"
+      :style="{ background: featured.book.cover ? 'var(--md-primary-container)' : 'linear-gradient(155deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 42%, var(--md-tertiary)))' }"
     >
+      <img v-if="featured.book.cover" :src="featured.book.cover" alt="" draggable="false" class="md-continue-cover absolute inset-0 h-full object-cover object-left" :style="{ '--cover-width': (compactCard ? 78 : 150) + 'px', '--cover-tail': (compactCard ? 14 : 18) + 'px' }" />
       <span
+        v-else
         class="absolute text-[var(--md-on-primary)] overflow-hidden"
         :class="compactCard ? 'left-2.5 bottom-2.5 text-[12px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
         :style="coverTitleStyle"
       >{{ coverLabel }}</span>
       <i
-        v-if="!compactCard"
+        v-if="!featured.book.cover && !compactCard"
         class="absolute inset-3 rounded-[4px] pointer-events-none"
         :style="{ border: '0.5px solid color-mix(in oklab, var(--md-on-primary) 34%, transparent)' }"
       ></i>
@@ -68,6 +70,7 @@ import { useViewport } from '../composables/useViewport.js';
 import { resolveBookFormat } from '../services/utils.js';
 
 defineEmits(['open']);
+const props = defineProps({ books: { type: Array, default: null } });
 
 const shelf = useShelfStore();
 const { isCompact, width } = useViewport();
@@ -76,8 +79,12 @@ const { isCompact, width } = useViewport();
 const compactCard = computed(() => isCompact.value || width.value < 1180);
 
 const items = computed(() =>
-  shelf.library
-    .map(book => ({ book, progress: shelf.progressInfoFor(book.id) }))
+  (props.books || shelf.library)
+    .map(book => {
+      const record = shelf.progressMap[book.id];
+      const progress = shelf.progressInfoFor(book.id) || (record ? { percent: 0, index: record.index || 0, total: record.total || 0, updatedAt: record.updatedAt || 0 } : null);
+      return { book, progress };
+    })
     .filter(item => item.progress)
     .sort((a, b) => (b.progress.updatedAt || 0) - (a.progress.updatedAt || 0))
 );
@@ -85,7 +92,7 @@ const items = computed(() =>
 // 没有阅读记录时，用最近添加的一部作品作为「开始阅读」入口，保证特色卡始终在网格首位
 const featured = computed(() => {
   if (items.value.length) return items.value[0];
-  const book = shelf.library[0];
+  const book = (props.books || shelf.library)[0];
   if (!book) return null;
   const total = book.pageCount || (book.pageItems && book.pageItems.length) || (book.chapters && book.chapters.length) || 0;
   return { book, progress: { index: 0, total, percent: 0, updatedAt: 0 } };
@@ -143,7 +150,7 @@ const subtitleParts = computed(() => {
   return [typeLabel.value, `${totalPages.value} 页`, status];
 });
 
-const started = computed(() => !!featured.value && featured.value.progress.percent > 0);
+const started = computed(() => !!featured.value && featured.value.progress.updatedAt > 0);
 
 // 上次阅读时间：当天只显示时刻，跨天显示日期
 const clockText = computed(() => {
@@ -174,3 +181,23 @@ const timeText = computed(() => {
   return `约 ${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分`;
 });
 </script>
+
+<style scoped>
+/* 窄栏右侧 1/4 仍保留六成图案，再借用文字前的留白淡出，避免生硬的竖直切线。 */
+.md-continue-cover {
+  width: calc(var(--cover-width) + var(--cover-tail));
+  max-width: none;
+  --cover-fade: linear-gradient(90deg,
+    var(--md-on-surface) calc(var(--cover-width) * 0.75),
+    color-mix(in srgb, var(--md-on-surface) 96%, transparent) calc(var(--cover-width) * 0.8),
+    color-mix(in srgb, var(--md-on-surface) 88%, transparent) calc(var(--cover-width) * 0.85),
+    color-mix(in srgb, var(--md-on-surface) 78%, transparent) calc(var(--cover-width) * 0.9),
+    color-mix(in srgb, var(--md-on-surface) 68%, transparent) calc(var(--cover-width) * 0.95),
+    color-mix(in srgb, var(--md-on-surface) 60%, transparent) var(--cover-width),
+    color-mix(in srgb, var(--md-on-surface) 28%, transparent) calc(var(--cover-width) + var(--cover-tail) * 0.5),
+    transparent 100%);
+  -webkit-mask-image: var(--cover-fade);
+  mask-image: var(--cover-fade);
+  mask-mode: alpha;
+}
+</style>

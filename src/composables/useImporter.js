@@ -5,12 +5,17 @@
    ========================================================================== */
 
 import { useShelfStore } from '../stores/shelf.js';
+import { useDuplicateImport } from './useDuplicateImport.js';
+import { useShelfDialogs } from './useShelfDialogs.js';
+import { planFolderCollections, availableCollectionName, collectionNameError } from '../services/collections.js';
+import { findSameTitleBook } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
-import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from '../services/parsers.js';
+import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
 
 let quotaWarned = false;
+let importQueue = Promise.resolve();
 
 // 移动端原文件会整份落盘，配额比桌面更容易吃满，导入后检查一次
 async function warnIfStorageTight() {
@@ -26,63 +31,114 @@ async function warnIfStorageTight() {
 
 export function useImporter() {
   const shelf = useShelfStore();
+  const { confirmDuplicate } = useDuplicateImport();
+  const { askShelfDialog } = useShelfDialogs();
 
-  async function handleFiles(fileList) {
+  function handleFiles(fileList) {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList).filter(f => !f.name.startsWith('.'));
     if (files.length === 0) return;
 
+    // 所有入口共用队列，防止拖拽与文件选择同时导入时漏判同名书。
+    const targetId = shelf.activeCollectionId;
+    const task = importQueue.then(() => importBatch(files, targetId));
+    importQueue = task.catch(err => console.error('[HOMURA] 导入失败', err));
+    return task;
+  }
+
+  async function importBatch(files, targetId) {
+    const importIntoCurrent = async () => {
+      const ids = await importFiles(files);
+      if (ids.length && targetId && shelf.collections.some(item => item.id === targetId)) await shelf.moveBooks(ids, targetId);
+    };
+    const plan = planFolderCollections(files);
+    if (!plan.hasDirectories || plan.bookCount < 2) return importIntoCurrent();
+    const create = await askShelfDialog({
+      kind: 'folder', title: '为导入内容创建书库？',
+      message: `检测到 ${plan.bookCount} 本作品，将按目录分别创建 ${plan.groups.length} 个一级书库。你可以依次修改名称；选择直接导入则不建立书库。`
+    });
+    if (create === null) return;
+    if (!create) return importIntoCurrent();
+    const reserved = [...shelf.collections];
+    const groups = [];
+    // 所有名称确认后才导入；中途取消不会留下半批书库。
+    for (const group of plan.groups) {
+      const title = await askShelfDialog({ kind: 'name', title: '创建导入书库', message: `目录：${group.path || group.title} · ${group.bookCount} 本作品`, initialName: availableCollectionName(group.title, reserved), validate: name => collectionNameError(name, reserved) });
+      if (title === null) return;
+      reserved.push({ title });
+      groups.push({ ...group, title });
+    }
+    for (const group of groups) {
+      const ids = await importFiles(group.files);
+      if (!ids.length) continue;
+      const collection = await shelf.createCollection(group.title);
+      await shelf.moveBooks(ids, collection.id);
+    }
+    shelf.activeCollectionId = null;
+  }
+
+  async function importFiles(files) {
     const importedBooks = [];
     const persistTasks = [];
-    const addBook = (book, source) => {
+    let skippedCount = 0;
+    const addBook = async (book, source) => {
+      const existingBook = findSameTitleBook(shelf.library, book.title);
+      if (existingBook && !(await confirmDuplicate(book, existingBook))) {
+        skippedCount++;
+        await discardParsedBook(book);
+        return;
+      }
       importedBooks.push(book);
-      // addBook 内部先同步入架再落盘，这里收集落盘 Promise
-      persistTasks.push(shelf.addBook(book, source));
+      // 等待用户确认期间写盘也可能失败，立即挂上拒绝处理，避免未处理的 Promise。
+      persistTasks.push(shelf.addBook(book, source).then(
+        () => ({ status: 'fulfilled' }),
+        reason => ({ status: 'rejected', reason })
+      ));
     };
 
     const epubFiles = files.filter(f => /\.epub$/i.test(f.name));
     for (const epubFile of epubFiles) {
       const book = await parseEpubFileLazy(epubFile);
-      if (book) addBook(book, makeFileSource(epubFile));
+      if (book) await addBook(book, makeFileSource(epubFile));
     }
 
     const pdfFiles = files.filter(f => /\.pdf$/i.test(f.name));
     for (const pdfFile of pdfFiles) {
       const book = await parsePdfFileLazy(pdfFile);
-      if (book) addBook(book, makeFileSource(pdfFile));
+      if (book) await addBook(book, makeFileSource(pdfFile));
     }
 
     const archiveFiles = files.filter(f => /\.(cbz|zip)$/i.test(f.name));
     for (const archiveFile of archiveFiles) {
       const book = await parseCbzFileLazy(archiveFile);
-      if (book) addBook(book, makeFileSource(archiveFile));
+      if (book) await addBook(book, makeFileSource(archiveFile));
     }
 
     const mobiFiles = files.filter(f => /\.(mobi|prc|azw)$/i.test(f.name));
     for (const mobiFile of mobiFiles) {
       const book = await parseMobiFileLazy(mobiFile);
-      if (book) addBook(book, makeFileSource(mobiFile));
+      if (book) await addBook(book, makeFileSource(mobiFile));
     }
 
     const mdFiles = files.filter(f => /\.md$/i.test(f.name));
     for (const mdFile of mdFiles) {
       const book = await parseMarkdownFile(mdFile);
-      if (book) addBook(book, makeFileSource(mdFile));
+      if (book) await addBook(book, makeFileSource(mdFile));
     }
 
     const txtFiles = files.filter(f => /\.txt$/i.test(f.name));
     for (const txtFile of txtFiles) {
       const book = await parseTxtFile(txtFile);
-      if (book) addBook(book, makeFileSource(txtFile));
+      if (book) await addBook(book, makeFileSource(txtFile));
     }
 
     const imgFiles = files.filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(f.name));
     for (const group of buildImageFolderBooks(imgFiles)) {
-      addBook(group.book, makeFolderSource(group.folderName, group.files));
+      await addBook(group.book, makeFolderSource(group.folderName, group.files));
     }
 
     // 先确保写盘完成，避免导入后立刻关闭页面导致存档丢失
-    const persistResults = await Promise.allSettled(persistTasks);
+    const persistResults = await Promise.all(persistTasks);
     const failedBooks = persistResults
       .map((result, index) => result.status === 'rejected' ? importedBooks[index] : null)
       .filter(Boolean);
@@ -91,10 +147,11 @@ export function useImporter() {
 
     if (failedBooks.length > 0) {
       console.warn(`[HOMURA] ${failedBooks.length} 部作品未能保存到本地存档`);
-    } else if (importedCount === 0) {
+    } else if (importedCount === 0 && skippedCount === 0) {
       console.warn('[HOMURA] 未找到支持的漫画或小说格式');
     }
     if (savedCount > 0) await warnIfStorageTight();
+    return importedBooks.filter((book, index) => persistResults[index].status === 'fulfilled').map(book => book.id);
   }
 
   // ---- 拖拽：递归遍历 webkitGetAsEntry 目录树 ----

@@ -5,7 +5,7 @@
    ========================================================================== */
 
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const AUTO_HIDE_DELAY = 2200;
 
@@ -13,6 +13,8 @@ export const useUiStore = defineStore('ui', () => {
   const readerChromeVisible = ref(true);
   const settingsOpen = ref(false);
   const tocOpen = ref(false);
+  const collectionTocOpen = ref(false);
+  const readerDrawerOpen = computed(() => settingsOpen.value || tocOpen.value || collectionTocOpen.value);
   const fullscreen = ref(false);
   let hideTimer = null;
   let fullscreenBusy = false;
@@ -28,7 +30,7 @@ export const useUiStore = defineStore('ui', () => {
   function showChrome() {
     readerChromeVisible.value = true;
     clearHideTimer();
-    if (!settingsOpen.value && !tocOpen.value) {
+    if (!readerDrawerOpen.value) {
       hideTimer = setTimeout(() => {
         readerChromeVisible.value = false;
         hideTimer = null;
@@ -38,7 +40,7 @@ export const useUiStore = defineStore('ui', () => {
 
   function hideChrome() {
     clearHideTimer();
-    if (!settingsOpen.value && !tocOpen.value) readerChromeVisible.value = false;
+    if (!readerDrawerOpen.value) readerChromeVisible.value = false;
   }
 
   function toggleChrome() {
@@ -47,6 +49,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   function openSettings() {
+    collectionTocOpen.value = false;
     settingsOpen.value = true;
     tocOpen.value = false;
     clearHideTimer();
@@ -59,6 +62,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   function openToc() {
+    collectionTocOpen.value = false;
     tocOpen.value = true;
     settingsOpen.value = false;
     clearHideTimer();
@@ -70,8 +74,22 @@ export const useUiStore = defineStore('ui', () => {
     showChrome();
   }
 
+  function openCollectionToc() {
+    collectionTocOpen.value = true;
+    settingsOpen.value = false;
+    tocOpen.value = false;
+    clearHideTimer();
+    readerChromeVisible.value = true;
+  }
+
+  function closeCollectionToc() {
+    collectionTocOpen.value = false;
+    showChrome();
+  }
+
   // 打开/关闭书籍时复位，避免抽屉状态残留到下一本
   function resetReaderUi() {
+    collectionTocOpen.value = false;
     clearHideTimer();
     settingsOpen.value = false;
     tocOpen.value = false;
@@ -113,6 +131,10 @@ export const useUiStore = defineStore('ui', () => {
     readerChromeVisible,
     settingsOpen,
     tocOpen,
+    collectionTocOpen,
+    readerDrawerOpen,
+    openCollectionToc,
+    closeCollectionToc,
     fullscreen,
     showChrome,
     hideChrome,

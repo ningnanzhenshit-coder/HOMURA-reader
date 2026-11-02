@@ -4,11 +4,14 @@
     v-if="!isCompact"
     class="shrink-0 sticky top-0 h-screen w-24 z-30 flex flex-col items-center pt-3.5 pb-4 bg-[var(--md-surface-low)] border-r-[0.5px] border-[var(--md-outline-variant)]"
   >
-    <div
+    <button
+      type="button"
+      @click="select('shelf')"
       class="w-11 h-11 shrink-0 rounded-[14px] grid place-items-center mb-[22px] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] select-none"
       style="font-family: system-ui; font-style: italic; font-size: 26px; line-height: 1;"
-      title="HOMURA"
-    >H</div>
+      title="HOMURA · 返回主页"
+      aria-label="HOMURA，返回主页"
+    >H</button>
 
     <nav class="flex flex-col items-center gap-1.5 w-full">
       <button
@@ -17,6 +20,7 @@
         @click="select(item.key)"
         class="w-full flex flex-col items-center gap-1 cursor-pointer group"
         :title="item.label"
+        :aria-current="active === item.key ? 'page' : undefined"
       >
         <span
           class="w-14 h-8 rounded-2xl grid place-items-center transition-colors duration-200"
@@ -90,6 +94,7 @@
         :key="item.key"
         @click="select(item.key)"
         class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
+        :aria-current="active === item.key ? 'page' : undefined"
         :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
         :title="item.label"
       >
@@ -180,6 +185,7 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import AppearancePanel from './AppearancePanel.vue';
+
 
 const { isCompact } = useViewport();
 const props = defineProps({

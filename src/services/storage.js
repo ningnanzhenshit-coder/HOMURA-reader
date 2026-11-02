@@ -13,10 +13,11 @@ import { clearNativeSources, removeNativeBookDir } from './nativeStorage.js';
 
 export const HomuraStore = (() => {
   const DB_NAME = 'homura_shelf';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE_BOOKS = 'books';
   const STORE_SOURCES = 'sources';
   const STORE_PROGRESS = 'progress';
+  const STORE_COLLECTIONS = 'collections';
   let dbPromise = null;
   let disabled = false;
 
@@ -33,8 +34,15 @@ export const HomuraStore = (() => {
         if (!db.objectStoreNames.contains(STORE_BOOKS)) db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(STORE_SOURCES)) db.createObjectStore(STORE_SOURCES, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(STORE_PROGRESS)) db.createObjectStore(STORE_PROGRESS, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(STORE_COLLECTIONS)) db.createObjectStore(STORE_COLLECTIONS, { keyPath: 'id' });
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        req.result.onversionchange = () => {
+          req.result.close();
+          dbPromise = null;
+        };
+        resolve(req.result);
+      };
       req.onerror = () => reject(req.error || new Error('IndexedDB 打开失败'));
       req.onblocked = () => reject(new Error('IndexedDB 被其它标签页占用'));
     }).catch(err => {
@@ -73,8 +81,62 @@ export const HomuraStore = (() => {
     return run(STORE_BOOKS, 'readonly', store => store.getAll()).then(list => list || []);
   }
 
+  function updateBookCover(id, customCoverBlob) {
+    if (disabled) return Promise.reject(new Error('本地存储不可用，封面未保存'));
+    return openDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_BOOKS, 'readwrite');
+      const store = tx.objectStore(STORE_BOOKS);
+      let found = false;
+      const req = store.get(id);
+      req.onsuccess = () => {
+        if (!req.result) return;
+        found = true;
+        store.put({ ...req.result, customCoverBlob });
+      };
+      tx.oncomplete = () => found ? resolve() : reject(new Error('书本尚未保存，请稍后重试'));
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
+  }
+
   function getSource(id) {
     return run(STORE_SOURCES, 'readonly', store => store.get(id));
+  }
+
+  function updateBookFavorite(id, favorite) {
+    if (disabled) return Promise.reject(new Error('本地存储不可用，收藏未保存'));
+    return openDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_BOOKS, 'readwrite');
+      const store = tx.objectStore(STORE_BOOKS);
+      let found = false;
+      const req = store.get(id);
+      req.onsuccess = () => {
+        if (!req.result) return;
+        found = true;
+        store.put({ ...req.result, favorite: !!favorite });
+      };
+      tx.oncomplete = () => found ? resolve() : reject(new Error('书本尚未保存，请稍后重试'));
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
+  }
+
+  function listCollections() {
+    return run(STORE_COLLECTIONS, 'readonly', store => store.getAll()).then(list => list || []);
+  }
+
+  // 整批写入归属，移动多个书本时不会留下同时属于两个书库的中间状态。
+  function saveCollections(collections) {
+    if (disabled) return Promise.reject(new Error('IndexedDB 不可用，书库无法保存'));
+    return openDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_COLLECTIONS, 'readwrite');
+      const store = tx.objectStore(STORE_COLLECTIONS);
+      store.clear();
+      collections.forEach(item => store.put(item));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
   }
 
   // ---- 阅读进度：按书籍 id 记录当前位置，翻页时高频写入 ----
@@ -110,10 +172,11 @@ export const HomuraStore = (() => {
     clearNativeSources().catch(() => {});
     if (disabled) return Promise.resolve();
     return openDb().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
+      const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS, STORE_COLLECTIONS], 'readwrite');
       tx.objectStore(STORE_BOOKS).clear();
       tx.objectStore(STORE_SOURCES).clear();
       tx.objectStore(STORE_PROGRESS).clear();
+      tx.objectStore(STORE_COLLECTIONS).clear();
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
@@ -151,7 +214,11 @@ export const HomuraStore = (() => {
   return {
     saveBook,
     listBooks,
+    updateBookCover,
+    updateBookFavorite,
     getSource,
+    listCollections,
+    saveCollections,
     saveProgress,
     getProgress,
     listProgress,

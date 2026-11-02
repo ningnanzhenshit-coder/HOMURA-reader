@@ -1,4 +1,5 @@
 node_modules/
+design-preview/
 dist/
 public/pdfjs/
 src-tauri/target/
@@ -6,4 +7,5 @@ src-tauri/gen/
 .trae/
 .trae-html-share-packages/
 .DS_Store
+/HOMURA-test.exe
 

@@ -10,18 +10,28 @@
    ========================================================================== */
 
 import { defineStore } from 'pinia';
-import { ref, shallowRef, reactive } from 'vue';
+import { ref, shallowRef, reactive, computed, nextTick } from 'vue';
 import { useShelfStore } from './shelf.js';
 import { hydrateBook } from '../services/restore.js';
 import { buildActivePages, ensureChapterImagesResolved } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
+import { collectionReadingOrder, adjacentCollectionBook, spreadBounds } from '../services/collectionReading.js';
 
 const LAYOUT_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
 const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 export const WEBTOON_FIT_LABELS = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
+export const NOVEL_FONT_MIN = 12;
+export const NOVEL_FONT_MAX = 48;
 
 export const useReaderStore = defineStore('reader', () => {
   const currentBook = shallowRef(null);
+  const shelf = useShelfStore();
+  const openingBook = ref(false);
+  const openError = ref('');
+  const readingCollectionId = ref(null);
+  const collectionOrderIds = shallowRef([]);
+  const webtoonBounds = shallowRef({ atStart: true, atEnd: false });
+  let openRequestToken = 0;
   const currentIndex = ref(0);
   const activePages = shallowRef([]);
   const renderToken = ref(0);
@@ -60,6 +70,18 @@ export const useReaderStore = defineStore('reader', () => {
     webtoonFit: 'screen'       // 'screen' | 'medium' | 'wide'
   });
 
+  const currentCollection = computed(() => currentBook.value ? shelf.collections.find(item => item.bookIds.includes(currentBook.value.id)) || null : null);
+  const collectionBooks = computed(() => {
+    const collection = currentCollection.value;
+    if (!collection) return [];
+    const books = shelf.booksInCollection(collection.id);
+    return collectionReadingOrder(books, readingCollectionId.value === collection.id ? collectionOrderIds.value : []);
+  });
+  const previousCollectionBook = computed(() => adjacentCollectionBook(collectionBooks.value, currentBook.value?.id, -1));
+  const nextCollectionBook = computed(() => adjacentCollectionBook(collectionBooks.value, currentBook.value?.id, 1));
+  const atFirstPage = computed(() => layoutConfig.direction === 'vertical' ? webtoonBounds.value.atStart : spreadBounds(currentIndex.value, activePages.value.length, effectiveDouble.value, layoutConfig.coverOffset).start === 0);
+  const atLastPage = computed(() => layoutConfig.direction === 'vertical' ? webtoonBounds.value.atEnd : activePages.value.length > 0 && spreadBounds(currentIndex.value, activePages.value.length, effectiveDouble.value, layoutConfig.coverOffset).end === activePages.value.length - 1);
+
   // ---- 纯派生逻辑（原 reader.js 的查询函数） ----
 
   function canUseDoubleSpread() {
@@ -73,28 +95,8 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function getSpreadPair(index) {
-    const total = activePages.value.length;
-    if (total === 0) return [];
-    const clamped = Math.max(0, Math.min(total - 1, index));
-
-    if (!syncEffectiveSpread()) {
-      return [activePages.value[clamped]];
-    }
-
-    if (layoutConfig.coverOffset && clamped === 0) {
-      return [activePages.value[0]];
-    }
-
-    let pairStart = clamped;
-    if (layoutConfig.coverOffset) {
-      if (pairStart % 2 === 0) pairStart -= 1;
-    } else {
-      if (pairStart % 2 === 1) pairStart -= 1;
-    }
-
-    const firstPage = activePages.value[pairStart];
-    const secondPage = pairStart + 1 < total ? activePages.value[pairStart + 1] : null;
-    return secondPage ? [firstPage, secondPage] : [firstPage];
+    const bounds = spreadBounds(index, activePages.value.length, syncEffectiveSpread(), layoutConfig.coverOffset);
+    return activePages.value.slice(bounds.start, bounds.end + 1);
   }
 
   function getStepSizeForNext() {
@@ -143,55 +145,106 @@ export const useReaderStore = defineStore('reader', () => {
     const shelf = useShelfStore();
     const rec = shelf.progressMap[book.id];
     const saved = rec && rec.layout;
+    const next = { ...layoutConfig };
     // PDF 版式固定、字号小，双页并排会挤成一团：首次打开默认单页
     if (!saved) {
-      if (book.format === 'pdf') layoutConfig.spread = 1;
-      return;
+      if (book.format === 'pdf') next.spread = 1;
+      return next;
     }
 
-    if (LAYOUT_DIRECTIONS.includes(saved.direction)) layoutConfig.direction = saved.direction;
-    if (saved.spread === 1 || saved.spread === 2) layoutConfig.spread = saved.spread;
-    if (typeof saved.coverOffset === 'boolean') layoutConfig.coverOffset = saved.coverOffset;
-    if (typeof saved.fontSize === 'number') layoutConfig.fontSize = Math.min(28, Math.max(14, saved.fontSize));
-    if (WEBTOON_FITS.includes(saved.webtoonFit)) layoutConfig.webtoonFit = saved.webtoonFit;
+    if (LAYOUT_DIRECTIONS.includes(saved.direction)) next.direction = saved.direction;
+    if (saved.spread === 1 || saved.spread === 2) next.spread = saved.spread;
+    if (typeof saved.coverOffset === 'boolean') next.coverOffset = saved.coverOffset;
+    if (Number.isFinite(saved.fontSize)) next.fontSize = Math.min(NOVEL_FONT_MAX, Math.max(NOVEL_FONT_MIN, saved.fontSize));
+    if (WEBTOON_FITS.includes(saved.webtoonFit)) next.webtoonFit = saved.webtoonFit;
+    return next;
   }
 
-  async function openBook(id) {
-    const shelf = useShelfStore();
+  async function openBook(id, options = {}) {
     const book = shelf.library.find(b => b.id === id);
-    if (!book) return;
-
-    // 从本地存档恢复的书只有元数据，第一次点开时才去取源文件
-    if (book.restored) {
-      const ok = await hydrateBook(book);
-      if (!ok) return;
-      shelf.touchBook(book);
-    }
-
-    currentBook.value = book;
-    currentIndex.value = 0;
-    // 先恢复这本书的排版，后续分页与恢复位置都按这套设置计算
-    applyLayoutForBook(book);
-    // 打开时先按当前窗口宽度确定单双页，避免首帧按双页渲染窄屏
-    effectiveDouble.value = canUseDoubleSpread();
-
-    if (book.type !== 'manga' && book.zipContent && book.chapters) {
-      for (const chap of book.chapters) {
-        await ensureChapterImagesResolved(chap, book);
+    if (!book) return false;
+    const token = ++openRequestToken;
+    openingBook.value = true;
+    openError.value = '';
+    try {
+      if (book.restored) {
+        if (!(await hydrateBook(book))) throw new Error('本地存档无法读取，请重新导入');
+        if (token !== openRequestToken) return false;
+        shelf.touchBook(book);
       }
+      if (book.type !== 'manga' && book.zipContent && book.chapters) {
+        for (const chap of book.chapters) {
+          await ensureChapterImagesResolved(chap, book);
+          if (token !== openRequestToken) return false;
+        }
+      }
+      const nextLayout = applyLayoutForBook(book);
+      const pages = buildActivePages(book, nextLayout, measurerEl.value);
+      if (!pages.length) throw new Error('没有可阅读的页面');
+      const collection = shelf.collections.find(item => item.bookIds.includes(id));
+      // 固定进入阅读器时的顺序，防止“最近阅读”时间更新后前后本突然重排。
+      const order = options.preserveCollectionOrder && collection?.id === currentCollection.value?.id
+        ? collectionBooks.value.map(item => item.id)
+        : collection ? shelf.booksInCollection(collection.id).map(item => item.id) : [];
+      if (currentBook.value && currentBook.value.id !== id) {
+        const snapshot = progressSnapshot();
+        if (options.finishCurrent) snapshot.currentIndex = Math.max(0, snapshot.activePages.length - 1);
+        await flushProgress(snapshot, shelf);
+      }
+      if (token !== openRequestToken) return false;
+      clearTimeout(preloadTimer.value);
+      clearTimeout(resizeTimer.value);
+      renderToken.value++;
+      webtoonObserver.value?.disconnect();
+      webtoonObserver.value = null;
+      activeTransitionAnims.value.forEach(animation => { try { animation.cancel(); } catch (err) {} });
+      activeTransitionAnims.value = [];
+      const restoredIdx = applyRestoredProgress(book, pages, shelf.progressMap);
+      Object.assign(layoutConfig, nextLayout);
+      activePages.value = pages;
+      currentIndex.value = options.position === 'end' ? pages.length - 1 : options.position === 'start' ? 0 : Math.max(0, restoredIdx);
+      effectiveDouble.value = canUseDoubleSpread();
+      readingCollectionId.value = collection?.id || null;
+      collectionOrderIds.value = order;
+      webtoonBounds.value = { atStart: currentIndex.value === 0, atEnd: false };
+      currentBook.value = book;
+      // 先让旧翻页组件卸载、新组件接管渲染入口，再绘制目标书，避免旧缓冲串页。
+      await nextTick();
+      if (token !== openRequestToken) return false;
+      requestRender('none');
+      return true;
+    } catch (err) {
+      if (token === openRequestToken) {
+        openError.value = `无法打开《${book.title}》：${err.message || '请检查本地存档'}`;
+        console.warn('[HOMURA] 打开书本失败', err);
+      }
+      return false;
+    } finally {
+      if (token === openRequestToken) openingBook.value = false;
     }
+  }
 
-    activePages.value = buildActivePages(book, layoutConfig, measurerEl.value);
-    const restoredIdx = applyRestoredProgress(book, activePages.value, shelf.progressMap);
-    if (restoredIdx >= 0) {
-      currentIndex.value = restoredIdx;
-    }
-    // PaginatedView / WebtoonView 可能尚未挂载（Vue 在下个微任务才 patch），
-    // 那时由组件 onMounted 自检 activePages 非空后自行首渲染
-    requestRender('none');
+  function clearOpenError() { openError.value = ''; }
+
+  function openAdjacentCollectionBook(direction) {
+    if (openingBook.value) return;
+    const target = direction > 0 ? nextCollectionBook.value : previousCollectionBook.value;
+    if (!target) return;
+    return openBook(target.id, { position: direction > 0 ? 'start' : 'end', preserveCollectionOrder: true, finishCurrent: direction > 0 });
+  }
+
+  function openCollectionBook(id) {
+    if (!collectionBooks.value.some(book => book.id === id)) return Promise.resolve(false);
+    if (id === currentBook.value?.id) return Promise.resolve(true);
+    return openBook(id, { preserveCollectionOrder: true });
   }
 
   function closeReader() {
+    openRequestToken++;
+    openingBook.value = false;
+    openError.value = '';
+    readingCollectionId.value = null;
+    collectionOrderIds.value = [];
     const shelf = useShelfStore();
     // 关闭前把防抖窗口内尚未落盘的位置补写一次，此时 currentBook 仍然有效
     flushProgress(progressSnapshot(), shelf);
@@ -216,6 +269,7 @@ export const useReaderStore = defineStore('reader', () => {
     const lastIdx = Math.max(0, activePages.value.length - 1);
     currentIndex.value = Math.min(lastIdx, Math.max(0, Math.round(ratio * lastIdx)));
     requestRender('none');
+    touchProgress();
   }
 
   // 窗口尺寸 / 视口高度变化：漫画只在单双页档位变化时重渲染，小说则重新分页
@@ -273,17 +327,30 @@ export const useReaderStore = defineStore('reader', () => {
     requestRender('none');
   }
 
+  function setFontSize(value) {
+    if (!currentBook.value || currentBook.value.type === 'manga' || !Number.isFinite(Number(value))) return;
+    const size = Math.min(NOVEL_FONT_MAX, Math.max(NOVEL_FONT_MIN, Math.round(Number(value))));
+    if (size === layoutConfig.fontSize) return;
+    layoutConfig.fontSize = size;
+    recalculateNovelPaginationAndRender();
+  }
+
   function changeFontSize(delta) {
-    layoutConfig.fontSize = Math.min(28, Math.max(14, layoutConfig.fontSize + delta));
-    if (currentBook.value && currentBook.value.type !== 'manga') {
-      recalculateNovelPaginationAndRender();
-    }
+    setFontSize(layoutConfig.fontSize + delta);
+  }
+
+  async function setCustomCover(file) {
+    const id = currentBook.value?.id;
+    if (!id) return;
+    const book = await shelf.setBookCover(id, file);
+    if (book && currentBook.value?.id === id) currentBook.value = { ...currentBook.value, cover: book.cover, customCoverBlob: book.customCoverBlob };
   }
 
   // ---- 翻页 ----
 
   function goNextPage() {
-    if (!currentBook.value) return;
+    if (!currentBook.value || openingBook.value) return;
+    if (currentCollection.value && atLastPage.value) return openAdjacentCollectionBook(1);
     if (layoutConfig.direction === 'vertical') {
       if (webtoonScrollBy.value) webtoonScrollBy.value(1);
       return;
@@ -303,7 +370,8 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function goPrevPage() {
-    if (!currentBook.value) return;
+    if (!currentBook.value || openingBook.value) return;
+    if (currentCollection.value && atFirstPage.value) return openAdjacentCollectionBook(-1);
     if (layoutConfig.direction === 'vertical') {
       if (webtoonScrollBy.value) webtoonScrollBy.value(-1);
       return;
@@ -349,6 +417,17 @@ export const useReaderStore = defineStore('reader', () => {
 
   return {
     currentBook,
+    currentCollection,
+    collectionBooks,
+    previousCollectionBook,
+    nextCollectionBook,
+    atFirstPage,
+    atLastPage,
+    webtoonBounds,
+    openingBook,
+    openError,
+    clearOpenError,
+    openCollectionBook,
     currentIndex,
     activePages,
     renderToken,
@@ -382,6 +461,8 @@ export const useReaderStore = defineStore('reader', () => {
     toggleCoverOffset,
     setWebtoonFit,
     changeFontSize,
+    setFontSize,
+    setCustomCover,
     goNextPage,
     goPrevPage,
     toggleRtlTapInvert,

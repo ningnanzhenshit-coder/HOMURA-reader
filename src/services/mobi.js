@@ -260,7 +260,7 @@ export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   const title = (exth.title || '').trim() || headerTitle || fallbackTitle;
   const chapters = splitChapters(rawText, title, imageUrlFor);
 
-  return { title, chapters, coverBlob, compression, encoding };
+  return { title, chapters, coverBlob, compression, encoding, resourceUrls: Array.from(imgRecords.values(), image => image.url) };
 }
 
 function mergeChunks(chunks) {
