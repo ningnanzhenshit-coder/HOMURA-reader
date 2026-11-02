@@ -535,7 +535,7 @@ Hover 规则：
 - Logo 44px，14px 圆角，使用 `primary-container` + `on-primary-container`。
 - 导航项图标容器 `56px × 32px`、16px 圆角；标签 10.5–12px。
 - 选中态图标容器使用 `primary-container`，标签使用 `on-primary-container`。
-- 底部「外观 / 设置」与主导航分开，避免与内容导航混淆。
+- 外观入口已移到顶栏右上角（与「排序与更多操作」相邻），rail 只保留 4 项主导航。
 - 每个导航项必须有 `title` 或 `aria-label`。
 
 ### 8.2 手机底部导航
@@ -589,11 +589,11 @@ Hover 规则：
 
 ### 9.4 桌面外观浮层
 
-组件：`src/components/SideNav.vue` 内的外观浮层  
+组件：`src/components/AppearanceSheet.vue`（由顶栏「外观设置」按钮开关）  
 内容：`src/components/AppearancePanel.vue`
 
 - 宽 280px，20px 圆角，16px 内边距。
-- 位于 Rail 右侧 `left: 104px`、`bottom: 96px`。
+- 桌面端锚定顶栏右上角 `right: 28px`、`top: 68px`，向下展开；超出视口高度时内部滚动。
 - 背景 `surface-container`，z-50。
 - 包含「阅读模式」与「主题色」两组，必须复用共享组件。
 - 外观面板不是独立主页面，不应塞入阅读行为设置。

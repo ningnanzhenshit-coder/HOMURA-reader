@@ -11,8 +11,7 @@
 
       <div class="ml-auto flex items-center gap-2 shrink-0">
         <button
-          v-if="isCompact"
-          @click="$emit('toggle-appearance')"
+          @click="toggleAppearance"
           class="w-11 h-11 rounded-full grid place-items-center transition-colors"
           :class="appearanceOpen
             ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]'
@@ -221,6 +220,12 @@ function toggleMenu(name) {
   menu.value = menu.value === name ? null : name;
 }
 
+// 外观浮层与排序菜单互斥，避免两个浮层叠在一起
+function toggleAppearance() {
+  menu.value = null;
+  emit('toggle-appearance');
+}
+
 // 存储用量：浏览器估算值，书架增减后刷新
 const storage = ref(null);
 const storageLabel = computed(() => {
@@ -236,6 +241,9 @@ onMounted(refreshStorage);
 watch(() => props.count, refreshStorage);
 watch(isCompact, value => {
   if (!value) menu.value = null;
+});
+watch(() => props.appearanceOpen, value => {
+  if (value) menu.value = null;
 });
 
 const types = [

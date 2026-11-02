@@ -6,11 +6,7 @@
     class="library-back-layer flex flex-1 min-h-0"
     :class="{ 'is-under-reader': !!reader.currentBook }"
   >
-    <SideNav
-      :active="activeNav"
-      v-model:appearance-open="appearanceOpen"
-      @nav="onRailNav"
-    />
+    <SideNav :active="activeNav" @nav="onRailNav" />
 
     <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
       <SettingsView v-if="activeNav === 'settings'" />
@@ -90,6 +86,7 @@
   <input ref="fileInput" type="file" multiple :accept="fileAccept" class="hidden" @change="onFileChange" />
   <input v-if="canPickFolder" ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
 
+  <AppearanceSheet v-model:open="appearanceOpen" />
   <DragOverlay />
   <div v-if="reader.currentBook" class="reader-back-scrim md-scrim" aria-hidden="true"></div>
   <ReaderModal />
@@ -146,6 +143,7 @@ import { useViewport } from './composables/useViewport.js';
 import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
+import AppearanceSheet from './components/AppearanceSheet.vue';
 import BookShelf from './components/BookShelf.vue';
 import EmptyShelf from './components/EmptyShelf.vue';
 import SettingsView from './components/SettingsView.vue';
@@ -224,6 +222,11 @@ watch(
     }
   }
 );
+
+// 进入阅读器时收起外观浮层，避免它悬在阅读舞台之上
+watch(() => reader.currentBook, book => {
+  if (book) appearanceOpen.value = false;
+});
 
 async function createCollection() {
   importMenuOpen.value = false;
