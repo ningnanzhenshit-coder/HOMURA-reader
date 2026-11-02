@@ -119,20 +119,22 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 
 ### 5.3 布局与断点
 
-- 布局主断点 **900px**：`<900` 走手机布局（底部导航 + bottom sheet），`>=900` 走桌面布局（96px Navigation Rail + side sheet）。JS 用 `isCompact`，Tailwind 用 `min-[900px]:`。
+- 布局主断点 **900px**：`<900` 走手机布局（悬浮胶囊底栏 + bottom sheet），`>=900` 走桌面布局（浮动侧栏 + side sheet）。JS 用 `isCompact`，Tailwind 用 `min-[900px]:`。
 - `useViewport` 还暴露 `isPhone(≤767)`、`isTablet(768-1023)`、`isDesktop(≥1024)`，只用于细节，不要拿它替代 900 主断点。
 - 桌面窗口 `minWidth` 是 900，所以桌面端基本不会进入 compact；compact 主要服务于 Android / 浏览器窄屏调试。
-- 桌面骨架：96px rail（`w-24`）→ 主列 → 64px sticky 顶栏（手机 56px）。
-- 手机底部导航固定 `height: calc(5rem + env(safe-area-inset-bottom))`，内容区必须挂 `.md-bottom-nav-space`。
+- 桌面骨架：浮动圆角侧栏（展开 220px / 折叠 104px，`SideNav.vue`）→ 主列 → 64px sticky 顶栏（手机 56px）。侧栏展开/折叠只跟随用户手动偏好，存 `localStorage`，不按窗口宽度强制折叠。
+- 侧栏展开/折叠使用 `280ms` 宽度与内部位置过渡；`prefers-reduced-motion: reduce` 时直接切换。
+- 展开侧栏在 `900–1079px` 时，书架顶栏搜索框独占一行；`>=1080px` 才嵌入顶栏中段，避免压住标题和右侧按钮。
+- 手机底部导航是悬浮胶囊：`left/right 14px`、`height 76px`、`border-radius 38px`、`bottom: calc(14px + env(safe-area-inset-bottom))`；内容区必须挂 `.md-bottom-nav-space`（`6.5rem + safe-area`）。
 - 网格只用 `.md-shelf-grid`，跨列用 `.md-featured-cell`；FAB 用 `.md-fab-pos`。不要在组件里另写 `grid-cols-*`。
 - 抽屉：桌面右侧 `w-[372px]`；手机底部 `max-h-[78dvh] rounded-t-[28px]` + 拖拽条 + 安全区 padding。遮罩用 `.md-scrim`，进出场用 `md-sheet-enter-active` / `md-sheet-leave-active`。
-- z-index 阶梯：sticky 顶栏 20，rail / 菜单 30，手机底部导航 40，遮罩 40，sheet / 浮层 50。新增层先沿用现有层级。
+- z-index 阶梯：sticky 顶栏 20，浮动侧栏 / 菜单 30，手机底部导航 40，遮罩 40，sheet / 浮层 50。新增层先沿用现有层级。
 
 ### 5.4 文字与动效
 
 - 字体：`font-sans` 正文（Inter/PingFang），`font-display` 书封标题，`font-mono` 元信息，竖排书封用宋体 / Instrument Serif。
 - 字号沿用现有档位：页面标题 21/22、sheet 标题 17、正文/输入 13、分组标签 11、分段控件 10.5、元信息 8-8.5。不要随手插 14/15/16。
-- 动效统一 200ms `cubic-bezier(0.2, 0, 0, 1)`；卡片 hover 可用 280ms `cubic-bezier(0.16, 1, 0.3, 1)`。只过渡颜色/位移/阴影，不给布局属性加 transition。
+- 动效统一 200ms `cubic-bezier(0.2, 0, 0, 1)`；卡片 hover 可用 280ms `cubic-bezier(0.16, 1, 0.3, 1)`。只过渡颜色/位移/阴影，不给布局属性加 transition；侧栏展开/折叠的宽度与内部重排过渡是唯一例外。
 - 尊重 `prefers-reduced-motion`。图标按钮必须有 `title` 或 `aria-label`；开关用 `role="switch"`；禁止 `<div @click>` 当按钮。
 
 ### 5.5 参考

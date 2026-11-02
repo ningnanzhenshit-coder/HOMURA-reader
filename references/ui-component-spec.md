@@ -57,8 +57,8 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 - 派生色使用 `color-mix(in oklab, var(--md-x) NN%, transparent)`，不要依赖 Tailwind
   对 CSS 变量的透明度修饰。
 - 一屏只保留一个 `primary` 实心主行动。书架页唯一主行动是「导入」FAB。
-- 布局主断点只有 **900px**。`<900` 使用底部导航与 bottom sheet，`>=900` 使用
-  Navigation Rail 与 side sheet。
+- 布局主断点只有 **900px**。`<900` 使用悬浮胶囊底栏与 bottom sheet，`>=900` 使用
+  浮动侧栏与 side sheet。
 - 图标全部内联 SVG；禁止引入图标库、组件库或远程字体来补 UI。
 - 图标按钮必须有 `title` 或 `aria-label`；交互元素必须是原生 `button` / `a` / 表单控件。
 - 禁止用 `<div @click>` 冒充按钮，禁止把可交互控件嵌套在另一个可交互控件里。
@@ -76,7 +76,7 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 | 用途 | 背景 token | 前景 token | 典型组件 |
 | --- | --- | --- | --- |
 | 页面画布、顶栏、浮动工具栏 | `surface` | `on-surface` | 书架背景、阅读器顶栏/底栏 |
-| Rail、阅读纸张、次级卡片 | `surface-low` | `on-surface` | Navigation Rail、阅读卡 |
+| 侧栏、阅读纸张、次级卡片 | `primary-container` 18% + `surface-low` | `on-surface` | 浮动侧栏、阅读卡 |
 | 菜单、sheet、浮动面板 | `surface-container` | `on-surface` | 外观面板、目录、阅读设置 |
 | 搜索框、输入槽、次要按钮底 | `surface-high` | `on-surface` | 搜索胶囊、字号按钮 |
 | 更深一阶的中性表面 | `surface-highest` | `on-surface` | 搜索框焦点底、按压反馈 |
@@ -176,8 +176,8 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 | 紧凑关闭按钮 | 视觉 40px，命中区至少 44px |
 | 手机顶栏 | 56px 高 |
 | 桌面顶栏 | 64px 高 |
-| 手机底部导航 | `calc(5rem + env(safe-area-inset-bottom))` |
-| 桌面 Navigation Rail | 96px 宽 |
+| 手机底部导航 | 悬浮胶囊 76px 高，距底部 `14px + safe-area` |
+| 桌面浮动侧栏 | 展开 220px / 折叠 104px |
 | 阅读器底栏 | 手机 72px / 桌面 80px |
 | 桌面设置 side sheet | 372px 宽 |
 | 目录 side sheet | 320px 宽，最大 88% |
@@ -225,7 +225,7 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 | z-index | 用途 |
 | --- | --- |
 | 20 | Sticky 顶栏、页内下拉菜单的点击背板 |
-| 30 | Navigation Rail、页内菜单、阅读器顶部/底部工具栏 |
+| 30 | 桌面浮动侧栏、页内菜单、阅读器顶部/底部工具栏 |
 | 40 | 手机底部导航、遮罩、FAB |
 | 45 | 阅读器预测式返回遮罩（专用） |
 | 50 | Side sheet、bottom sheet、阅读器整屏层 |
@@ -243,7 +243,7 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 | --- | --- | --- |
 | `<= 767px` | Phone | 手机布局；底部导航、bottom sheet、安全区 |
 | `768–899px` | Compact Tablet | 仍属紧凑布局；书架使用 5 列 |
-| `>= 900px` | Desktop | Navigation Rail + 主列 + side sheet |
+| `>= 900px` | Desktop | 浮动侧栏 + 主列 + side sheet |
 | `>= 1600px` | Wide Desktop | 书架增至 8 列，限制卡片被拉成相框 |
 
 `isCompact` 与 Tailwind `min-[900px]:` 必须表达同一条主断点。`isPhone`、`isTablet`、`isDesktop`
@@ -253,8 +253,8 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 
 ```text
 ┌──────────┬────────────────────────────────────────────┐
-│ 96px     │ 64px Sticky Top App Bar                    │
-│ Rail     ├────────────────────────────────────────────┤
+│ 220px    │ 64px Sticky Top App Bar                    │
+│ 浮动侧栏 ├────────────────────────────────────────────┤
 │          │ 可滚动主内容                               │
 │          │                                            │
 │          │                        ┌── side sheet 372 ──┤
@@ -263,7 +263,8 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 └──────────┴────────────────────────────────────────────┘
 ```
 
-- Rail 固定 96px，使用 `surface-low`，logo 44px，导航指示条 `56px × 32px`。
+- 侧栏是浮动圆角卡片：展开 220px / 折叠 104px，四周 16px 留白，`28px` 圆角，底色为 `primary-container` 18% + `surface-low`。
+- 展开/折叠只跟随用户手动偏好，存 `localStorage.homura_sidenav_collapsed`，不按窗口宽度强制折叠。
 - 主列必须是 `flex-1 min-w-0`，防止长书名或菜单把布局撑破。
 - 阅读设置打开时，桌面正文区同步预留 372px，不让 sheet 遮住当前阅读列。
 
@@ -277,7 +278,7 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 │                              │
 │     FAB（抬离底栏与安全区）  │
 ├──────────────────────────────┤
-│ 5rem + safe-area 底部导航    │
+│ 悬浮胶囊 76px（距底 14px）   │
 └──────────────────────────────┘
 ```
 
@@ -527,24 +528,27 @@ Hover 规则：
 
 ## 8. 导航与页面头部
 
-### 8.1 Navigation Rail
+### 8.1 桌面浮动侧栏
 
 组件：`src/components/SideNav.vue`
 
-- 仅 `>=900px` 显示，宽 96px，sticky 满高，使用 `surface-low`。
-- Logo 44px，14px 圆角，使用 `primary-container` + `on-primary-container`。
-- 导航项图标容器 `56px × 32px`、16px 圆角；标签 10.5–12px。
-- 选中态图标容器使用 `primary-container`，标签使用 `on-primary-container`。
-- 外观入口已移到顶栏右上角（与「排序与更多操作」相邻），rail 只保留 4 项主导航。
+- 仅 `>=900px` 显示；`sticky top:16px`，高 `100dvh - 32px`，圆角 28px。
+- 展开 220px：顶部左侧折叠/展开按钮、水平居中的 48px 圆角头像（无主题色描边）；导航项 56px 高、30px 圆角、22px 图标 + 15px 文字横排。
+- 折叠 104px：顶部按钮与头像上下排列；导航项图标在上、11px 标签在下。
+- 选中态整行使用 `primary-container` + `on-primary-container`；4 项顺序固定为「书架 / 最近 / 收藏 / 设置」。
+- 展开/折叠使用 `280ms` 宽度过渡，头像、图标与标签同步重排；`prefers-reduced-motion: reduce` 时直接切换。
+- 导航标签使用固定字号的宽/窄两份文案交叉淡化，不插值 `font-size`，避免收起过程中字形重排抖动。
+- 外观入口已移到顶栏右上角（与「排序与更多操作」相邻），侧栏只保留 4 项主导航。
 - 每个导航项必须有 `title` 或 `aria-label`。
 
 ### 8.2 手机底部导航
 
-- 固定高度 `calc(5rem + env(safe-area-inset-bottom))`，使用 `surface-container`。
-- 每项图标指示器 `52px × 30px`、15px 圆角。
-- 选中时指示器使用 `primary-container`，图标与标签使用 `on-primary-container`。
+- 悬浮胶囊：左右各 14px、高 76px、`border-radius: 38px`、`bottom: calc(14px + env(safe-area-inset-bottom))`。
+- 底色使用 `primary-container` 22% 混入 `surface-container`，带柔和投影，不使用贴边直角底栏。
+- 每项 `60px × 56px`、18px 圆角，图标 22px + 11px 标签。
+- 选中项整块使用 `primary`，图标与标签使用 `on-primary`。
 - 标签 10.5–12px / 600。
-- 内容页必须通过 `.md-bottom-nav-space` 预留高度。
+- 内容页必须通过 `.md-bottom-nav-space`（`6.5rem + safe-area`）预留高度。
 - 底部导航不得被转场容器、`overflow` 或 WebView 视口变化带出屏幕。
 
 ### 8.3 书架顶栏
@@ -553,7 +557,7 @@ Hover 规则：
 
 - Sticky，`z-20`，背景 `surface`，手机 56px / 桌面 64px。
 - 页面标题 21/22px / 500，作品数量使用 `secondary-container` 胶囊。
-- 手机搜索框独占一行；桌面搜索框嵌入顶栏中段并限制宽度。
+- 手机搜索框独占一行；`900–1079px` 桌面展开侧栏时搜索框也独占一行；`>=1080px` 嵌入顶栏中段并限制宽度。
 - 筛选 chips 在搜索下方；手机横向滚动，桌面不换行到不可用宽度。
 - 菜单触发必须有 `aria-haspopup` 与 `aria-expanded`。
 
