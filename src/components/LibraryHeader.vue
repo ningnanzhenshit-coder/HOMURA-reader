@@ -118,16 +118,27 @@
           v-for="t in types"
           :key="t.value"
           @click="$emit('update:type', t.value)"
-          class="h-11 min-[900px]:h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center gap-1.5 border-[0.5px] border-[var(--md-outline-variant)] transition-colors duration-200"
-          :class="type === t.value
-            ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-transparent'
-            : 'border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+          class="library-filter-chip h-11 min-[900px]:h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center"
+          :class="[
+            type === t.value
+              ? 'is-selected text-[var(--md-on-secondary-container)]'
+              : 'text-[var(--md-on-surface)]',
+            { 'is-pushed': isPushedFilter(t.value) }
+          ]"
           :aria-pressed="type === t.value"
         >
-          <svg v-if="type === t.value" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-          </svg>
-          {{ t.label }}
+          <span class="library-filter-surface" aria-hidden="true"></span>
+          <span class="library-filter-fill" aria-hidden="true"></span>
+          <span
+            class="library-filter-check"
+            :class="{ 'is-visible': type === t.value }"
+            aria-hidden="true"
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
+            </svg>
+          </span>
+          <span class="library-filter-label">{{ t.label }}</span>
         </button>
       </div>
 
@@ -232,6 +243,12 @@ const types = [
   { value: 'novel', label: '轻小说' }
 ];
 
+function isPushedFilter(value) {
+  const selectedIndex = types.findIndex(type => type.value === props.type);
+  const chipIndex = types.findIndex(type => type.value === value);
+  return selectedIndex >= 0 && chipIndex > selectedIndex;
+}
+
 const formatOptions = [
   { value: 'all', label: '不限格式' },
   { value: 'epub', label: 'EPUB' },
@@ -273,3 +290,111 @@ function onClear() {
   shelf.clearShelf();
 }
 </script>
+
+<style scoped>
+.library-filter-chip {
+  --filter-check-space: 20px;
+  position: relative;
+  isolation: isolate;
+  border: 0;
+  background: transparent;
+  transition:
+    color var(--md-duration-short) var(--md-ease-emphasized),
+    transform var(--md-duration-short) var(--md-ease-emphasized);
+}
+
+.library-filter-chip.is-pushed {
+  transform: translate3d(var(--filter-check-space), 0, 0);
+}
+
+.library-filter-chip:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.library-filter-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-color: transparent;
+  box-shadow: inset 0 0 0 0.5px var(--md-outline-variant);
+  pointer-events: none;
+  transition:
+    background-color var(--md-duration-short) var(--md-ease-emphasized),
+    box-shadow var(--md-duration-short) var(--md-ease-emphasized);
+}
+
+.library-filter-chip.is-selected .library-filter-surface {
+  box-shadow: inset 0 0 0 0.5px transparent;
+}
+
+.library-filter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 0;
+  width: calc(100% + var(--filter-check-space));
+  border-radius: inherit;
+  background-color: var(--md-secondary-container);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--md-duration-short) var(--md-ease-emphasized);
+}
+
+.library-filter-chip.is-selected .library-filter-fill {
+  opacity: 1;
+}
+
+.library-filter-check {
+  position: absolute;
+  top: 50%;
+  left: 13px;
+  z-index: 1;
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translate3d(-4px, -50%, 0) scale(0.8);
+  transition:
+    opacity var(--md-duration-short) var(--md-ease-emphasized),
+    transform var(--md-duration-short) var(--md-ease-emphasized);
+}
+
+.library-filter-check.is-visible {
+  opacity: 1;
+  transform: translate3d(0, -50%, 0) scale(1);
+}
+
+.library-filter-check svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.library-filter-label {
+  position: relative;
+  z-index: 1;
+  transition: transform var(--md-duration-short) var(--md-ease-emphasized);
+}
+
+.library-filter-chip.is-selected .library-filter-label {
+  transform: translate3d(var(--filter-check-space), 0, 0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .library-filter-chip:not(.is-selected):hover .library-filter-surface {
+    background-color: var(--md-surface-container);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-filter-chip,
+  .library-filter-surface,
+  .library-filter-fill,
+  .library-filter-check,
+  .library-filter-label {
+    transition: none;
+  }
+}
+</style>

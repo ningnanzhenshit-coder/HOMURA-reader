@@ -1,79 +1,89 @@
 <template>
-  <!-- 继续阅读 · MD3 特色卡（桌面跨两列 / 手机整行），点击回到上次阅读位置 -->
+  <!-- 继续阅读 · 书封主导的 MD3 特色卡（桌面跨两列 / 手机整行） -->
   <button
     v-if="featured"
     type="button"
+    class="continue-card md-featured-cell"
+    :title="`${started ? '继续阅读' : '开始阅读'}：${featured.book.title}`"
+    :aria-label="`${started ? '继续阅读' : '开始阅读'}：${featured.book.title}`"
     @click="$emit('open', featured.book.id)"
-    class="md-featured-cell w-full h-full min-h-[96px] min-w-0 text-left rounded-[16px] overflow-hidden flex bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]"
-    :title="`继续阅读：${featured.book.title}`"
   >
-    <!-- 竖排书封 -->
-    <div
-      class="relative shrink-0 overflow-hidden"
-      :class="compactCard ? 'w-[78px]' : 'w-[150px]'"
-      :style="{ background: 'linear-gradient(155deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 42%, var(--md-tertiary)))' }"
-    >
-      <span
-        class="absolute text-[var(--md-on-primary)] overflow-hidden"
-        :class="compactCard ? 'left-2.5 bottom-2.5 text-[12px] font-bold max-w-[calc(100%-20px)]' : 'left-4 top-4 font-semibold max-h-[calc(100%-32px)]'"
-        :style="coverTitleStyle"
-      >{{ coverLabel }}</span>
-      <i
-        v-if="!compactCard"
-        class="absolute inset-3 rounded-[4px] pointer-events-none"
-        :style="{ border: '0.5px solid color-mix(in oklab, var(--md-on-primary) 34%, transparent)' }"
-      ></i>
-    </div>
+    <!-- 39% 封面：优先真实书封，缺失时使用主题色书封 -->
+    <span class="cover-shell">
+      <img
+        v-if="featured.book.cover"
+        :src="featured.book.cover"
+        class="cover-image"
+        alt=""
+        draggable="false"
+      />
+      <span v-else class="cover-fallback" aria-hidden="true">
+        <span class="cover-orbit cover-orbit-a"></span>
+        <span class="cover-orbit cover-orbit-b"></span>
+        <span class="cover-wordmark">HOMURA</span>
+        <span class="cover-fallback-copy">
+          <strong class="font-display">{{ featured.book.title }}</strong>
+          <small>{{ typeLabel }}</small>
+        </span>
+      </span>
+      <span class="cover-shade" aria-hidden="true"></span>
+      <span class="cover-spine" aria-hidden="true"></span>
+      <span class="cover-type">{{ typeLabel }}</span>
+    </span>
 
-    <!-- 信息区 -->
-    <div class="min-w-0 flex-1 flex flex-col justify-center" :class="compactCard ? 'px-3.5 py-3' : 'p-[18px]'">
-      <div class="font-mono uppercase opacity-70 text-[12px]" :class="compactCard ? 'tracking-[0.12em]' : 'tracking-[0.14em]'">{{ started ? 'Continue reading' : 'Start reading' }}</div>
-      <h3 class="font-extrabold line-clamp-2" :class="compactCard ? 'text-[13px] mt-1.5 mb-1 leading-snug' : 'text-[17px] mt-[7px] mb-[5px] leading-[1.25]'">{{ featured.book.title }}</h3>
-      <p class="opacity-70 flex items-center gap-1.5 min-w-0 overflow-hidden text-[12px]">
-        <template v-for="(part, idx) in subtitleParts" :key="idx">
-          <i v-if="idx" class="block w-[0.5px] h-2.5 shrink-0 bg-current opacity-25"></i>
-          <span :class="idx === subtitleParts.length - 1 ? 'truncate' : 'shrink-0'">{{ part }}</span>
-        </template>
-      </p>
-      <div v-if="!compactCard" class="flex gap-2.5 mt-2 font-mono text-[12px] opacity-60">
-        <span>剩余 {{ remainingText }}</span>
-        <span>{{ timeText }}</span>
-      </div>
+    <span class="content">
+      <span class="eyebrow-row">
+        <span class="eyebrow">{{ started ? '继续阅读' : '开始阅读' }}</span>
+        <span class="last-read">{{ lastReadLabel }}</span>
+      </span>
 
-      <div class="flex items-center" :class="compactCard ? 'mt-auto gap-2' : 'mt-5 gap-2.5'">
-        <div
-          class="flex-1 h-[3px] rounded-full overflow-hidden"
-          :style="{ background: 'color-mix(in oklab, var(--md-on-primary-container) 18%, transparent)' }"
-        >
-          <i class="block h-full rounded-full bg-[var(--md-primary)]" :style="{ width: featured.progress.percent + '%' }"></i>
-        </div>
-        <em class="not-italic font-mono text-[12px]">{{ featured.progress.percent }}%</em>
-        <span
-          v-if="!compactCard"
-          class="w-10 h-10 shrink-0 rounded-full grid place-items-center bg-[var(--md-primary)] text-[var(--md-on-primary)] ml-2.5"
-        >
-          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M7 4l13 8-13 8z"/>
+      <span class="book-title">{{ featured.book.title }}</span>
+
+      <span class="meta">
+        <span class="kind">{{ typeLabel }}</span>
+        <span class="position">
+          <template v-if="started">第 {{ featured.progress.index + 1 }} / {{ totalPages }} 页</template>
+          <template v-else>{{ totalPages }} 页</template>
+        </span>
+        <span class="status">{{ remainingText }}</span>
+      </span>
+
+      <span class="footer">
+        <span class="progress-wrap">
+          <span class="progress-label">
+            <span>阅读进度</span>
+            <b>{{ featured.progress.percent }}%</b>
+          </span>
+          <span
+            class="page-meter"
+            aria-hidden="true"
+            :style="{ gridTemplateColumns: `repeat(${progressSegments.length}, minmax(0, 1fr))` }"
+          >
+            <i
+              v-for="(filled, idx) in progressSegments"
+              :key="idx"
+              :class="{ done: filled }"
+            ></i>
+          </span>
+        </span>
+        <span class="play" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M7 4l13 8-13 8z" stroke-width="2.3" stroke-linejoin="round"/>
           </svg>
         </span>
-      </div>
-    </div>
+      </span>
+    </span>
   </button>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
-import { useViewport } from '../composables/useViewport.js';
 import { resolveBookFormat } from '../services/utils.js';
 
 defineEmits(['open']);
 
 const shelf = useShelfStore();
-const { isCompact, width } = useViewport();
-
-// 900–1179 的最小桌面窗口仍只有两列宽，沿用紧凑排版避免标题被挤压。
-const compactCard = computed(() => isCompact.value || width.value < 1180);
 
 const items = computed(() =>
   shelf.library
@@ -89,28 +99,6 @@ const featured = computed(() => {
   if (!book) return null;
   const total = book.pageCount || (book.pageItems && book.pageItems.length) || (book.chapters && book.chapters.length) || 0;
   return { book, progress: { index: 0, total, percent: 0, updatedAt: 0 } };
-});
-
-// 封面书名：优先取中文部分，避免竖排把 "Homura" 截成 "Homu"
-const coverLabel = computed(() => {
-  const raw = featured.value ? featured.value.book.title.trim() : '';
-  if (!raw) return '';
-  const zh = raw.replace(/[A-Za-z0-9（）()「」《》·:：—\-\s]/g, '');
-  const label = zh || raw;
-  return compactCard.value ? label.slice(0, 3) : label.slice(0, 12);
-});
-
-// 桌面：竖排书名（手机退化为左下角横排小字）
-const coverTitleStyle = computed(() => {
-  if (compactCard.value) return null;
-  const n = coverLabel.value.length;
-  return {
-    writingMode: 'vertical-rl',
-    fontFamily: 'system-ui',
-    letterSpacing: '0.16em',
-    lineHeight: 1.25,
-    fontSize: (n <= 6 ? 26 : n <= 9 ? 20 : 15) + 'px'
-  };
 });
 
 const typeLabel = computed(() => {
@@ -134,15 +122,6 @@ const totalPages = computed(() => {
   return book.chapters ? book.chapters.length : 0;
 });
 
-const subtitleParts = computed(() => {
-  const item = featured.value;
-  if (!item) return [];
-  const status = started.value
-    ? `${clockText.value} 读到 ${item.progress.index + 1} 页`
-    : '尚未开始';
-  return [typeLabel.value, `${totalPages.value} 页`, status];
-});
-
 const started = computed(() => !!featured.value && featured.value.progress.percent > 0);
 
 // 上次阅读时间：当天只显示时刻，跨天显示日期
@@ -158,19 +137,388 @@ const clockText = computed(() => {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 });
 
-const remainingText = computed(() => {
-  const item = featured.value;
-  if (!item) return '';
-  return `${Math.max(0, totalPages.value - item.progress.index - 1)} 页`;
+const lastReadLabel = computed(() => {
+  if (!started.value) return '初次阅读';
+  return clockText.value ? `上次 ${clockText.value}` : '上次阅读';
 });
 
-// 粗略估算：按每分钟约 2 页的阅读速度
-const timeText = computed(() => {
+const remainingText = computed(() => {
   const item = featured.value;
-  if (!item) return '';
+  if (!item || !started.value) return '尚未开始';
   const rest = Math.max(0, totalPages.value - item.progress.index - 1);
-  const minutes = Math.max(1, Math.round(rest / 2));
-  if (minutes < 60) return `约 ${minutes} 分钟`;
-  return `约 ${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分`;
+  return `剩 ${rest} 页`;
+});
+
+// 分段数量保持稳定，避免短篇只有两三段时进度条显得零碎
+const progressSegments = computed(() => {
+  const count = Math.min(10, Math.max(6, totalPages.value || 6));
+  const percent = featured.value ? featured.value.progress.percent : 0;
+  const rawFilled = Math.round((percent / 100) * count);
+  const filled = Math.min(count, Math.max(percent > 0 ? 1 : 0, rawFilled));
+  return Array.from({ length: count }, (_, idx) => idx < filled);
 });
 </script>
+
+<style scoped>
+  .continue-card {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 158px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    gap: 0;
+    border: .5px solid color-mix(in oklab, var(--md-primary) 22%, var(--md-outline-variant));
+    border-radius: 20px;
+    color: var(--md-on-primary-container);
+    text-align: left;
+    background:
+      radial-gradient(circle at 100% 10%, color-mix(in oklab, var(--md-primary) 14%, transparent), transparent 38%),
+      linear-gradient(116deg,
+        color-mix(in oklab, var(--md-primary-container) 92%, var(--md-surface-container)),
+        color-mix(in oklab, var(--md-primary-container) 44%, var(--md-surface-container)) 62%,
+        var(--md-surface-container));
+    box-shadow:
+      0 1px 0 color-mix(in oklab, var(--md-primary) 13%, transparent) inset,
+      0 14px 30px -26px color-mix(in oklab, var(--md-primary) 50%, transparent);
+  }
+
+  .continue-card::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 122px;
+    height: 122px;
+    right: -50px;
+    bottom: -65px;
+    border: 1px solid color-mix(in oklab, var(--md-primary) 13%, transparent);
+    border-radius: 50%;
+  }
+
+  .continue-card:focus-visible {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 2px;
+  }
+
+  .cover-shell {
+    position: relative;
+    flex: 0 0 39%;
+    align-self: stretch;
+    min-height: 156px;
+    overflow: hidden;
+    border-radius: 19px 0 0 19px;
+    color: var(--md-on-primary);
+    background:
+      radial-gradient(circle at 82% 22%, color-mix(in oklab, var(--md-tertiary) 48%, transparent), transparent 36%),
+      linear-gradient(155deg, var(--md-primary), color-mix(in oklab, var(--md-primary) 42%, var(--md-tertiary)));
+    box-shadow: inset -1px 0 0 color-mix(in oklab, var(--md-on-primary-container) 16%, transparent);
+  }
+
+  .cover-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .cover-fallback {
+    position: absolute;
+    inset: 0;
+    display: block;
+    overflow: hidden;
+    color: var(--md-on-primary);
+  }
+
+  .cover-wordmark {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    z-index: 2;
+    font: 750 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .16em;
+    opacity: .72;
+  }
+
+  .cover-orbit {
+    position: absolute;
+    display: block;
+    border: 1px solid color-mix(in oklab, var(--md-on-primary) 38%, transparent);
+    border-radius: 50%;
+  }
+
+  .cover-orbit-a {
+    width: 82%;
+    aspect-ratio: 1;
+    right: -24%;
+    top: 12%;
+  }
+
+  .cover-orbit-b {
+    width: 44%;
+    aspect-ratio: 1;
+    right: 14%;
+    top: 24%;
+    background: color-mix(in oklab, var(--md-on-primary) 15%, transparent);
+  }
+
+  .cover-fallback-copy {
+    position: absolute;
+    inset: auto 14px 16px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cover-fallback-copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: 18px;
+    line-height: 1.24;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+
+  .cover-fallback-copy small {
+    font: 650 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .12em;
+    opacity: .72;
+  }
+
+  .cover-shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, transparent 54%, color-mix(in oklab, var(--md-surface) 58%, transparent)),
+      linear-gradient(90deg, color-mix(in oklab, var(--md-on-primary-container) 16%, transparent), transparent 18%);
+  }
+
+  .cover-spine {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 11px;
+    border-radius: 19px 0 0 19px;
+    pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in oklab, var(--md-on-primary-container) 26%, transparent), transparent);
+  }
+
+  .cover-type {
+    position: absolute;
+    left: 10px;
+    bottom: 9px;
+    z-index: 2;
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--md-on-surface);
+    background: color-mix(in oklab, var(--md-surface) 78%, transparent);
+    font-size: 9px;
+    font-weight: 700;
+    backdrop-filter: blur(8px);
+  }
+
+  .content {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 14px 14px 13px 16px;
+  }
+
+  .eyebrow-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--md-primary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 4px color-mix(in oklab, currentColor 12%, transparent);
+  }
+
+  .last-read {
+    margin-left: auto;
+    color: color-mix(in oklab, var(--md-on-primary-container) 62%, transparent);
+    font: 550 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap;
+  }
+
+  .book-title {
+    display: block;
+    margin: 8px 0 4px;
+    overflow: hidden;
+    font-size: 18px;
+    font-weight: 760;
+    line-height: 1.24;
+    letter-spacing: -.018em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .meta {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: color-mix(in oklab, var(--md-on-primary-container) 68%, transparent);
+    font-size: 11px;
+    font-weight: 520;
+  }
+
+  .kind {
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--md-on-primary-container) 84%, transparent);
+    background: color-mix(in oklab, var(--md-on-primary-container) 9%, transparent);
+    font-size: 9.5px;
+    font-weight: 680;
+  }
+
+  .position {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .footer {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .progress-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .progress-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    color: color-mix(in oklab, var(--md-on-primary-container) 60%, transparent);
+    font-size: 9.5px;
+    font-weight: 600;
+  }
+
+  .progress-label b {
+    color: var(--md-on-primary-container);
+    font: 650 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .page-meter {
+    display: grid;
+    gap: 5px;
+  }
+
+  .page-meter i {
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--md-on-primary-container) 14%, transparent);
+  }
+
+  .page-meter i.done {
+    background: var(--md-primary);
+  }
+
+  .play {
+    position: relative;
+    width: 39px;
+    height: 39px;
+    flex: 0 0 39px;
+    display: grid;
+    place-items: center;
+    border: .5px solid color-mix(in oklab, var(--md-primary) 44%, transparent);
+    border-radius: 50%;
+    color: var(--md-primary);
+    background: color-mix(in oklab, var(--md-primary) 12%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--md-primary) 5%, transparent);
+    transition: transform 200ms cubic-bezier(.2, 0, 0, 1), background-color 200ms cubic-bezier(.2, 0, 0, 1);
+  }
+
+  .play svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  @media (hover: hover) {
+    .continue-card:hover .play {
+      transform: translateX(1px) scale(1.04);
+      background: color-mix(in oklab, var(--md-primary) 18%, transparent);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .cover-shell {
+      flex-basis: 36%;
+    }
+
+    .content {
+      padding: 13px 12px 12px 14px;
+    }
+
+    .book-title {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      font-size: 17px;
+      white-space: normal;
+    }
+
+    .last-read {
+      display: none;
+    }
+  }
+
+  @media (min-width: 900px) and (max-width: 1179px) {
+    .book-title {
+      font-size: 16px;
+    }
+
+    .last-read {
+      display: none;
+    }
+
+    .content {
+      padding: 13px 12px 12px 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .play {
+      transition: none;
+    }
+
+    .continue-card:hover .play {
+      transform: none;
+    }
+  }
+</style>

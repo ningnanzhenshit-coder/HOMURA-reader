@@ -4,11 +4,16 @@
     v-if="!isCompact"
     class="shrink-0 sticky top-0 h-screen w-24 z-30 flex flex-col items-center pt-3.5 pb-4 bg-[var(--md-surface-low)] border-r-[0.5px] border-[var(--md-outline-variant)]"
   >
-    <div
-      class="w-11 h-11 shrink-0 rounded-[14px] grid place-items-center mb-[22px] bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)] select-none"
-      style="font-family: system-ui; font-style: italic; font-size: 26px; line-height: 1;"
-      title="HOMURA"
-    >H</div>
+    <div class="rail-logo shrink-0 mb-[22px]" title="HOMURA" role="img" aria-label="HOMURA">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <path
+          d="M9 8v16M23 8v16M9 16h14"
+          stroke="currentColor"
+          stroke-width="3.2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </div>
 
     <nav class="flex flex-col items-center gap-1.5 w-full">
       <button
@@ -81,14 +86,14 @@
         v-for="item in bottomItems"
         :key="item.key"
         @click="select(item.key)"
-        class="flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
+        class="nav-button flex-1 flex flex-col items-center gap-0.5 font-semibold text-[12px]"
         :class="active === item.key ? 'text-[var(--md-on-primary-container)]' : 'text-[var(--md-on-surface-variant)]'"
         :title="item.label"
         :aria-current="active === item.key ? 'page' : undefined"
       >
         <span
-          class="w-[52px] h-[30px] rounded-[15px] grid place-items-center"
-          :class="active === item.key ? 'bg-[var(--md-primary-container)]' : ''"
+          class="nav-capsule w-[52px] h-[30px] rounded-[15px] grid place-items-center"
+          :class="{ 'is-active': active === item.key }"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <template v-if="item.key === 'shelf'">
@@ -257,3 +262,77 @@ watch([appearanceOpen, isCompact], ([open, compact]) => {
 
 onBeforeUnmount(unlockShelfScroll);
 </script>
+
+<style scoped>
+  .nav-button {
+    -webkit-tap-highlight-color: transparent;
+    transition: color 200ms cubic-bezier(.2, 0, 0, 1);
+  }
+
+  .rail-logo {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    color: var(--md-on-primary-container);
+    background: var(--md-primary-container);
+    user-select: none;
+  }
+
+  .rail-logo svg {
+    width: 31px;
+    height: 31px;
+  }
+
+  .nav-capsule {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .nav-capsule::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--md-primary-container);
+    opacity: 0;
+    transform: scale(.42);
+    transition:
+      transform 200ms cubic-bezier(.2, 0, 0, 1),
+      opacity 200ms cubic-bezier(.2, 0, 0, 1);
+  }
+
+  .nav-capsule.is-active::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .nav-capsule svg {
+    position: relative;
+    z-index: 1;
+    transform-origin: center;
+  }
+
+  .nav-capsule.is-active svg {
+    animation: nav-icon-settle 200ms cubic-bezier(.2, 0, 0, 1);
+  }
+
+  @keyframes nav-icon-settle {
+    0% { transform: translateY(2px) scale(.8); }
+    58% { transform: translateY(-1px) scale(1.1); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-button,
+    .nav-capsule::before {
+      transition: none;
+    }
+
+    .nav-capsule.is-active svg {
+      animation: none;
+    }
+  }
+</style>
