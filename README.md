@@ -1,4 +1,4 @@
-<img width="400" height="400" alt="c8c68a9b72f355fbc8de1430a2d2a406_720" src="https://github.com/user-attachments/assets/b4f2f6d5-7459-4fd9-b184-a60fffca3d8c" />
+<img width="400" height="400" alt="Untitled-1 - 02-11-2026 19-19-50" src="https://github.com/user-attachments/assets/818e7aba-f12a-49e1-8640-8852cb852b8b" />
 
 # HOMURA — 本地漫画与轻小说阅读器
 
