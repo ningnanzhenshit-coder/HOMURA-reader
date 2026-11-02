@@ -1,11 +1,13 @@
 <template>
-  <div class="md-shelf-card group cursor-pointer flex flex-col min-w-0" @click="$emit('open', book.id)">
+  <article class="md-shelf-card group relative flex flex-col min-w-0" :class="{ 'md-book-selected': selected }" draggable="true" @dragstart="$emit('drag', $event, book.id)">
+    <button class="absolute inset-0 z-10 rounded-2xl" :aria-label="selecting ? `选择书本：${book.title}` : `阅读：${book.title}`" :aria-pressed="selecting ? selected : undefined" @click="$emit('open', book.id)"></button>
     <div class="aspect-[3/4] w-full relative overflow-hidden bg-[var(--md-surface-high)]">
       <img
         v-if="book.cover"
         :src="book.cover"
         class="manga-page-img w-full h-full object-cover group-hover:scale-105 transition duration-300"
         loading="lazy"
+        draggable="false"
       />
       <div
         v-else
@@ -24,14 +26,16 @@
       >{{ badgeText }}</span>
 
       <button
+        v-if="!selecting"
         @click.stop="$emit('remove', book.id)"
-        class="card-remove-btn md-hit-target absolute top-2 right-2 w-8 h-8 rounded-full text-[var(--md-surface)] flex items-center justify-center transition"
+        class="card-remove-btn md-hit-target absolute z-20 top-2 right-2 w-8 h-8 rounded-full text-[var(--md-surface)] flex items-center justify-center transition"
         style="background: color-mix(in oklab, var(--md-on-surface) 72%, transparent);"
-        title="从书架移除"
-        aria-label="从书架移除"
+        :title="removeLabel"
+        :aria-label="removeLabel"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
+      <span v-else class="absolute z-20 top-2 right-2 w-7 h-7 grid place-items-center rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] pointer-events-none" aria-hidden="true">{{ selected ? '✓' : '○' }}</span>
 
       <!-- 3px 进度条 -->
       <div v-if="progress" class="absolute bottom-0 inset-x-0 h-[3px]" style="background: rgba(0,0,0,0.18);">
@@ -48,7 +52,7 @@
         </b>
       </div>
     </div>
-  </div>
+  </article>
 </template>
 
 <script setup>
@@ -57,10 +61,13 @@ import { resolveBookFormat } from '../services/utils.js';
 
 const props = defineProps({
   book: { type: Object, required: true },
+  selecting: { type: Boolean, default: false },
+  selected: { type: Boolean, default: false },
+  removeLabel: { type: String, default: '从书架移除' },
   progress: { type: Object, default: null }
 });
 
-defineEmits(['open', 'remove']);
+defineEmits(['open', 'remove', 'drag']);
 
 const badgeText = computed(() => {
   const format = resolveBookFormat(props.book);

@@ -79,6 +79,61 @@ export async function ensureChapterImagesResolved(chap, book) {
 // ---- 小说智能分页：按窗口高度与字号切成一屏一页 ----
 // 返回 activePages 数组，不写任何全局状态
 
+// 长段落按实际高度二分切开，保留行内标记；不依赖句号，避免整段被裁掉。
+function splitLongParagraph(html, measurer, maxHeight) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  const source = wrapper.firstElementChild;
+  if (!source || source.tagName !== 'P' || source.querySelector('img, svg, image, br')) return [html];
+  const text = source.textContent;
+  const offsets = [0];
+  for (const character of text) offsets.push(offsets[offsets.length - 1] + character.length);
+  const nodes = [];
+  const walker = document.createTreeWalker(source, NodeFilter.SHOW_TEXT);
+  let length = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    nodes.push({ node, start: length, end: length + node.length });
+    length += node.length;
+  }
+  if (!length) return [html];
+  function fragment(start, end) {
+    const range = document.createRange();
+    const first = nodes.find(item => item.end > start);
+    const last = nodes.find(item => item.end >= end);
+    range.setStart(first.node, start - first.start);
+    range.setEnd(last.node, end - last.start);
+    const paragraph = source.cloneNode(false);
+    let content = range.cloneContents();
+    let ancestor = range.commonAncestorContainer;
+    if (ancestor.nodeType === Node.TEXT_NODE) ancestor = ancestor.parentNode;
+    while (ancestor && ancestor !== source) {
+      const inline = ancestor.cloneNode(false);
+      inline.append(content);
+      content = inline;
+      ancestor = ancestor.parentNode;
+    }
+    paragraph.append(content);
+    return paragraph.outerHTML;
+  }
+  const parts = [];
+  let start = 0;
+  while (start < offsets.length - 1) {
+    let low = start + 1;
+    let high = offsets.length - 1;
+    let fit = low;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      measurer.innerHTML = fragment(offsets[start], offsets[middle]);
+      if (measurer.scrollHeight <= maxHeight) { fit = middle; low = middle + 1; }
+      else high = middle - 1;
+    }
+    parts.push(fragment(offsets[start], offsets[fit]));
+    start = fit;
+  }
+  return parts;
+}
+
 export function buildActivePages(book, layoutConfig, measurer) {
   if (book.type === 'manga') {
     return (book.pageItems || []).map((item, idx) => ({
@@ -102,11 +157,13 @@ export function buildActivePages(book, layoutConfig, measurer) {
   const compact = vw < 768;
 
   const isDouble = layoutConfig.spread === 2 && !compact;
+  const stageWidth = document.querySelector('[data-reader-stage]')?.clientWidth || vw;
+  const outerPadding = vw >= 640 ? 32 : 16;
   const cardOuterWidth = isDouble
-    ? Math.min(540, Math.floor((vw - 64) / 2))
-    : Math.min(672, vw - 32);
+    ? (Math.min(1152, stageWidth) - outerPadding - 12) / 2
+    : Math.min(660, stageWidth - outerPadding);
   const cardHorizontalPadding = vw >= 640 ? 80 : 48;
-  const contentWidth = Math.max(220, cardOuterWidth - cardHorizontalPadding);
+  const contentWidth = Math.max(80, cardOuterWidth - cardHorizontalPadding - 2);
   // 工具栏（顶 56 + 底 48）与卡片内外边距之和：桌面沿用既有实测值，移动端按紧凑布局
   const chromeHeight = compact ? 236 : 267;
   const availableTextHeight = Math.max(160, vh - chromeHeight);
@@ -173,39 +230,13 @@ export function buildActivePages(book, layoutConfig, measurer) {
       if (measurer.scrollHeight <= availableTextHeight) {
         currentPageHtml = candidateHtml;
       } else {
-        if (!prevHtml && blk.text.length > 80 && !blk.html.includes('<img')) {
-          const sentences = blk.text.match(/[^。！？!?]+[。！？!?”]*/g) || [blk.text];
-          let subParaText = '';
-          for (const sent of sentences) {
-            const testPara = `<p>${escapeHtml(subParaText + sent)}</p>`;
-            measurer.innerHTML = currentPageHtml + testPara;
-            if (measurer.scrollHeight <= availableTextHeight) {
-              subParaText += sent;
-            } else {
-              if (subParaText) {
-                currentPageHtml += `<p>${escapeHtml(subParaText)}</p>`;
-                flushCurrentPage();
-                subParaText = sent;
-              } else {
-                currentPageHtml += testPara;
-                flushCurrentPage();
-                subParaText = '';
-              }
-            }
-          }
-          if (subParaText) {
-            currentPageHtml += `<p>${escapeHtml(subParaText)}</p>`;
-            measurer.innerHTML = currentPageHtml;
-          }
-        } else {
-          if (prevHtml) {
-            flushCurrentPage();
-          }
-          currentPageHtml = blk.html;
+        if (prevHtml) flushCurrentPage();
+        measurer.innerHTML = blk.html;
+        const parts = measurer.scrollHeight > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
+        for (let index = 0; index < parts.length; index++) {
+          currentPageHtml = parts[index];
           measurer.innerHTML = currentPageHtml;
-          if (measurer.scrollHeight > availableTextHeight) {
-            flushCurrentPage();
-          }
+          if (index < parts.length - 1 || measurer.scrollHeight > availableTextHeight) flushCurrentPage();
         }
       }
     }

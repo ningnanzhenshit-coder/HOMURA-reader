@@ -33,7 +33,9 @@ export default defineConfig({
   clearScreen: false,
   server: {
     port: 5173,
-    strictPort: true
+    strictPort: true,
+    // 原生构建产物不参与热更新，避免打包时误刷新正在阅读的页面。
+    watch: { ignored: ['**/src-tauri/target/**', '**/src-tauri/gen/**'] }
   },
   build: {
     outDir: 'dist',

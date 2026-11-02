@@ -56,6 +56,19 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
         </svg>
       </button>
+      <button v-if="reader.currentCollection" class="min-w-11 h-11 px-2 rounded-full text-[11px] font-semibold text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]" title="本目录" aria-label="本目录" :aria-expanded="ui.collectionTocOpen" @click="ui.openCollectionToc()">本目录</button>
+      <button
+        class="w-11 h-11 rounded-full grid place-items-center hover:bg-[var(--md-surface-container)] transition-colors duration-200 disabled:opacity-50"
+        :title="isFavorite ? '取消收藏' : '收藏本书'"
+        :aria-label="isFavorite ? '取消收藏' : '收藏本书'"
+        :aria-pressed="isFavorite"
+        :disabled="favoriteBusy"
+        @click="toggleFavorite"
+      >
+        <svg class="w-5 h-5" :fill="isFavorite ? 'var(--md-favorite)' : 'var(--md-surface)'" stroke="var(--md-on-surface)" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3l2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3z" />
+        </svg>
+      </button>
       <button
         @click="ui.openSettings()"
         class="w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
@@ -68,15 +81,37 @@
         </svg>
       </button>
     </div>
+    <p v-if="favoriteError" role="alert" class="absolute top-full right-4 mt-2 max-w-[280px] p-3 rounded-xl text-[13px] bg-[var(--md-surface-container)] text-[var(--md-on-surface)] shadow-lg">{{ favoriteError }}</p>
   </header>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
+import { useShelfStore } from '../stores/shelf.js';
 import { useUiStore } from '../stores/ui.js';
 
 const reader = useReaderStore();
+const shelf = useShelfStore();
+const favoriteBusy = ref(false);
+const favoriteError = ref('');
+const isFavorite = computed(() => !!shelf.library.find(book => book.id === reader.currentBook?.id)?.favorite);
+watch(() => reader.currentBook?.id, () => { favoriteError.value = ''; });
+
+async function toggleFavorite() {
+  const id = reader.currentBook?.id;
+  if (!id || favoriteBusy.value) return;
+  favoriteBusy.value = true;
+  favoriteError.value = '';
+  try {
+    await shelf.toggleFavorite(id);
+  } catch (err) {
+    if (reader.currentBook?.id === id) favoriteError.value = err.message || '收藏保存失败，请重试';
+    console.warn('[HOMURA] 收藏保存失败', err);
+  } finally {
+    favoriteBusy.value = false;
+  }
+}
 const ui = useUiStore();
 const emit = defineEmits(['back']);
 

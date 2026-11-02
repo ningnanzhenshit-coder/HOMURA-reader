@@ -31,8 +31,9 @@
 </template>
 
 <script setup>
-import logoUrl from '../assets/logo.png';
 import { useViewport } from '../composables/useViewport.js';
+
+const logoUrl = import.meta.env.BASE_URL + 'favicon.png';
 
 const { isPhone, isCompact } = useViewport();
 

@@ -7,10 +7,24 @@
 
 import JSZip from 'jszip';
 import { escapeHtml } from './utils.js';
+import { decodeTxtBytes } from './textEncoding.js';
 import { renderMarkdown } from './markdown.js';
 import { sanitizeEpubHtml } from './sanitize.js';
 import { parseMobiBuffer } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
+
+// 同名书被跳过时还未入架，及时释放解析阶段创建的位图 URL 与 PDF worker。
+export async function discardParsedBook(book) {
+  const urls = new Set([book.cover, ...(book.resourceUrls || []), ...(book.pageItems || []).map(item => item.url)]);
+  for (const url of urls) {
+    if (typeof url === 'string' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+  }
+  try {
+    await book.pdfDoc?.loadingTask.destroy();
+  } catch (err) {
+    console.warn('[HOMURA] 释放跳过的 PDF 失败', err);
+  }
+}
 
 
 // ---- EPUB 内部相对路径解析 ----
@@ -235,64 +249,50 @@ export async function parsePdfFileLazy(file) {
   }
 }
 
-export function parseTxtFile(txtFile) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const rawText = e.target.result || '';
-      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      const title = txtFile.name.replace(/\.[^.]+$/, '');
+export async function parseTxtFile(txtFile) {
+  try {
+    const rawText = decodeTxtBytes(await txtFile.arrayBuffer());
+    const lines = rawText.split(/\r\n?|\n/).map(l => l.trim()).filter(Boolean);
+    const title = txtFile.name.replace(/\.[^.]+$/, '');
+    const chapters = [];
+    let currentChapTitle = '开始';
+    let currentParagraphs = [];
+    const chapterRegex = /^(第[0-9零一二三四五六七八九十百千万]+[章节卷回话]|Chapter\s*\d+|序[章言]?|楔子|终章|尾声)/i;
 
-      const chapters = [];
-      let currentChapTitle = '开始';
-      let currentParagraphs = [];
-      const chapterRegex = /^(第[0-9零一二三四五六七八九十百千万]+[章节卷回话]|Chapter\s*\d+|序[章言]?|楔子|终章|尾声)/i;
-
-      for (const line of lines) {
-        if (line.length < 40 && chapterRegex.test(line)) {
-          if (currentParagraphs.length > 0) {
-            chapters.push({
-              title: currentChapTitle,
-              htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
-            });
-            currentParagraphs = [];
-          }
-          currentChapTitle = line;
-        } else {
-          currentParagraphs.push(line);
-          if (currentParagraphs.length >= 60) {
-            chapters.push({
-              title: currentChapTitle,
-              htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
-            });
-            currentParagraphs = [];
-          }
+    for (const line of lines) {
+      if (line.length < 40 && chapterRegex.test(line)) {
+        if (currentParagraphs.length > 0) {
+          chapters.push({ title: currentChapTitle, htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('') });
+          currentParagraphs = [];
+        }
+        currentChapTitle = line;
+      } else {
+        currentParagraphs.push(line);
+        if (currentParagraphs.length >= 60) {
+          chapters.push({ title: currentChapTitle, htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('') });
+          currentParagraphs = [];
         }
       }
-      if (currentParagraphs.length > 0) {
-        chapters.push({
-          title: currentChapTitle,
-          htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('')
-        });
-      }
-      if (chapters.length === 0) {
-        chapters.push({ title, htmlContent: '<p>（空文件）</p>' });
-      }
+    }
+    if (currentParagraphs.length > 0) {
+      chapters.push({ title: currentChapTitle, htmlContent: currentParagraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('') });
+    }
+    if (chapters.length === 0) chapters.push({ title, htmlContent: '<p>（空文件）</p>' });
 
-      resolve({
-        id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        type: 'novel',
-        format: 'txt',
-        title: title,
-        cover: null,
-        coverBlob: null,
-        chapters: chapters,
-        pageCount: chapters.length
-      });
+    return {
+      id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      type: 'novel',
+      format: 'txt',
+      title,
+      cover: null,
+      coverBlob: null,
+      chapters,
+      pageCount: chapters.length
     };
-    reader.onerror = () => resolve(null);
-    reader.readAsText(txtFile, 'utf-8');
-  });
+  } catch (err) {
+    console.warn('[HOMURA] TXT 文件读取失败', err);
+    return null;
+  }
 }
 
 // ---- Markdown：按一/二级标题切章，正文交给 marked 转 HTML ----
@@ -382,6 +382,7 @@ export async function parseMobiFileLazy(file) {
       cover: coverUrl,
       coverBlob: data.coverBlob,
       chapters: data.chapters,
+      resourceUrls: data.resourceUrls,
       pageCount: data.chapters.length
     };
   } catch (err) {
@@ -393,7 +394,7 @@ export async function parseMobiFileLazy(file) {
 // 把散装图片按所在文件夹分组，每组生成一本书
 export function buildImageFolderBooks(imgFiles) {
   if (!imgFiles || imgFiles.length === 0) return [];
-  const folderGroups = {};
+  const folderGroups = new Map();
   imgFiles.forEach(f => {
     const rel = f.customRelativePath || f.webkitRelativePath || '';
     const parts = rel.split('/').filter(Boolean);
@@ -403,11 +404,12 @@ export function buildImageFolderBooks(imgFiles) {
     } else if (imgFiles.length === 1) {
       groupName = f.name.replace(/\.[^.]+$/, '');
     }
-    if (!folderGroups[groupName]) folderGroups[groupName] = [];
-    folderGroups[groupName].push(f);
+    const folderPath = parts.length >= 2 ? parts.slice(0, -1).join('/') : groupName;
+    if (!folderGroups.has(folderPath)) folderGroups.set(folderPath, { folderName: groupName, files: [] });
+    folderGroups.get(folderPath).files.push(f);
   });
 
-  return Object.entries(folderGroups).map(([folderName, groupImgs]) => {
+  return [...folderGroups.values()].map(({ folderName, files: groupImgs }) => {
     groupImgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
     const firstCoverUrl = URL.createObjectURL(groupImgs[0]);
     const pageItems = groupImgs.map((fileObj, idx) => ({
