@@ -6,7 +6,7 @@
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
     <div class="h-14 min-[900px]:h-16 flex items-center gap-3 px-4 min-[900px]:px-7">
-      <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">书架</h1>
+      <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">{{ title }}</h1>
       <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-2 shrink-0">
@@ -202,11 +202,12 @@ import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 
 const props = defineProps({
+  title: { type: String, default: '书架' },
   count: { type: Number, default: 0 },
   appearanceOpen: { type: Boolean, default: false },
   query: { type: String, default: '' },
   type: { type: String, default: 'all' },
-  sort: { type: String, default: 'recent' }
+  sort: { type: String, default: 'title' }
 });
 
 const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance']);
@@ -240,7 +241,8 @@ watch(isCompact, value => {
 const types = [
   { value: 'all', label: '全部' },
   { value: 'manga', label: '漫画' },
-  { value: 'novel', label: '轻小说' }
+  { value: 'novel', label: '轻小说' },
+  { value: 'other', label: '其他' }
 ];
 
 function isPushedFilter(value) {
@@ -254,6 +256,7 @@ const formatOptions = [
   { value: 'epub', label: 'EPUB' },
   { value: 'pdf', label: 'PDF' },
   { value: 'mobi', label: 'MOBI' },
+  { value: 'txt', label: 'TXT' },
   { value: 'markdown', label: 'Markdown' }
 ];
 
@@ -265,9 +268,9 @@ function pickType(value) {
 }
 
 const sortOptions = [
+  { value: 'title', label: '书名 · 数字 / 字母 / 拼音' },
   { value: 'recent', label: '最近添加' },
-  { value: 'progress', label: '阅读进度' },
-  { value: 'title', label: '书名排序' }
+  { value: 'progress', label: '阅读进度' }
 ];
 
 function pickSort(value) {

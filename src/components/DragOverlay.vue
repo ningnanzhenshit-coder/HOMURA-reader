@@ -27,7 +27,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useImporter } from '../composables/useImporter.js';
 import { canDragImport } from '../services/platform.js';
-import logoUrl from '../assets/logo.png';
+const logoUrl = import.meta.env.BASE_URL + 'favicon.png';
 
 const importer = useImporter();
 const active = ref(false);

@@ -16,7 +16,8 @@
       <SettingsView v-if="activeNav === 'settings'" />
       <template v-else>
         <LibraryHeader
-          :count="shelf.library.length"
+          :count="favoritesOnly ? favoriteBooks.length : shelf.library.length"
+          :title="activeNav === 'favorite' ? '收藏' : activeNav === 'recent' ? '最近' : '书架'"
           :appearance-open="appearanceOpen"
           @toggle-appearance="appearanceOpen = !appearanceOpen"
           v-model:query="query"
@@ -24,8 +25,9 @@
           v-model:sort="sortKey"
         />
 
-        <main class="flex-1 w-full flex flex-col pb-24">
-          <BookShelf v-if="shelf.library.length" :books="visibleBooks" @open="reader.openBook" />
+        <main class="flex-1 w-full flex flex-col pb-40">
+          <p v-if="shelf.error || (!reader.currentBook && reader.openError)" role="alert" class="mx-4 min-[900px]:mx-7 mt-3 text-[13px] text-[var(--md-error)]">{{ shelf.error || reader.openError }}</p>
+          <BookShelf v-if="favoritesOnly || shelf.library.length || shelf.collections.length" :books="visibleBooks" :favorites-only="favoritesOnly" :sort-key="sortKey" :query="query" :has-filter="!!query.trim() || typeFilter !== 'all'" :home-request="shelfHomeRequest" @open="reader.openBook" @browse="query = ''; typeFilter = 'all'" />
           <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
         </main>
       </template>
@@ -46,7 +48,7 @@
     >
       <div
         v-if="importMenuOpen"
-        class="absolute right-0 bottom-[68px] w-48 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
+        class="absolute right-0 bottom-[136px] w-48 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
         role="menu"
         aria-label="导入作品"
       >
@@ -66,6 +68,10 @@
       </div>
     </Transition>
 
+    <button @click="createCollection" class="relative z-10 mb-3 h-14 px-5 rounded-2xl inline-flex items-center gap-2.5 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] text-[13px] font-bold active:scale-95 transition-transform duration-200" title="新建书库" aria-label="新建书库">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M12 5v14M5 12h14"/></svg>
+      新建
+    </button>
     <button
       @click="importMenuOpen = !importMenuOpen"
       class="relative z-10 h-14 rounded-2xl px-5 inline-flex items-center gap-2.5 bg-[var(--md-primary)] text-[var(--md-on-primary)] text-[13px] font-bold active:scale-95 transition-transform duration-200"
@@ -113,6 +119,8 @@
     @close="updates.closeChangelog"
     @retry="updates.loadChangelog(true)"
   />
+  <DuplicateImportDialog />
+  <ShelfDialog />
 
   <!-- Offscreen Measurer for Smart Novel Screen-Fit Pagination -->
   <div ref="measurerRef" id="novelPaginationMeasurer" class="fixed -left-[9999px] top-0 pointer-events-none invisible z-[-1] epub-content font-sans leading-relaxed"></div>
@@ -127,8 +135,13 @@ import { useUiStore } from './stores/ui.js';
 import { useUpdateStore } from './stores/updates.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
 import { resolveBookFormat } from './services/utils.js';
+import { sortShelfBooks } from './services/bookTitles.js';
+import { bookShelfCategory } from './services/shelfSections.js';
 import { installProgressFlushHooks } from './services/progress.js';
 import { useImporter } from './composables/useImporter.js';
+import { useDuplicateImport } from './composables/useDuplicateImport.js';
+import { useShelfDialogs } from './composables/useShelfDialogs.js';
+import { collectionNameError, availableCollectionName } from './services/collections.js';
 import { useViewport } from './composables/useViewport.js';
 import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
 import SideNav from './components/SideNav.vue';
@@ -140,6 +153,8 @@ import DragOverlay from './components/DragOverlay.vue';
 import ReaderModal from './components/ReaderModal.vue';
 import UpdateDialog from './components/UpdateDialog.vue';
 import ChangelogSheet from './components/ChangelogSheet.vue';
+import DuplicateImportDialog from './components/DuplicateImportDialog.vue';
+import ShelfDialog from './components/ShelfDialog.vue';
 
 const theme = useThemeStore();
 const shelf = useShelfStore();
@@ -147,6 +162,8 @@ const reader = useReaderStore();
 const ui = useUiStore();
 const updates = useUpdateStore();
 const importer = useImporter();
+const { pendingDuplicate, resolveImport } = useDuplicateImport();
+const { pendingShelfDialog, askShelfDialog, resolveShelfDialog } = useShelfDialogs();
 const { isCompact } = useViewport();
 
 const measurerRef = ref(null);
@@ -159,13 +176,22 @@ const activeNav = ref('shelf');
 // 书架视图状态
 const query = ref('');
 const typeFilter = ref('all');
-const sortKey = ref('recent');
-const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
+const sortKey = computed({ get: () => shelf.sortKey, set: value => { shelf.sortKey = value; } });
+const shelfHomeRequest = ref(0);
+const libraryView = ref('shelf');
+const favoritesOnly = computed(() => libraryView.value === 'favorite');
+const favoriteBooks = computed(() => shelf.library.filter(book => book.favorite));
+const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'txt', 'markdown'];
 const SPLASH_MIN_DURATION = 720;
 let previousUpdateBodyOverflow = '';
 let updateBodyLocked = false;
 
 useAndroidBackExit(reader, () => {
+  if (pendingShelfDialog.value) { resolveShelfDialog(); return true; }
+  if (pendingDuplicate.value) {
+    resolveImport();
+    return true;
+  }
   if (activeNav.value === 'settings') {
     activeNav.value = 'shelf';
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -179,6 +205,7 @@ useAndroidBackExit(reader, () => {
     appearanceOpen.value = false;
     return true;
   }
+  if (shelf.activeCollectionId) { shelf.activeCollectionId = null; return true; }
   return false;
 });
 
@@ -198,28 +225,26 @@ watch(
   }
 );
 
+async function createCollection() {
+  importMenuOpen.value = false;
+  const title = await askShelfDialog({ kind: 'name', title: '新建书库', initialName: availableCollectionName('新建书库', shelf.collections), validate: name => collectionNameError(name, shelf.collections) });
+  if (title === null) return;
+  try { await shelf.createCollection(title); } catch (err) { console.warn('[HOMURA] 新建书库失败', err); }
+}
+
 const visibleBooks = computed(() => {
-  let list = shelf.library;
-  // 筛选 chips：类型（漫画 / 轻小说）+ 格式（EPUB / PDF / MOBI / Markdown）
+  let list = favoritesOnly.value ? favoriteBooks.value : shelf.library;
+  // 筛选 chips：类型（漫画 / 轻小说）+ 文件格式
   if (FORMAT_FILTERS.includes(typeFilter.value)) {
     list = list.filter(book => resolveBookFormat(book) === typeFilter.value);
-  } else if (typeFilter.value === 'manga') {
-    list = list.filter(book => book.type === 'manga' && resolveBookFormat(book) !== 'pdf');
-  } else if (typeFilter.value === 'novel') {
-    list = list.filter(book => book.type !== 'manga');
+  } else if (['manga', 'novel', 'other'].includes(typeFilter.value)) {
+    list = list.filter(book => bookShelfCategory(book) === typeFilter.value);
   }
   const keyword = query.value.trim().toLowerCase();
   if (keyword) {
     list = list.filter(book => (book.title || '').toLowerCase().includes(keyword));
   }
-  if (sortKey.value === 'title') {
-    return [...list].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh-Hans-CN'));
-  }
-  if (sortKey.value === 'progress') {
-    const ts = id => (shelf.progressMap[id] && shelf.progressMap[id].updatedAt) || 0;
-    return [...list].sort((a, b) => ts(b.id) - ts(a.id));
-  }
-  return list;
+  return sortShelfBooks(list, sortKey.value, shelf.progressMap);
 });
 
 function openFilePicker() {
@@ -255,8 +280,9 @@ function pickFolder() {
   openFolderPicker();
 }
 
-// Navigation Rail：设置是一级页面；书架 / 最近继续复用同一份筛选状态
+// 设置是一级页面；书架 / 最近 / 收藏复用书库筛选状态。
 function onRailNav(key) {
+  if (!['shelf', 'recent', 'favorite', 'settings'].includes(key)) return;
   importMenuOpen.value = false;
   appearanceOpen.value = false;
   activeNav.value = key;
@@ -264,10 +290,13 @@ function onRailNav(key) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
+  libraryView.value = key;
+  shelfHomeRequest.value++;
+  shelf.activeCollectionId = null;
   query.value = '';
   typeFilter.value = 'all';
   if (key === 'recent') sortKey.value = 'progress';
-  else if (key === 'shelf') sortKey.value = 'recent';
+  else sortKey.value = 'title';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -275,6 +304,7 @@ function onRailNav(key) {
 // 走 Tauri 原生窗口全屏（Windows 的 WebView2 不接管网页全屏）；浏览器调试环境回退标准 Fullscreen API
 // 切换后的窗口焦点由 Rust 端监听窗口事件恢复，见 src-tauri/src/lib.rs
 function onFullscreenKeydown(e) {
+  if (document.querySelector('dialog[open]')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key.toLowerCase() !== 'f') return;
   if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;

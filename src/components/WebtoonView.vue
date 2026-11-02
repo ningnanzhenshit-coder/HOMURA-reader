@@ -3,6 +3,7 @@
   <div
     v-if="isManga"
     ref="scrollRoot"
+    data-reader-scroll
     class="w-full h-full overflow-y-auto overscroll-contain touch-pan-y flex flex-col items-center py-2 gap-2"
     style="scroll-padding-top: calc(3.5rem + env(safe-area-inset-top)); scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));"
   >
@@ -21,6 +22,7 @@
   <div
     v-else
     ref="scrollRoot"
+    data-reader-scroll
     class="w-full h-full overflow-y-auto overscroll-contain touch-pan-y py-4 px-3 sm:px-2"
     style="scroll-padding-top: calc(3.5rem + env(safe-area-inset-top)); scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));"
   >
@@ -58,6 +60,9 @@ import { ensurePageUrlLoaded } from '../services/pagination.js';
 const reader = useReaderStore();
 const scrollRoot = ref(null);
 let novelScrollFrame = 0;
+const mountedBookId = reader.currentBook?.id;
+let disposed = false;
+let boundsObserver = null;
 
 const isManga = computed(() => reader.currentBook && reader.currentBook.type === 'manga');
 
@@ -69,6 +74,7 @@ const imgFitClass = computed(() => {
 });
 
 function syncNovelScrollPosition() {
+  if (disposed || reader.currentBook?.id !== mountedBookId) return;
   novelScrollFrame = 0;
   const root = scrollRoot.value;
   if (!root || isManga.value) return;
@@ -100,10 +106,24 @@ function onNovelScroll() {
   novelScrollFrame = requestAnimationFrame(syncNovelScrollPosition);
 }
 
+function syncScrollBounds() {
+  const root = scrollRoot.value;
+  if (!root || disposed || reader.currentBook?.id !== mountedBookId) return;
+  const lastImage = isManga.value ? root.querySelector(`img[data-lazy-index="${reader.activePages.length - 1}"]`) : null;
+  reader.webtoonBounds = {
+    atStart: root.scrollTop <= 2,
+    atEnd: root.scrollTop + root.clientHeight >= root.scrollHeight - 2 && (!isManga.value || !!(lastImage?.complete && lastImage.naturalHeight))
+  };
+}
+
 onMounted(() => {
   const total = reader.activePages.length;
   reader.pageIndicator = `${reader.currentIndex + 1} / ${total}`;
   reader.sliderValue = reader.currentIndex;
+  scrollRoot.value.addEventListener('scroll', syncScrollBounds, { passive: true });
+  scrollRoot.value.addEventListener('load', syncScrollBounds, true);
+  boundsObserver = new ResizeObserver(syncScrollBounds);
+  boundsObserver.observe(scrollRoot.value);
 
   // 注册滚动入口：store 的翻页 / 滑条动作在条漫模式下转成滚动
   reader.webtoonScrollBy = dir => {
@@ -121,6 +141,7 @@ onMounted(() => {
     // 当前页前后各预载几页，避免恢复进度时白屏
     for (let i = Math.max(0, reader.currentIndex - 1); i <= Math.min(total - 1, reader.currentIndex + 2); i++) {
       ensurePageUrlLoaded(reader.activePages[i].itemRef).then(url => {
+        if (disposed || reader.currentBook?.id !== mountedBookId) return;
         const el = scrollRoot.value && scrollRoot.value.querySelector(`img[data-lazy-index="${i}"]`);
         if (el && url) el.src = url;
       });
@@ -128,12 +149,14 @@ onMounted(() => {
 
     reader.webtoonObserver = new IntersectionObserver(entries => {
       entries.forEach(async entry => {
+        if (disposed || reader.currentBook?.id !== mountedBookId) return;
         if (entry.isIntersecting) {
           const imgEl = entry.target;
           const idx = parseInt(imgEl.getAttribute('data-lazy-index'), 10);
           const pageData = reader.activePages[idx];
           if (pageData) {
             const url = await ensurePageUrlLoaded(pageData.itemRef);
+            if (disposed || reader.currentBook?.id !== mountedBookId) return;
             if (url && imgEl.src !== url) imgEl.src = url;
           }
           reader.currentIndex = idx;
@@ -157,13 +180,21 @@ onMounted(() => {
       const target = root.querySelector('#webtoon-page-' + reader.currentIndex);
       if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
       syncNovelScrollPosition();
+      syncScrollBounds();
     }, 50);
   } else {
     syncNovelScrollPosition();
+    syncScrollBounds();
   }
 });
 
 onBeforeUnmount(() => {
+  disposed = true;
+  boundsObserver?.disconnect();
+  if (scrollRoot.value) {
+    scrollRoot.value.removeEventListener('scroll', syncScrollBounds);
+    scrollRoot.value.removeEventListener('load', syncScrollBounds, true);
+  }
   if (novelScrollFrame) cancelAnimationFrame(novelScrollFrame);
   novelScrollFrame = 0;
   if (reader.webtoonObserver) {

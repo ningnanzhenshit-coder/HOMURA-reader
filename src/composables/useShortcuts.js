@@ -15,6 +15,7 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
     if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
     if (!reader.currentBook) return;
+    if (ui.readerDrawerOpen && e.key !== 'Escape') return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
       reader.onLeftButtonClick();
@@ -33,6 +34,8 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
         ui.closeSettings();
       } else if (ui.tocOpen) {
         ui.closeToc();
+      } else if (ui.collectionTocOpen) {
+        ui.closeCollectionToc();
       } else if (!ui.readerChromeVisible) {
         ui.showChrome();
       } else {
@@ -45,7 +48,7 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
   function onWheel(e) {
     if (!reader.currentBook) return;
     // 抽屉打开时滚轮属于抽屉内容，不能截成阅读器翻页
-    if (ui.settingsOpen || ui.tocOpen) return;
+    if (ui.readerDrawerOpen) return;
     if (reader.layoutConfig.direction === 'vertical') return;
 
     e.preventDefault();

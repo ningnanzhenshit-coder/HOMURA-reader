@@ -82,12 +82,17 @@ import { useShelfStore } from '../stores/shelf.js';
 import { resolveBookFormat } from '../services/utils.js';
 
 defineEmits(['open']);
+const props = defineProps({ books: { type: Array, default: null } });
 
 const shelf = useShelfStore();
 
 const items = computed(() =>
-  shelf.library
-    .map(book => ({ book, progress: shelf.progressInfoFor(book.id) }))
+  (props.books || shelf.library)
+    .map(book => {
+      const record = shelf.progressMap[book.id];
+      const progress = shelf.progressInfoFor(book.id) || (record ? { percent: 0, index: record.index || 0, total: record.total || 0, updatedAt: record.updatedAt || 0 } : null);
+      return { book, progress };
+    })
     .filter(item => item.progress)
     .sort((a, b) => (b.progress.updatedAt || 0) - (a.progress.updatedAt || 0))
 );
@@ -95,7 +100,7 @@ const items = computed(() =>
 // 没有阅读记录时，用最近添加的一部作品作为「开始阅读」入口，保证特色卡始终在网格首位
 const featured = computed(() => {
   if (items.value.length) return items.value[0];
-  const book = shelf.library[0];
+  const book = (props.books || shelf.library)[0];
   if (!book) return null;
   const total = book.pageCount || (book.pageItems && book.pageItems.length) || (book.chapters && book.chapters.length) || 0;
   return { book, progress: { index: 0, total, percent: 0, updatedAt: 0 } };
@@ -122,7 +127,7 @@ const totalPages = computed(() => {
   return book.chapters ? book.chapters.length : 0;
 });
 
-const started = computed(() => !!featured.value && featured.value.progress.percent > 0);
+const started = computed(() => !!featured.value && featured.value.progress.updatedAt > 0);
 
 // 上次阅读时间：当天只显示时刻，跨天显示日期
 const clockText = computed(() => {

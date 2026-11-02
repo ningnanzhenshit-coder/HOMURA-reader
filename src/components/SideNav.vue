@@ -4,7 +4,13 @@
     v-if="!isCompact"
     class="shrink-0 sticky top-0 h-screen w-24 z-30 flex flex-col items-center pt-3.5 pb-4 bg-[var(--md-surface-low)] border-r-[0.5px] border-[var(--md-outline-variant)]"
   >
-    <div class="rail-logo shrink-0 mb-[22px]" title="HOMURA" role="img" aria-label="HOMURA">
+    <button
+      type="button"
+      class="rail-logo shrink-0 mb-[22px]"
+      title="HOMURA · 返回主页"
+      aria-label="HOMURA，返回主页"
+      @click="select('shelf')"
+    >
       <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <path
           d="M9 8v16M23 8v16M9 16h14"
@@ -13,7 +19,7 @@
           stroke-linecap="round"
         />
       </svg>
-    </div>
+    </button>
 
     <nav class="flex flex-col items-center gap-1.5 w-full">
       <button

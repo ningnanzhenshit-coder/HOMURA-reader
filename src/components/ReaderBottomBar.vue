@@ -12,6 +12,7 @@
         : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
       :title="leftText"
       :aria-label="leftText"
+      :disabled="reader.openingBook"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
@@ -30,6 +31,7 @@
       :class="{ 'rtl-slider': inverted }"
       title="拖动跳转"
       aria-label="拖动跳转"
+      :disabled="reader.openingBook"
     />
 
     <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
@@ -53,6 +55,7 @@
         : 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'"
       :title="rightText"
       :aria-label="rightText"
+      :disabled="reader.openingBook"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
@@ -78,12 +81,16 @@ const spreadOptions = [
 ];
 
 const leftText = computed(() => {
+  if (inverted.value && reader.atLastPage && reader.nextCollectionBook) return '下一本';
+  if (!inverted.value && reader.atFirstPage && reader.previousCollectionBook) return '上一本';
   if (isVertical.value) return '上滚一屏';
   if (config.direction === 'rtl') return inverted.value ? '下一页' : '上一页';
   return '上一页';
 });
 
 const rightText = computed(() => {
+  if (!inverted.value && reader.atLastPage && reader.nextCollectionBook) return '下一本';
+  if (inverted.value && reader.atFirstPage && reader.previousCollectionBook) return '上一本';
   if (isVertical.value) return '下滚一屏';
   if (config.direction === 'rtl') return inverted.value ? '上一页' : '下一页';
   return '下一页';
