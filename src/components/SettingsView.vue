@@ -423,7 +423,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import packageInfo from '../../package.json';
-import logoUrl from '../assets/logo.png';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
@@ -445,6 +444,7 @@ import MdSwitch from './MdSwitch.vue';
 import SurfaceModePreview from './SurfaceModePreview.vue';
 import ThemeSwatchGrid from './ThemeSwatchGrid.vue';
 
+const logoUrl = import.meta.env.BASE_URL + 'favicon.png';
 const shelf = useShelfStore();
 const settings = useSettingsStore();
 const theme = useThemeStore();

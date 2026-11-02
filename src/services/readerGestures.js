@@ -7,7 +7,7 @@ export const TAP_MAX_DISTANCE = 8;
 
 export function readerTapZone(x, width) {
   const ratio = x / Math.max(1, width);
-  return ratio < 0.25 ? 'left' : ratio > 0.75 ? 'right' : 'center';
+  return ratio < 0.3 ? 'left' : ratio >= 0.7 ? 'right' : 'center';
 }
 
 export function classifyReaderGesture({ dx, dy, duration, maxDistance, width, x }) {

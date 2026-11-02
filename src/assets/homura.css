@@ -1,7 +1,7 @@
     /* ==========================================================================
        1. MD3 Color Tokens · 10 套主题（默认 深海蓝 = seed #0061A4）
        ========================================================================== */
-    :root { --md-favorite: gold; }
+    :root { --md-favorite: color-mix(in oklab, var(--md-primary) 58%, var(--md-tertiary)); }
     :root,
     [data-theme="blue"] {
       --md-primary: #0061A4;

@@ -80,40 +80,75 @@ export async function ensureChapterImagesResolved(chap, book) {
 // 返回 activePages 数组，不写任何全局状态
 
 // 长段落按实际高度二分切开，保留行内标记；不依赖句号，避免整段被裁掉。
-function splitLongParagraph(html, measurer, maxHeight) {
+export function splitLongParagraph(html, measurer, maxHeight) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
   const source = wrapper.firstElementChild;
-  if (!source || source.tagName !== 'P' || source.querySelector('img, svg, image, br')) return [html];
-  const text = source.textContent;
-  const offsets = [0];
-  for (const character of text) offsets.push(offsets[offsets.length - 1] + character.length);
-  const nodes = [];
-  const walker = document.createTreeWalker(source, NodeFilter.SHOW_TEXT);
+  if (!source || source.tagName !== 'P' || source.querySelector('img, svg, image')) return [html];
+
+  // <br> 没有文本，但换行本身占高度；把它当作一个虚拟字符参与 Range 定位。
+  const atoms = [];
   let length = 0;
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
-    nodes.push({ node, start: length, end: length + node.length });
-    length += node.length;
+  function collect(node) {
+    for (const child of node.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        if (!child.length) continue;
+        atoms.push({ type: 'text', node: child, start: length, end: length + child.length });
+        length += child.length;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        if (child.tagName === 'BR') {
+          atoms.push({ type: 'break', node: child, start: length, end: length + 1 });
+          length += 1;
+        } else {
+          collect(child);
+        }
+      }
+    }
   }
+  collect(source);
   if (!length) return [html];
+
+  const offsets = [0];
+  for (const atom of atoms) {
+    if (atom.type === 'break') {
+      offsets.push(atom.end);
+      continue;
+    }
+    for (const character of atom.node.data) {
+      offsets.push(offsets[offsets.length - 1] + character.length);
+    }
+  }
+
+  function locate(offset) {
+    for (const atom of atoms) {
+      if (atom.type === 'text') {
+        if (offset <= atom.end) {
+          return { type: 'text', node: atom.node, offset: Math.max(0, offset - atom.start) };
+        }
+      } else if (offset <= atom.start) {
+        return { type: 'before', node: atom.node };
+      } else if (offset <= atom.end) {
+        return { type: 'after', node: atom.node };
+      }
+    }
+    const last = atoms[atoms.length - 1];
+    return last.type === 'text'
+      ? { type: 'text', node: last.node, offset: last.node.length }
+      : { type: 'after', node: last.node };
+  }
+
   function fragment(start, end) {
     const range = document.createRange();
-    const first = nodes.find(item => item.end > start);
-    const last = nodes.find(item => item.end >= end);
-    range.setStart(first.node, start - first.start);
-    range.setEnd(last.node, end - last.start);
+    const from = locate(start);
+    const to = locate(end);
+    if (from.type === 'text') range.setStart(from.node, from.offset);
+    else if (from.type === 'before') range.setStartBefore(from.node);
+    else range.setStartAfter(from.node);
+    if (to.type === 'text') range.setEnd(to.node, to.offset);
+    else if (to.type === 'before') range.setEndBefore(to.node);
+    else range.setEndAfter(to.node);
     const paragraph = source.cloneNode(false);
-    let content = range.cloneContents();
-    let ancestor = range.commonAncestorContainer;
-    if (ancestor.nodeType === Node.TEXT_NODE) ancestor = ancestor.parentNode;
-    while (ancestor && ancestor !== source) {
-      const inline = ancestor.cloneNode(false);
-      inline.append(content);
-      content = inline;
-      ancestor = ancestor.parentNode;
-    }
-    paragraph.append(content);
+    paragraph.append(range.cloneContents());
     return paragraph.outerHTML;
   }
   const parts = [];

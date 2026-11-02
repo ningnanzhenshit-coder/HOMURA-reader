@@ -4,11 +4,11 @@ import { classifyReaderGesture, readerTapZone } from '../src/services/readerGest
 
 const gesture = overrides => classifyReaderGesture({ dx: 0, dy: 0, maxDistance: 0, duration: 120, width: 1000, x: 500, ...overrides });
 
-test('中间两份覆盖 25%–75%，两边与方向键对应', () => {
-  assert.equal(readerTapZone(249, 1000), 'left');
-  assert.equal(readerTapZone(250, 1000), 'center');
-  assert.equal(readerTapZone(750, 1000), 'center');
-  assert.equal(readerTapZone(751, 1000), 'right');
+test('左右各占 30%，中间 40% 与方向键对应', () => {
+  assert.equal(readerTapZone(299, 1000), 'left');
+  assert.equal(readerTapZone(300, 1000), 'center');
+  assert.equal(readerTapZone(699, 1000), 'center');
+  assert.equal(readerTapZone(700, 1000), 'right');
 });
 
 test('长按不移动不翻页，抖动和手指拖回原处不误判点击', () => {

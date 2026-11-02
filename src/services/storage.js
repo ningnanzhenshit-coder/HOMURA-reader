@@ -28,6 +28,7 @@ export const HomuraStore = (() => {
         reject(new Error('IndexedDB 不可用'));
         return;
       }
+      let blockedWarned = false;
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -44,7 +45,11 @@ export const HomuraStore = (() => {
         resolve(req.result);
       };
       req.onerror = () => reject(req.error || new Error('IndexedDB 打开失败'));
-      req.onblocked = () => reject(new Error('IndexedDB 被其它标签页占用'));
+      req.onblocked = () => {
+        if (blockedWarned) return;
+        blockedWarned = true;
+        console.warn('[HomuraStore] IndexedDB 升级被其它标签页占用，等待旧连接关闭');
+      };
     }).catch(err => {
       disabled = true;
       console.warn('[HomuraStore] ' + err.message);
