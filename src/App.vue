@@ -87,17 +87,44 @@
   <DragOverlay />
   <div v-if="reader.currentBook" class="reader-back-scrim md-scrim" aria-hidden="true"></div>
   <ReaderModal />
+  <UpdateDialog
+    :open="updates.updateDialogOpen"
+    :status="updates.updateStatus"
+    :release="updates.latestRelease"
+    :current-version="updates.appVersion"
+    :package-info="updates.updatePackage"
+    :error="updates.updateError"
+    :download="updates.downloadState"
+    :download-error="updates.downloadError"
+    @close="updates.closeUpdateDialog"
+    @retry="updates.checkForUpdates"
+    @changelog="updates.openChangelog"
+    @download="updates.startUpdateDownload"
+    @cancel-download="updates.cancelCurrentDownload"
+    @install="updates.installDownloadedUpdate"
+  />
+  <ChangelogSheet
+    :open="updates.changelogOpen"
+    :compact="isCompact"
+    :status="updates.changelogStatus"
+    :releases="updates.releases"
+    :current-version="updates.appVersion"
+    :error="updates.changelogError"
+    @close="updates.closeChangelog"
+    @retry="updates.loadChangelog(true)"
+  />
 
   <!-- Offscreen Measurer for Smart Novel Screen-Fit Pagination -->
   <div ref="measurerRef" id="novelPaginationMeasurer" class="fixed -left-[9999px] top-0 pointer-events-none invisible z-[-1] epub-content font-sans leading-relaxed"></div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
+import { useUpdateStore } from './stores/updates.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
 import { resolveBookFormat } from './services/utils.js';
 import { installProgressFlushHooks } from './services/progress.js';
@@ -111,11 +138,14 @@ import EmptyShelf from './components/EmptyShelf.vue';
 import SettingsView from './components/SettingsView.vue';
 import DragOverlay from './components/DragOverlay.vue';
 import ReaderModal from './components/ReaderModal.vue';
+import UpdateDialog from './components/UpdateDialog.vue';
+import ChangelogSheet from './components/ChangelogSheet.vue';
 
 const theme = useThemeStore();
 const shelf = useShelfStore();
 const reader = useReaderStore();
 const ui = useUiStore();
+const updates = useUpdateStore();
 const importer = useImporter();
 const { isCompact } = useViewport();
 
@@ -132,6 +162,8 @@ const typeFilter = ref('all');
 const sortKey = ref('recent');
 const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'markdown'];
 const SPLASH_MIN_DURATION = 720;
+let previousUpdateBodyOverflow = '';
+let updateBodyLocked = false;
 
 useAndroidBackExit(reader, () => {
   if (activeNav.value === 'settings') {
@@ -149,6 +181,22 @@ useAndroidBackExit(reader, () => {
   }
   return false;
 });
+
+watch(
+  () => updates.overlayOpen,
+  open => {
+    if (open && !updateBodyLocked) {
+      previousUpdateBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      updateBodyLocked = true;
+      return;
+    }
+    if (!open && updateBodyLocked) {
+      document.body.style.overflow = previousUpdateBodyOverflow;
+      updateBodyLocked = false;
+    }
+  }
+);
 
 const visibleBooks = computed(() => {
   let list = shelf.library;
@@ -278,6 +326,7 @@ onMounted(async () => {
   window.addEventListener('keydown', onFullscreenKeydown);
   // 关窗 / 切后台时兜底刷写进度，防止防抖窗口内的最后一次翻页丢失
   installProgressFlushHooks(reader, shelf);
+  updates.checkForUpdates({ startup: true });
 
   try {
     // 书架上一次导入的作品会从 IndexedDB 里恢复；第一次使用才放示例书
@@ -289,5 +338,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onFullscreenKeydown);
+  if (updateBodyLocked) document.body.style.overflow = previousUpdateBodyOverflow;
 });
 </script>

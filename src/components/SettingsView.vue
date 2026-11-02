@@ -1,5 +1,5 @@
 <template>
-  <!-- 一级设置页：与书架共用主导航，桌面页内分区 + 阅读预览，手机纵向排列 -->
+  <!-- 一级设置页：外观与阅读、存储、关于各自独立成页 -->
   <div class="settings-page">
     <header
       class="settings-topbar"
@@ -15,7 +15,10 @@
       </div>
     </header>
 
-    <div class="settings-layout">
+    <div
+      class="settings-layout"
+      :class="{ 'has-preview': activeSection === 'appearance' }"
+    >
       <nav class="settings-section-nav" aria-label="设置分区">
         <p class="settings-section-label">偏好</p>
         <button
@@ -24,8 +27,8 @@
           type="button"
           class="settings-section-link"
           :class="{ 'is-active': activeSection === section.key }"
-          :aria-current="activeSection === section.key ? 'location' : undefined"
-          @click="jumpToSection(section.key)"
+          :aria-current="activeSection === section.key ? 'page' : undefined"
+          @click="selectSection(section.key)"
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <template v-if="section.key === 'appearance'">
@@ -51,182 +54,161 @@
       </nav>
 
       <main class="settings-main">
-        <section id="settings-appearance" class="settings-section">
-          <div class="settings-section-heading">
-            <h2>外观</h2>
-            <span>即时应用到整个应用</span>
-          </div>
-
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">表面</span>
-              <span class="settings-value">{{ surfaceLabel }}</span>
+        <template v-if="activeSection === 'appearance'">
+          <section id="settings-appearance" class="settings-section settings-page-panel">
+            <div class="settings-section-heading">
+              <h2>外观</h2>
+              <span>即时应用到整个应用</span>
             </div>
-            <div class="surface-options" role="group" aria-label="表面模式">
-              <button
-                v-for="option in surfaceOptions"
-                :key="option.value"
-                type="button"
-                class="surface-option"
-                :class="{ 'is-selected': theme.surfaceMode === option.value }"
-                :title="option.title"
-                :aria-pressed="theme.surfaceMode === option.value"
-                @click="selectSurface(option, $event)"
-              >
-                <span
-                  class="surface-mini"
-                  :data-theme="theme.themeColor"
-                  :data-mode="option.value"
-                  aria-hidden="true"
-                ></span>
-                <span class="surface-copy">
-                  <b>{{ option.label }}</b>
-                  <span>{{ option.note }}</span>
-                </span>
-                <span v-if="theme.surfaceMode === option.value" class="surface-check" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3.2 8.4l3 3 6.6-7"/>
-                  </svg>
-                </span>
-              </button>
-            </div>
-          </div>
 
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">主题色</span>
-              <span class="settings-value">{{ themeLabel }}</span>
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">表面</span>
+                <span class="settings-value">{{ surfaceLabel }}</span>
+              </div>
+              <SurfaceModePreview />
             </div>
-            <ThemeSwatchGrid
-              wide
-              :columns="isCompact ? 5 : 10"
-            />
-          </div>
 
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">翻页过渡</span>
-              <span class="settings-value">{{ transitionLabel }}</span>
-            </div>
-            <MdSegmentedControl
-              class="w-full"
-              :model-value="theme.transitionStyle"
-              :options="transitionOptions"
-              aria-label="翻页过渡"
-              @update:model-value="theme.setTransitionStyle"
-            />
-          </div>
-        </section>
-
-        <section id="settings-reading" class="settings-section">
-          <div class="settings-section-heading">
-            <h2>阅读默认值</h2>
-            <span>首次打开作品时采用</span>
-          </div>
-
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">阅读方向</span>
-              <span class="settings-value">{{ directionLabel }}</span>
-            </div>
-            <MdSegmentedControl
-              class="w-full"
-              :model-value="readerDefaults.direction"
-              :options="directionOptions"
-              aria-label="阅读方向"
-              @update:model-value="setDirection"
-            />
-          </div>
-
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">跨页布局</span>
-              <span class="settings-value">{{ spreadLabel }}</span>
-            </div>
-            <MdSegmentedControl
-              class="w-full"
-              :model-value="readerDefaults.spread"
-              :options="spreadOptions"
-              aria-label="跨页布局"
-              @update:model-value="setSpread"
-            />
-            <MdSwitch
-              v-if="readerDefaults.spread === 2"
-              class="settings-value-row"
-              :model-value="readerDefaults.coverOffset"
-              title="让后续跨页大图保持对齐"
-              @update:model-value="value => settings.setReaderDefault('coverOffset', value)"
-            >
-              <span class="settings-value-copy">
-                <b>首页单排</b>
-                <span>让后续跨页大图保持对齐</span>
-              </span>
-            </MdSwitch>
-          </div>
-
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">默认字号</span>
-              <span class="settings-value">{{ readerDefaults.fontSize }} px</span>
-            </div>
-            <div class="font-size-control">
-              <button
-                type="button"
-                class="settings-icon-button"
-                title="减小字号"
-                aria-label="减小字号"
-                :disabled="readerDefaults.fontSize <= 14"
-                @click="changeDefaultFont(-2)"
-              >
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/>
-                </svg>
-              </button>
-              <input
-                class="md-range settings-range"
-                type="range"
-                min="14"
-                max="28"
-                step="2"
-                :value="readerDefaults.fontSize"
-                aria-label="默认字号"
-                @input="setFontSize($event.target.value)"
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">主题色</span>
+                <span class="settings-value">{{ themeLabel }}</span>
+              </div>
+              <ThemeSwatchGrid
+                wide
+                :columns="isCompact ? 5 : 10"
               />
-              <button
-                type="button"
-                class="settings-icon-button"
-                title="增大字号"
-                aria-label="增大字号"
-                :disabled="readerDefaults.fontSize >= 28"
-                @click="changeDefaultFont(2)"
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">翻页过渡</span>
+                <span class="settings-value">{{ transitionLabel }}</span>
+              </div>
+              <MdSegmentedControl
+                class="w-full"
+                :model-value="theme.transitionStyle"
+                :options="transitionOptions"
+                aria-label="翻页过渡"
+                @update:model-value="theme.setTransitionStyle"
+              />
+            </div>
+          </section>
+
+          <section id="settings-reading" class="settings-section settings-page-panel">
+            <div class="settings-section-heading">
+              <h2>阅读默认值</h2>
+              <span>首次打开作品时采用</span>
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">阅读方向</span>
+                <span class="settings-value">{{ directionLabel }}</span>
+              </div>
+              <MdSegmentedControl
+                class="w-full"
+                :model-value="readerDefaults.direction"
+                :options="directionOptions"
+                aria-label="阅读方向"
+                @update:model-value="setDirection"
+              />
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">跨页布局</span>
+                <span class="settings-value">{{ spreadLabel }}</span>
+              </div>
+              <MdSegmentedControl
+                class="w-full"
+                :model-value="readerDefaults.spread"
+                :options="spreadOptions"
+                aria-label="跨页布局"
+                @update:model-value="setSpread"
+              />
+              <MdSwitch
+                v-if="readerDefaults.spread === 2"
+                class="settings-value-row"
+                :model-value="readerDefaults.coverOffset"
+                title="让后续跨页大图保持对齐"
+                @update:model-value="value => settings.setReaderDefault('coverOffset', value)"
               >
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/>
-                </svg>
-              </button>
+                <span class="settings-value-copy">
+                  <b>首页单排</b>
+                  <span>让后续跨页大图保持对齐</span>
+                </span>
+              </MdSwitch>
             </div>
-          </div>
 
-          <div class="settings-block">
-            <div class="settings-head">
-              <span class="settings-title">条漫宽度</span>
-              <span class="settings-value">{{ webtoonFitLabel }}</span>
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">默认字号</span>
+                <span class="settings-value">{{ readerDefaults.fontSize }} px</span>
+              </div>
+              <div class="font-size-control">
+                <button
+                  type="button"
+                  class="settings-icon-button"
+                  title="减小字号"
+                  aria-label="减小字号"
+                  :disabled="readerDefaults.fontSize <= 14"
+                  @click="changeDefaultFont(-2)"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/>
+                  </svg>
+                </button>
+                <input
+                  class="md-range settings-range"
+                  type="range"
+                  min="14"
+                  max="28"
+                  step="2"
+                  :value="readerDefaults.fontSize"
+                  aria-label="默认字号"
+                  @input="setFontSize($event.target.value)"
+                />
+                <button
+                  type="button"
+                  class="settings-icon-button"
+                  title="增大字号"
+                  aria-label="增大字号"
+                  :disabled="readerDefaults.fontSize >= 28"
+                  @click="changeDefaultFont(2)"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <MdSegmentedControl
-              class="w-full"
-              :model-value="readerDefaults.webtoonFit"
-              :options="webtoonOptions"
-              aria-label="条漫宽度"
-              @update:model-value="value => settings.setReaderDefault('webtoonFit', value)"
-            />
-          </div>
 
-          <button type="button" class="settings-reset-button" @click="settings.resetReaderDefaults">
-            恢复阅读默认值
-          </button>
-        </section>
+            <div class="settings-block">
+              <div class="settings-head">
+                <span class="settings-title">条漫宽度</span>
+                <span class="settings-value">{{ webtoonFitLabel }}</span>
+              </div>
+              <MdSegmentedControl
+                class="w-full"
+                :model-value="readerDefaults.webtoonFit"
+                :options="webtoonOptions"
+                aria-label="条漫宽度"
+                @update:model-value="value => settings.setReaderDefault('webtoonFit', value)"
+              />
+            </div>
 
-        <section id="settings-storage" class="settings-section">
+            <button type="button" class="settings-reset-button" @click="settings.resetReaderDefaults">
+              恢复阅读默认值
+            </button>
+          </section>
+        </template>
+
+        <section
+          v-else-if="activeSection === 'storage'"
+          id="settings-storage"
+          class="settings-section settings-page-panel"
+        >
           <div class="settings-section-heading">
             <h2>存储与数据</h2>
             <span>WebView 本地数据</span>
@@ -278,7 +260,11 @@
           <p v-if="actionNote" class="settings-action-note" role="status">{{ actionNote }}</p>
         </section>
 
-        <section id="settings-about" class="settings-section">
+        <section
+          v-else
+          id="settings-about"
+          class="settings-section settings-page-panel"
+        >
           <div class="settings-section-heading">
             <h2>关于</h2>
             <span>版本、更新与开源信息</span>
@@ -302,7 +288,7 @@
             <p class="about-description">漫画、轻小说与图集的解析、分页和阅读记录都在设备内完成，不上传任何服务器。</p>
 
             <div class="about-actions">
-              <button type="button" class="about-update-button" @click="handlePrimaryUpdateAction">
+              <button type="button" class="about-update-button" @click="updates.handlePrimaryUpdateAction">
                 <svg fill="none" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
@@ -321,7 +307,7 @@
                 </svg>
                 {{ hasPendingInstall ? '继续安装' : '检查更新' }}
               </button>
-              <button type="button" class="about-log-button" @click="openChangelog">
+              <button type="button" class="about-log-button" @click="updates.openChangelog">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 4h10l3 3v13H6z"/>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 11h7M9 15h7M9 7h3"/>
@@ -342,7 +328,7 @@
         </section>
       </main>
 
-      <aside class="settings-preview" aria-label="阅读预览">
+      <aside v-if="activeSection === 'appearance'" class="settings-preview" aria-label="阅读预览">
         <div class="settings-preview-head">
           <h3>阅读预览</h3>
           <span>{{ spreadLabel }} · {{ readerDefaults.fontSize }}px</span>
@@ -430,60 +416,18 @@
       </Transition>
     </Teleport>
 
-    <UpdateDialog
-      :open="updateDialogOpen"
-      :status="updateStatus"
-      :release="latestRelease"
-      :current-version="appVersion"
-      :package-info="updatePackage"
-      :error="updateError"
-      :download="downloadState"
-      :download-error="downloadError"
-      @close="closeUpdateDialog"
-      @retry="checkForUpdates"
-      @changelog="openChangelogFromUpdate"
-      @download="startUpdateDownload"
-      @cancel-download="cancelCurrentDownload"
-      @install="installDownloadedUpdate"
-    />
-
-    <ChangelogSheet
-      :open="changelogOpen"
-      :compact="isCompact"
-      :status="changelogStatus"
-      :releases="releases"
-      :current-version="appVersion"
-      :error="changelogError"
-      @close="changelogOpen = false"
-      @retry="loadChangelog(true)"
-    />
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import packageInfo from '../../package.json';
 import logoUrl from '../assets/logo.png';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
-import {
-  canDownloadUpdateInApp,
-  cancelUpdateDownload,
-  clearPendingUpdate,
-  downloadUpdateAsset,
-  installDownloadedUpdate as launchDownloadedUpdate,
-  loadPendingUpdate,
-  savePendingUpdate
-} from '../services/updateDownload.js';
-import {
-  detectUpdatePlatform,
-  fetchStableReleases,
-  isVersionNewer,
-  REPOSITORY_URL,
-  RELEASES_PAGE_URL,
-  selectReleaseAsset
-} from '../services/updates.js';
+import { REPOSITORY_URL } from '../services/updates.js';
 import { useShelfStore } from '../stores/shelf.js';
 import { useSettingsStore } from '../stores/settings.js';
 import {
@@ -494,49 +438,23 @@ import {
   useThemeStore
 } from '../stores/theme.js';
 import { WEBTOON_FIT_LABELS } from '../stores/reader.js';
+import { useUpdateStore } from '../stores/updates.js';
 import { useViewport } from '../composables/useViewport.js';
-import ChangelogSheet from './ChangelogSheet.vue';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
+import SurfaceModePreview from './SurfaceModePreview.vue';
 import ThemeSwatchGrid from './ThemeSwatchGrid.vue';
-import UpdateDialog from './UpdateDialog.vue';
 
 const shelf = useShelfStore();
 const settings = useSettingsStore();
 const theme = useThemeStore();
+const updates = useUpdateStore();
+const { hasNewRelease, hasPendingInstall } = storeToRefs(updates);
+const appVersion = packageInfo.version;
 const { isCompact } = useViewport();
 const readerDefaults = settings.readerDefaults;
-const appVersion = packageInfo.version;
-const updatePlatform = detectUpdatePlatform();
-const releases = ref([]);
-const latestRelease = ref(null);
-const updateDialogOpen = ref(false);
-const updateStatus = ref('idle');
-const updateError = ref(null);
-const downloadError = ref(null);
-const changelogOpen = ref(false);
-const changelogStatus = ref('idle');
-const changelogError = ref(null);
 const aboutLinkError = ref('');
-const downloadedUpdate = ref(restorePendingUpdate());
-const downloadState = ref(emptyDownloadState());
-let activeDownloadId = '';
-let downloadRequestId = 0;
 
-const updatePackage = computed(() => selectReleaseAsset(
-  latestRelease.value || { htmlUrl: RELEASES_PAGE_URL, assets: [] },
-  updatePlatform
-));
-const hasNewRelease = computed(() => {
-  const latest = releases.value[0];
-  return !!latest && isVersionNewer(latest.version, appVersion);
-});
-const hasPendingInstall = computed(() =>
-  !!downloadedUpdate.value
-  && isVersionNewer(downloadedUpdate.value.version, appVersion)
-);
-
-const surfaceOptions = SURFACE_MODE_OPTIONS;
 const transitionOptions = TRANSITION_OPTIONS;
 const directionOptions = [
   { value: 'ltr', label: '从左到右', title: '普通排版' },
@@ -565,7 +483,7 @@ const themeLabel = computed(() => {
   return option ? option.title.replace(' (默认)', '') : theme.themeColor;
 });
 const surfaceLabel = computed(() => {
-  const option = surfaceOptions.find(item => item.value === theme.surfaceMode);
+  const option = SURFACE_MODE_OPTIONS.find(item => item.value === theme.surfaceMode);
   return option ? option.label : theme.surfaceMode;
 });
 const transitionLabel = computed(() => TRANSITION_LABELS[theme.transitionStyle] || '');
@@ -594,9 +512,7 @@ const actionBusy = ref(false);
 const cancelButtonRef = ref(null);
 const confirmButtonRef = ref(null);
 let dialogTrigger = null;
-const modalLayerOpen = computed(() =>
-  !!pendingAction.value || updateDialogOpen.value || changelogOpen.value
-);
+const modalLayerOpen = computed(() => !!pendingAction.value);
 let previousModalBodyOverflow = '';
 let modalLayerLocked = false;
 
@@ -626,15 +542,6 @@ const dataDialogDescription = computed(() => {
   return `将删除 ${progressCount.value} 本作品的阅读位置与排版记忆。作品本身不会被删除。`;
 });
 
-function selectSurface(option, event) {
-  if (option.value === theme.surfaceMode) return;
-  const rect = event.currentTarget.getBoundingClientRect();
-  theme.setSurfaceMode(option.value, false, {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2
-  });
-}
-
 function setDirection(value) {
   settings.setReaderDefault('direction', value);
 }
@@ -657,239 +564,6 @@ async function refreshStorage() {
   storageLoading.value = false;
 }
 
-let updateRequestId = 0;
-
-async function checkForUpdates() {
-  const requestId = ++updateRequestId;
-  pendingAction.value = null;
-  changelogOpen.value = false;
-  updateDialogOpen.value = true;
-  updateStatus.value = 'loading';
-  updateError.value = null;
-  downloadError.value = null;
-  latestRelease.value = null;
-
-  try {
-    const result = await fetchStableReleases({ force: true });
-    if (requestId !== updateRequestId) return;
-    releases.value = result;
-    latestRelease.value = result[0] || null;
-    if (downloadedUpdate.value && downloadedUpdate.value.version !== latestRelease.value?.version) {
-      downloadedUpdate.value = null;
-      clearPendingUpdate();
-    }
-    updateStatus.value = latestRelease.value && isVersionNewer(latestRelease.value.version, appVersion)
-      ? 'available'
-      : 'latest';
-  } catch (error) {
-    if (requestId !== updateRequestId) return;
-    console.warn('检查更新失败', error);
-    updateError.value = error;
-    updateStatus.value = 'error';
-  }
-}
-
-function emptyDownloadState() {
-  return {
-    progress: 0,
-    downloadedBytes: 0,
-    totalBytes: 0,
-    fileName: '',
-    path: '',
-    size: 0,
-    version: ''
-  };
-}
-
-function restorePendingUpdate() {
-  const pending = loadPendingUpdate();
-  if (
-    !pending
-    || pending.platform !== updatePlatform
-    || !isVersionNewer(pending.version, appVersion)
-  ) {
-    if (pending) clearPendingUpdate();
-    return null;
-  }
-  return pending;
-}
-
-function createDownloadId() {
-  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `update_${random.replace(/[^a-zA-Z0-9_-]/g, '')}`;
-}
-
-function handlePrimaryUpdateAction() {
-  if (hasPendingInstall.value) {
-    downloadState.value = {
-      ...emptyDownloadState(),
-      ...downloadedUpdate.value,
-      progress: 1,
-      downloadedBytes: downloadedUpdate.value.size,
-      totalBytes: downloadedUpdate.value.size
-    };
-    updateDialogOpen.value = true;
-    updateStatus.value = 'downloaded';
-    return;
-  }
-  checkForUpdates();
-}
-
-async function startUpdateDownload() {
-  const release = latestRelease.value;
-  const asset = updatePackage.value && updatePackage.value.asset;
-  downloadError.value = null;
-  if (!release || !asset) {
-    try {
-      await openGitHubUrl(updatePackage.value?.url || RELEASES_PAGE_URL);
-    } catch (error) {
-      downloadError.value = { message: '无法打开系统浏览器，请稍后再试。' };
-      console.warn('打开更新下载页失败', error);
-    }
-    return;
-  }
-
-  if (!canDownloadUpdateInApp()) {
-    try {
-      await openGitHubUrl(asset.url);
-    } catch (error) {
-      downloadError.value = { message: '无法打开系统浏览器，请稍后再试。' };
-      console.warn('打开更新下载页失败', error);
-    }
-    return;
-  }
-
-  const requestId = ++downloadRequestId;
-  const downloadId = createDownloadId();
-  activeDownloadId = downloadId;
-  downloadedUpdate.value = null;
-  clearPendingUpdate();
-  downloadState.value = {
-    ...emptyDownloadState(),
-    fileName: asset.name,
-    version: release.version
-  };
-  updateStatus.value = 'downloading';
-
-  try {
-    const result = await downloadUpdateAsset({
-      downloadId,
-      url: asset.url,
-      fileName: asset.name,
-      expectedSize: asset.size,
-      onProgress(progress) {
-        if (requestId !== downloadRequestId) return;
-        downloadState.value = {
-          ...downloadState.value,
-          progress: Number(progress.fraction) || 0,
-          downloadedBytes: Number(progress.downloadedBytes) || 0,
-          totalBytes: Number(progress.totalBytes) || 0
-        };
-      }
-    });
-    if (requestId !== downloadRequestId) return;
-    const pendingUpdate = {
-      ...result,
-      version: release.version,
-      packageLabel: updatePackage.value.label,
-      platform: updatePlatform
-    };
-    downloadedUpdate.value = pendingUpdate;
-    savePendingUpdate(pendingUpdate);
-    downloadState.value = {
-      ...downloadState.value,
-      ...result,
-      progress: 1,
-      totalBytes: result.size,
-      downloadedBytes: result.size
-    };
-    updateStatus.value = 'downloaded';
-  } catch (error) {
-    if (requestId !== downloadRequestId) return;
-    if (error?.code === 'CANCELLED') {
-      updateStatus.value = 'available';
-      return;
-    }
-    console.warn('下载更新失败', error);
-    downloadError.value = error;
-    updateStatus.value = 'download-error';
-  } finally {
-    if (activeDownloadId === downloadId) activeDownloadId = '';
-  }
-}
-
-async function cancelCurrentDownload() {
-  const downloadId = activeDownloadId;
-  downloadRequestId += 1;
-  activeDownloadId = '';
-  downloadState.value = emptyDownloadState();
-  downloadError.value = null;
-  updateStatus.value = 'available';
-  if (!downloadId) return;
-  try {
-    await cancelUpdateDownload(downloadId);
-  } catch (error) {
-    console.warn('取消更新下载失败', error);
-  }
-}
-
-async function closeUpdateDialog() {
-  downloadError.value = null;
-  if (updateStatus.value === 'downloading') {
-    await cancelCurrentDownload();
-  }
-  updateDialogOpen.value = false;
-}
-
-async function installDownloadedUpdate() {
-  if (!downloadedUpdate.value) return;
-  downloadError.value = null;
-  try {
-    await launchDownloadedUpdate(downloadedUpdate.value);
-    updateDialogOpen.value = false;
-  } catch (error) {
-    console.warn('启动更新安装失败', error);
-    downloadError.value = typeof error === 'string' ? { message: error } : error;
-  }
-}
-
-let changelogRequestId = 0;
-
-async function loadChangelog(force = false) {
-  const requestId = ++changelogRequestId;
-  changelogStatus.value = 'loading';
-  changelogError.value = null;
-
-  try {
-    const result = await fetchStableReleases({ force });
-    if (requestId !== changelogRequestId) return;
-    releases.value = result;
-    changelogStatus.value = 'ready';
-  } catch (error) {
-    if (requestId !== changelogRequestId) return;
-    console.warn('读取更新日志失败', error);
-    changelogError.value = error;
-    changelogStatus.value = 'error';
-  }
-}
-
-function openChangelog() {
-  pendingAction.value = null;
-  updateDialogOpen.value = false;
-  changelogOpen.value = true;
-  if (releases.value.length > 0) {
-    changelogStatus.value = 'ready';
-    return;
-  }
-  loadChangelog();
-}
-
-function openChangelogFromUpdate() {
-  openChangelog();
-}
-
 async function openRepository() {
   aboutLinkError.value = '';
   try {
@@ -900,10 +574,12 @@ async function openRepository() {
   }
 }
 
-function jumpToSection(key) {
+async function selectSection(key) {
+  if (activeSection.value === key) return;
   activeSection.value = key;
-  const section = document.getElementById(`settings-${key}`);
-  if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (key === 'storage') refreshStorage();
+  await nextTick();
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function requestDataAction(action) {
@@ -980,35 +656,13 @@ watch(modalLayerOpen, open => {
   }
 });
 
-let sectionScrollFrame = 0;
-
-function updateActiveSection() {
-  sectionScrollFrame = 0;
-  const marker = Math.min(window.innerHeight * 0.45, 420);
-  let current = sections[0].key;
-  sections.forEach(section => {
-    const element = document.getElementById(`settings-${section.key}`);
-    if (element && element.getBoundingClientRect().top <= marker) current = section.key;
-  });
-  activeSection.value = current;
-}
-
-function onPageScroll() {
-  if (sectionScrollFrame) return;
-  sectionScrollFrame = requestAnimationFrame(updateActiveSection);
-}
-
 onMounted(() => {
   refreshStorage();
   window.addEventListener('keydown', onDialogKeydown);
-  window.addEventListener('scroll', onPageScroll, { passive: true });
-  updateActiveSection();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onDialogKeydown);
-  window.removeEventListener('scroll', onPageScroll);
-  if (sectionScrollFrame) cancelAnimationFrame(sectionScrollFrame);
   if (modalLayerLocked) document.body.style.overflow = previousModalBodyOverflow;
 });
 </script>
@@ -1076,6 +730,10 @@ onBeforeUnmount(() => {
   grid-template-columns: 160px minmax(440px, 1fr) 332px;
   gap: 34px;
   align-items: start;
+}
+
+.settings-layout:not(.has-preview) {
+  grid-template-columns: 160px minmax(0, 1fr);
 }
 
 .settings-section-nav {
@@ -1160,6 +818,21 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.settings-page-panel {
+  animation: settings-page-enter 200ms var(--md-ease-emphasized);
+}
+
+@keyframes settings-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .settings-section {
   padding-bottom: 34px;
   scroll-margin-top: 84px;
@@ -1214,99 +887,6 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   font-weight: 500;
-}
-
-.surface-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.surface-option {
-  position: relative;
-  min-height: 78px;
-  padding: 10px 11px;
-  border: 0.5px solid var(--md-outline-variant);
-  border-radius: 14px;
-  background: var(--md-surface-low);
-  color: var(--md-on-surface);
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  align-items: center;
-  gap: 11px;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background-color var(--md-duration-short) var(--md-ease-emphasized),
-    border-color var(--md-duration-short) var(--md-ease-emphasized),
-    box-shadow var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.surface-option:hover {
-  background: var(--md-surface-container);
-}
-
-.surface-option.is-selected {
-  border-color: var(--md-primary);
-  background: var(--md-surface-container);
-  box-shadow: inset 0 0 0 1px var(--md-primary);
-}
-
-.surface-mini {
-  position: relative;
-  width: 46px;
-  height: 56px;
-  padding: 5px;
-  overflow: hidden;
-  border: 0.5px solid color-mix(in oklab, var(--md-outline-variant) 76%, transparent);
-  border-radius: 9px;
-  background: var(--md-surface-container);
-}
-
-.surface-mini::before {
-  content: "";
-  display: block;
-  height: 100%;
-  border-radius: 6px;
-  background:
-    linear-gradient(to bottom, transparent 0 37%, color-mix(in oklab, var(--md-primary) 28%, var(--md-surface)) 37% 49%, transparent 49%),
-    linear-gradient(to bottom, var(--md-primary) 0 26%, var(--md-surface) 26%);
-  box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 58%, transparent);
-}
-
-.surface-copy {
-  min-width: 0;
-}
-
-.surface-copy b {
-  display: block;
-  font-size: 13px;
-  font-weight: 640;
-}
-
-.surface-copy span {
-  display: block;
-  margin-top: 4px;
-  color: var(--md-on-surface-variant);
-  font-size: 11px;
-}
-
-.surface-check {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  background: var(--md-primary);
-  color: var(--md-on-primary);
-  display: grid;
-  place-items: center;
-}
-
-.surface-check svg {
-  width: 10px;
-  height: 10px;
 }
 
 .settings-value-row {
@@ -2071,13 +1651,20 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 900px) and (max-width: 1199px) {
-  .settings-layout {
+  .settings-layout,
+  .settings-layout:not(.has-preview) {
     grid-template-columns: 148px minmax(0, 1fr);
     gap: 28px;
   }
 
   .settings-preview {
     display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .settings-layout:not(.has-preview) .settings-main {
+    max-width: 760px;
   }
 }
 
@@ -2157,22 +1744,6 @@ onBeforeUnmount(() => {
 
   .settings-section-heading {
     margin-bottom: 18px;
-  }
-
-  .surface-option {
-    min-height: 72px;
-    padding: 9px;
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 9px;
-  }
-
-  .surface-mini {
-    width: 38px;
-    height: 48px;
-  }
-
-  .surface-copy span {
-    display: none;
   }
 
   .settings-preview {
@@ -2267,7 +1838,7 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .settings-section-link,
-  .surface-option,
+  .settings-page-panel,
   .settings-icon-button,
   .storage-bar i,
   .settings-open-book,
@@ -2278,6 +1849,7 @@ onBeforeUnmount(() => {
   .settings-dialog-enter-active .settings-dialog,
   .settings-dialog-leave-active .settings-dialog {
     transition: none !important;
+    animation: none !important;
   }
 }
 </style>
