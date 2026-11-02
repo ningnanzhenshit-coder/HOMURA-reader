@@ -1,5 +1,5 @@
     /* ==========================================================================
-       1. MD3 Color Tokens · 10 套主题（默认 深海蓝 = seed #0061A4）
+       1. MD3 Color Tokens · 10 套主题（默认 兰花紫 = seed #7B4E9E）
        ========================================================================== */
     :root { --md-favorite: color-mix(in oklab, var(--md-primary) 58%, var(--md-tertiary)); }
     :root,
@@ -348,6 +348,12 @@
       width: calc(100vw - var(--homura-reader-scrollbar-width, 0px));
     }
 
+    /* html 设了 overflow-x: clip，body 的 overflow: hidden 不会传播到视口，
+       阅读器打开时根节点仍会露出第二条纵向滚动条，这里一并锁住 */
+    html.reader-scroll-reserved {
+      overflow-y: hidden;
+    }
+
     /* fixed 元素不受 body 宽度补偿影响，需同步补上滚动条偏移 */
     html.reader-scroll-reserved .md-fab-pos {
       right: calc(28px + var(--homura-reader-scrollbar-width, 0px));
@@ -623,13 +629,13 @@
     @media (max-width: 899px) {
       .md-fab-pos {
         right: 18px;
-        bottom: calc(5rem + env(safe-area-inset-bottom) + 14px);
+        bottom: calc(6.5rem + env(safe-area-inset-bottom));
       }
     }
 
-    /* 手机底部导航预留高度，避免卡片文字被导航条盖住 */
+    /* 手机悬浮胶囊底栏预留高度（14px 外边距 + 76px 栏高 + 14px 余量） */
     .md-bottom-nav-space {
-      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+      padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
     }
 
     .md-scrim {

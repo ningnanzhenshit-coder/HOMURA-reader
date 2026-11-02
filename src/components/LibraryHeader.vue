@@ -11,6 +11,27 @@
 
       <div class="ml-auto flex items-center gap-2 shrink-0">
         <button
+          v-if="settings.showFullscreenButton"
+          @click="ui.toggleFullscreen()"
+          class="hidden min-[900px]:grid w-11 h-11 rounded-full place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors duration-200"
+          :title="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
+          :aria-label="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
+          :aria-pressed="ui.fullscreen"
+        >
+          <svg v-if="ui.fullscreen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
+          </svg>
+          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
+          </svg>
+        </button>
+        <button
           @click="toggleAppearance"
           class="w-11 h-11 rounded-full grid place-items-center transition-colors"
           :class="appearanceOpen
@@ -76,7 +97,7 @@
     </div>
 
     <!-- 搜索栏：手机独立一行；桌面嵌入 Top App Bar 中段，避免被拉成整条跑道 -->
-    <div class="px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-3 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
+    <div class="library-search-slot px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-3 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
       <div class="library-search-field h-[52px] min-[900px]:h-10 rounded-[26px] min-[900px]:rounded-[20px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-[18px] min-[900px]:pl-4 pr-4 min-[900px]:pr-2.5 transition-colors duration-200">
         <svg class="w-5 h-5 shrink-0 text-[var(--md-on-surface-variant)] opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="7" stroke-width="2"/>
@@ -195,6 +216,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
+import { useSettingsStore } from '../stores/settings.js';
+import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { HomuraStore } from '../services/storage.js';
@@ -212,6 +235,8 @@ const props = defineProps({
 const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance']);
 
 const shelf = useShelfStore();
+const settings = useSettingsStore();
+const ui = useUiStore();
 const { isCompact } = useViewport();
 
 const menu = ref(null);
@@ -303,6 +328,16 @@ function onClear() {
 </script>
 
 <style scoped>
+/* 900–1079px 展开侧栏会压缩顶栏中段，搜索框改为独立一行，避免与标题和右侧按钮重叠 */
+@media (min-width: 900px) and (max-width: 1079px) {
+  .library-search-slot {
+    position: static;
+    width: auto;
+    transform: none;
+    padding: 2px 28px 10px;
+  }
+}
+
 .library-filter-chip {
   --filter-check-space: 20px;
   position: relative;

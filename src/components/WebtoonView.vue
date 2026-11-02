@@ -4,7 +4,7 @@
     v-if="isManga"
     ref="scrollRoot"
     data-reader-scroll
-    class="w-full h-full overflow-y-auto overscroll-contain touch-pan-y flex flex-col items-center py-2 gap-2"
+    class="no-scrollbar w-full h-full overflow-y-auto overscroll-contain touch-pan-y flex flex-col items-center py-2 gap-2"
     style="scroll-padding-top: calc(3.5rem + env(safe-area-inset-top)); scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));"
   >
     <div
@@ -23,7 +23,7 @@
     v-else
     ref="scrollRoot"
     data-reader-scroll
-    class="w-full h-full overflow-y-auto overscroll-contain touch-pan-y py-4 px-3 sm:px-2"
+    class="no-scrollbar w-full h-full overflow-y-auto overscroll-contain touch-pan-y py-4 px-3 sm:px-2"
     style="scroll-padding-top: calc(3.5rem + env(safe-area-inset-top)); scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));"
   >
     <div :style="{ fontSize: reader.layoutConfig.fontSize + 'px' }" class="max-w-[660px] mx-auto bg-[var(--md-surface-low)] border-[0.5px] border-[var(--md-outline-variant)] rounded-[16px] p-5 sm:p-12 space-y-8">
