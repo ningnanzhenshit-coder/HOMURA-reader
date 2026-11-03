@@ -533,9 +533,11 @@ Hover 规则：
 组件：`src/components/SideNav.vue`
 
 - 仅 `>=900px` 显示；`sticky top:16px`，高 `100dvh - 32px`，圆角 28px。
-- 展开 220px：顶部左侧折叠/展开按钮、水平居中的 48px 圆角头像（无主题色描边）；导航项 56px 高、30px 圆角、22px 图标 + 15px 文字横排。
+- 展开 220px：顶部左侧折叠/展开按钮、水平居中的 48px 圆角头像（无主题色描边）；导航项 56px 高、30px 圆角、20px 图标 + 15px 文字横排。
+- 收藏星形在 20px 盒子内做 `scale(1.12)` 视觉补偿，设置齿轮做 `scale(0.9)` 收敛，缩放中心不变。
 - 折叠 104px：顶部按钮与头像上下排列；导航项图标在上、11px 标签在下。
 - 选中态整行使用 `primary-container` + `on-primary-container`；4 项顺序固定为「书架 / 最近 / 收藏 / 设置」。
+- 鼠标悬浮时底色使用 `surface-container`，与筛选 chip 相同，不加投影；选中项保持 `primary-container`，触屏不触发 hover。
 - 展开/折叠使用 `280ms` 宽度过渡，头像、图标与标签同步重排；`prefers-reduced-motion: reduce` 时直接切换。
 - 导航标签使用固定字号的宽/窄两份文案交叉淡化，不插值 `font-size`，避免收起过程中字形重排抖动。
 - 外观入口已移到顶栏右上角（与「排序与更多操作」相邻），侧栏只保留 4 项主导航。
@@ -559,6 +561,7 @@ Hover 规则：
 - 页面标题 21/22px / 500，作品数量使用 `secondary-container` 胶囊。
 - 手机搜索框独占一行；`900–1079px` 桌面展开侧栏时搜索框也独占一行；`>=1080px` 嵌入顶栏中段并限制宽度。
 - 筛选 chips 在搜索下方；手机横向滚动，桌面不换行到不可用宽度。
+- 筛选 chip 鼠标悬浮时叠加 `--md-elevation-hover` 投影，只在 `(hover: hover) and (pointer: fine)` 生效。
 - 菜单触发必须有 `aria-haspopup` 与 `aria-expanded`。
 
 ## 9. 浮层、抽屉与确认

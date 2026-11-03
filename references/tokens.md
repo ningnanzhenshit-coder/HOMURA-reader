@@ -47,6 +47,12 @@
 | outline-variant | #CBD5E1 | #D8CDB6 | #3A424C |
 | manga-filter | none | sepia(.18) brightness(.97) contrast(.98) | brightness(.92) |
 
+## 3.1 Elevation（`:root`）
+
+| token | 值 | 用途 |
+|---|---|---|
+| `--md-elevation-hover` | `0 6px 16px -10px`，颜色 `on-surface` 52% | 筛选胶囊的鼠标悬浮投影 |
+
 ## 4. 遗留别名（`:root`，只做映射，新代码别用）
 
 `--brand-primary` → md-primary；`--brand-primary-hover` → color-mix(primary 84%, #000)；
