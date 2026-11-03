@@ -19,7 +19,13 @@
       class="settings-layout"
       :class="{ 'has-preview': activeSection === 'appearance' }"
     >
-      <nav class="settings-section-nav" aria-label="设置分区">
+      <nav ref="sectionNavRef" class="settings-section-nav" aria-label="设置分区">
+        <span
+          class="settings-section-indicator"
+          :class="{ 'is-ready': sectionIndicatorReady }"
+          :style="sectionIndicatorStyle"
+          aria-hidden="true"
+        ></span>
         <p class="settings-section-label">偏好</p>
         <button
           v-for="section in sections"
@@ -541,6 +547,41 @@ const sections = [
 ];
 const activeSection = ref('appearance');
 
+const sectionNavRef = ref(null);
+const sectionIndicatorReady = ref(false);
+const sectionIndicator = ref({ x: 0, y: 0, width: 0, height: 0 });
+const sectionIndicatorStyle = computed(() => ({
+  transform: `translate3d(${sectionIndicator.value.x}px, ${sectionIndicator.value.y}px, 0)`,
+  width: `${sectionIndicator.value.width}px`,
+  height: `${sectionIndicator.value.height}px`
+}));
+
+let sectionMeasureFrame = 0;
+
+function measureSectionIndicator() {
+  const nav = sectionNavRef.value;
+  const active = nav?.querySelector('.settings-section-link.is-active');
+  if (!active) return;
+  const navRect = nav.getBoundingClientRect();
+  const activeRect = active.getBoundingClientRect();
+  sectionIndicator.value = {
+    x: activeRect.left - navRect.left + nav.scrollLeft,
+    y: activeRect.top - navRect.top + nav.scrollTop,
+    width: activeRect.width,
+    height: activeRect.height
+  };
+  if (!sectionIndicatorReady.value) {
+    requestAnimationFrame(() => {
+      sectionIndicatorReady.value = true;
+    });
+  }
+}
+
+function scheduleSectionMeasure() {
+  cancelAnimationFrame(sectionMeasureFrame);
+  sectionMeasureFrame = requestAnimationFrame(measureSectionIndicator);
+}
+
 const themeLabel = computed(() => {
   const option = THEME_OPTIONS.find(item => item.name === theme.themeColor);
   return option ? option.title.replace(' (默认)', '') : theme.themeColor;
@@ -732,12 +773,20 @@ watch(modalLayerOpen, open => {
   }
 });
 
+watch(activeSection, () => nextTick(measureSectionIndicator));
+watch(isCompact, () => nextTick(scheduleSectionMeasure));
+
 onMounted(() => {
   refreshStorage();
+  measureSectionIndicator();
+  document.fonts?.ready.then(measureSectionIndicator);
+  window.addEventListener('resize', scheduleSectionMeasure);
   window.addEventListener('keydown', onDialogKeydown);
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', scheduleSectionMeasure);
+  cancelAnimationFrame(sectionMeasureFrame);
   window.removeEventListener('keydown', onDialogKeydown);
   if (modalLayerLocked) document.body.style.overflow = previousModalBodyOverflow;
 });
@@ -818,6 +867,26 @@ onBeforeUnmount(() => {
   padding-top: 4px;
 }
 
+.settings-section-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 12px;
+  background: var(--md-secondary-container);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-section-indicator.is-ready {
+  opacity: 1;
+  transition:
+    transform 300ms var(--md-ease-emphasized),
+    width 300ms var(--md-ease-emphasized),
+    height 300ms var(--md-ease-emphasized),
+    opacity 120ms var(--md-ease-emphasized);
+}
+
 .settings-section-label {
   margin: 0 0 12px 12px;
   color: var(--md-on-surface-variant);
@@ -828,6 +897,7 @@ onBeforeUnmount(() => {
 
 .settings-section-link {
   position: relative;
+  z-index: 1;
   width: 100%;
   min-height: 42px;
   padding: 0 12px;
@@ -863,7 +933,7 @@ onBeforeUnmount(() => {
 }
 
 .settings-section-link.is-active {
-  background: var(--md-secondary-container);
+  background: transparent;
   color: var(--md-on-secondary-container);
 }
 
@@ -1772,7 +1842,8 @@ onBeforeUnmount(() => {
   }
 
   .settings-section-nav {
-    position: static;
+    position: relative;
+    top: auto;
     padding: 3px 0 14px;
     display: flex;
     gap: 7px;
@@ -1918,6 +1989,7 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .settings-section-link,
+  .settings-section-indicator.is-ready,
   .settings-page-panel,
   .settings-icon-button,
   .storage-bar i,

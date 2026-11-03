@@ -31,7 +31,13 @@
       </button>
     </div>
 
-    <nav class="sidenav-list" aria-label="主导航">
+    <nav ref="desktopNavRef" class="sidenav-list" aria-label="主导航">
+      <span
+        class="sidenav-indicator"
+        :class="{ 'is-ready': desktopReady }"
+        :style="{ transform: `translate3d(0, ${desktopIndicatorY}px, 0)` }"
+        aria-hidden="true"
+      ></span>
       <button
         v-for="item in navItems"
         :key="item.key"
@@ -86,7 +92,13 @@
 
   <!-- 手机：悬浮胶囊底栏 -->
   <Teleport v-else to="#homura-mobile-nav-root">
-    <nav class="mobile-nav" aria-label="主导航">
+    <nav ref="mobileNavRef" class="mobile-nav" aria-label="主导航">
+      <span
+        class="mobile-nav-indicator"
+        :class="{ 'is-ready': mobileReady }"
+        :style="{ transform: `translate3d(${mobileIndicator.x}px, ${mobileIndicator.y}px, 0)` }"
+        aria-hidden="true"
+      ></span>
       <button
         v-for="item in navItems"
         :key="item.key"
@@ -139,13 +151,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 
 const SIDEBAR_STORAGE_KEY = 'homura_sidenav_collapsed';
 
 const { isCompact } = useViewport();
-defineProps({
+const props = defineProps({
   active: { type: String, default: 'shelf' }
 });
 const emit = defineEmits(['nav']);
@@ -164,6 +176,42 @@ function readCollapsed() {
 
 const collapsed = ref(readCollapsed());
 
+const desktopNavRef = ref(null);
+const mobileNavRef = ref(null);
+const desktopReady = ref(false);
+const mobileReady = ref(false);
+const desktopIndicatorY = ref(0);
+const mobileIndicator = ref({ x: 0, y: 0 });
+
+let measureFrame = 0;
+
+function measureIndicators() {
+  const desktopActive = desktopNavRef.value?.querySelector('.sidenav-item.is-active');
+  if (desktopActive) {
+    desktopIndicatorY.value = desktopActive.offsetTop;
+    if (!desktopReady.value) {
+      requestAnimationFrame(() => {
+        desktopReady.value = true;
+      });
+    }
+  }
+
+  const mobileActive = mobileNavRef.value?.querySelector('.mobile-nav-item.is-active');
+  if (mobileActive) {
+    mobileIndicator.value = { x: mobileActive.offsetLeft, y: mobileActive.offsetTop };
+    if (!mobileReady.value) {
+      requestAnimationFrame(() => {
+        mobileReady.value = true;
+      });
+    }
+  }
+}
+
+function scheduleMeasure() {
+  cancelAnimationFrame(measureFrame);
+  measureFrame = requestAnimationFrame(measureIndicators);
+}
+
 function toggleSidebar() {
   collapsed.value = !collapsed.value;
   try {
@@ -181,6 +229,20 @@ const navItems = [
 function select(key) {
   emit('nav', key);
 }
+
+watch(() => props.active, () => nextTick(measureIndicators));
+watch(collapsed, () => nextTick(scheduleMeasure));
+watch(isCompact, () => nextTick(scheduleMeasure));
+
+onMounted(() => {
+  measureIndicators();
+  window.addEventListener('resize', scheduleMeasure);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', scheduleMeasure);
+  cancelAnimationFrame(measureFrame);
+});
 </script>
 
 <style scoped>
@@ -283,17 +345,40 @@ function select(key) {
   }
 
   .sidenav-list {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 2px;
     width: 100%;
   }
 
-  .sidenav-item {
-    position: relative;
+  .sidenav-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
     width: 100%;
     height: 56px;
     border-radius: 30px;
+    background: var(--md-primary-container);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidenav-indicator.is-ready {
+    opacity: 1;
+    transition:
+      transform 300ms cubic-bezier(0.2, 0, 0, 1),
+      opacity 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .sidenav-item {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 56px;
+    border-radius: 30px;
+    background: transparent;
     font-weight: 600;
     color: var(--md-on-surface);
     transition:
@@ -363,7 +448,7 @@ function select(key) {
   }
 
   .sidenav-item.is-active {
-    background: var(--md-primary-container);
+    background: transparent;
     color: var(--md-on-primary-container);
   }
 
@@ -381,6 +466,7 @@ function select(key) {
     .sidenav-head,
     .sidenav-icon-btn,
     .sidenav-avatar,
+    .sidenav-indicator.is-ready,
     .sidenav-item,
     .sidenav-item svg,
     .sidenav-label-wide,
@@ -410,7 +496,29 @@ function select(key) {
       0 18px 36px -16px color-mix(in oklab, var(--md-on-surface) 55%, transparent);
   }
 
+  .mobile-nav-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: 60px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--md-primary);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mobile-nav-indicator.is-ready {
+    opacity: 1;
+    transition:
+      transform 300ms cubic-bezier(0.2, 0, 0, 1),
+      opacity 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
   .mobile-nav-item {
+    position: relative;
+    z-index: 1;
     width: 60px;
     height: 56px;
     border-radius: 18px;
@@ -421,6 +529,7 @@ function select(key) {
     gap: 2px;
     font-size: 11px;
     font-weight: 600;
+    background: transparent;
     color: var(--md-on-surface-variant);
     transition:
       background-color 200ms cubic-bezier(0.2, 0, 0, 1),
@@ -443,7 +552,14 @@ function select(key) {
   }
 
   .mobile-nav-item.is-active {
-    background: var(--md-primary);
+    background: transparent;
     color: var(--md-on-primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-nav-indicator.is-ready,
+    .mobile-nav-item {
+      transition: none;
+    }
   }
 </style>
