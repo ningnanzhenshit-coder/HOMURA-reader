@@ -169,6 +169,42 @@ export function splitLongParagraph(html, measurer, maxHeight) {
   return parts;
 }
 
+const NOVEL_CONTAINER_TAGS = new Set(['body', 'main', 'section', 'article', 'div', 'header', 'footer', 'aside']);
+
+// EPUB 常把整章包在 section/div 里；结构容器必须拆开分页，否则含图的整章会被裁成一页。
+// 只在容器没有直接文本时递归展开，避免丢掉混在子元素之间的文字。
+export function collectNovelBlocks(html) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html || '';
+  const blocks = [];
+
+  function hasDirectText(node) {
+    return Array.from(node.childNodes).some(child => (
+      child.nodeType === Node.TEXT_NODE && child.textContent.trim()
+    ));
+  }
+
+  function pushNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent.trim();
+      if (text) blocks.push({ type: 'p', text, html: `<p>${escapeHtml(text)}</p>` });
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = node.tagName.toLowerCase();
+    if (NOVEL_CONTAINER_TAGS.has(tag) && node.children.length > 0 && !hasDirectText(node)) {
+      Array.from(node.childNodes).forEach(pushNode);
+      return;
+    }
+
+    blocks.push({ type: tag, text: node.textContent.trim(), html: node.outerHTML });
+  }
+
+  Array.from(wrapper.childNodes).forEach(pushNode);
+  return blocks;
+}
+
 export function buildActivePages(book, layoutConfig, measurer) {
   if (book.type === 'manga') {
     return (book.pageItems || []).map((item, idx) => ({
@@ -212,25 +248,7 @@ export function buildActivePages(book, layoutConfig, measurer) {
 
   for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
     const chap = chapters[cIdx];
-    const tempContainer = document.createElement('div');
-    tempContainer.innerHTML = chap.htmlContent || '';
-
-    const blocks = [];
-    Array.from(tempContainer.childNodes).forEach(node => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const txt = node.textContent.trim();
-        if (txt) blocks.push({ type: 'p', text: txt, html: `<p>${escapeHtml(txt)}</p>` });
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const tag = node.tagName.toLowerCase();
-        if (['div', 'section', 'article', 'body'].includes(tag) && node.children.length > 0 && !node.querySelector('img, svg, image')) {
-          Array.from(node.children).forEach(child => {
-            blocks.push({ type: child.tagName.toLowerCase(), text: child.textContent.trim(), html: child.outerHTML });
-          });
-        } else {
-          blocks.push({ type: tag, text: node.textContent.trim(), html: node.outerHTML });
-        }
-      }
-    });
+    const blocks = collectNovelBlocks(chap.htmlContent);
 
     if (blocks.length === 0) {
       paginatedList.push({

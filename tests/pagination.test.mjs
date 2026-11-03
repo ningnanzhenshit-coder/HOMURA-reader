@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { splitLongParagraph } from '../src/services/pagination.js';
+import { splitLongParagraph, collectNovelBlocks } from '../src/services/pagination.js';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>');
 globalThis.window = dom.window;
@@ -48,4 +48,30 @@ test('含不可拆分媒体时保留原始段落', () => {
   const measurer = document.createElement('div');
   Object.defineProperty(measurer, 'scrollHeight', { value: 1000 });
   assert.deepEqual(splitLongParagraph(html, measurer, 100), [html]);
+});
+
+test('含插图的 EPUB 章节容器会拆成独立 blocks', () => {
+  const html = `
+    <section>
+      <h1>插图</h1>
+      <figure><svg><image href="one.jpg"></image></svg></figure>
+      <figure><svg><image href="two.jpg"></image></svg></figure>
+      <p>正文段落</p>
+    </section>
+  `;
+  const blocks = collectNovelBlocks(html);
+
+  assert.deepEqual(blocks.map(block => block.type), ['h1', 'figure', 'figure', 'p']);
+  assert.match(blocks[1].html, /one\.jpg/);
+  assert.match(blocks[2].html, /two\.jpg/);
+});
+
+test('容器内混有直接文本时保留原容器，避免丢字', () => {
+  const html = '<div>前置文字<figure><img src="one.jpg" alt=""></figure>后置文字</div>';
+  const blocks = collectNovelBlocks(html);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, 'div');
+  assert.match(blocks[0].html, /前置文字/);
+  assert.match(blocks[0].html, /后置文字/);
 });
