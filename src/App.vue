@@ -8,7 +8,13 @@
   >
     <SideNav :active="activeNav" @nav="onRailNav" />
 
-    <div class="flex-1 min-w-0 flex flex-col" :class="isCompact ? 'md-bottom-nav-space' : ''">
+    <div
+      class="flex-1 min-w-0 flex flex-col"
+      :class="[
+        isCompact ? 'md-bottom-nav-space' : '',
+        isCompact && activeNav !== 'settings' ? 'md-library-header-space' : ''
+      ]"
+    >
       <SettingsView v-if="activeNav === 'settings'" />
       <template v-else>
         <LibraryHeader

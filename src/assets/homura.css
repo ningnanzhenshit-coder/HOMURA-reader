@@ -369,7 +369,6 @@
       background-color: var(--bg-canvas);
       color: var(--fg-main);
       min-height: 100vh;
-      min-height: 100dvh;
       overflow-x: clip;
       overscroll-behavior-y: contain;
       -webkit-font-smoothing: antialiased;
@@ -378,7 +377,6 @@
 
     #app {
       min-height: 100vh;
-      min-height: 100dvh;
     }
 
     /* 预见式返回：系统 BackEvent / 本地指针共用进度，驱动阅读器、书架和遮罩 */
@@ -636,6 +634,11 @@
     /* 手机悬浮胶囊底栏预留高度（14px 外边距 + 76px 栏高 + 14px 余量） */
     .md-bottom-nav-space {
       padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+    }
+
+    /* 手机书架顶栏改为 fixed 后，用列内边距占住原文档流高度，避免内容上跳 */
+    .md-library-header-space {
+      padding-top: var(--homura-library-header-height, calc(172px + env(safe-area-inset-top)));
     }
 
     .md-scrim {

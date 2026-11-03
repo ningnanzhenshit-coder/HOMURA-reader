@@ -1,7 +1,8 @@
 <template>
   <!-- 书架页头部：MD3 Top App Bar + 搜索栏 + 筛选 chips -->
   <div
-    class="sticky top-0 z-20 bg-[var(--md-surface)]"
+    ref="headerRef"
+    class="library-header-bar sticky top-0 z-20 bg-[var(--md-surface)]"
     :style="isCompact ? { paddingTop: 'env(safe-area-inset-top)' } : null"
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
@@ -51,8 +52,8 @@
           <button
             @click="toggleMenu('sort')"
             class="md-hit-target w-11 h-11 rounded-full grid place-items-center text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)] transition-colors"
-            title="排序与更多操作"
-            aria-label="排序与更多操作"
+            title="排序方式"
+            aria-label="排序方式"
             aria-haspopup="menu"
             :aria-expanded="menu === 'sort'"
           >
@@ -65,7 +66,7 @@
             v-if="menu === 'sort'"
             class="absolute right-0 top-full mt-1 w-56 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
             role="menu"
-            aria-label="排序与更多操作"
+            aria-label="排序方式"
           >
             <p role="presentation" class="px-3 pt-1.5 pb-1 text-[11px] font-semibold text-[var(--md-on-surface-variant)]">排序方式</p>
             <button
@@ -82,15 +83,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
               </svg>
             </button>
-
-            <div role="separator" class="my-1 border-t-[0.5px] border-[var(--md-outline-variant)]"></div>
-            <p role="presentation" class="px-3 pt-1 pb-1 text-[11px] font-semibold text-[var(--md-on-surface-variant)]">更多操作</p>
-            <button role="menuitem" @click="addDemoManga" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例漫画</button>
-            <button role="menuitem" @click="addDemoNovel" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">+ 示例小说</button>
-            <div v-if="storageLabel" role="presentation" class="px-3 py-2 font-mono text-[12px] text-[var(--md-on-surface-variant)] border-t-[0.5px] border-[var(--md-outline-variant)]">
-              存储 {{ storageLabel }}
-            </div>
-            <button role="menuitem" @click="onClear" class="md-mobile-menu-item w-full text-left px-3 py-2.5 rounded-[10px] text-xs font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors">清空书架</button>
           </div>
         </div>
       </div>
@@ -214,14 +206,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { useShelfStore } from '../stores/shelf.js';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
-import { createDemoManga, createDemoNovel } from '../services/demo.js';
-import { HomuraStore } from '../services/storage.js';
-import { formatBytes } from '../services/platform.js';
 
 const props = defineProps({
   title: { type: String, default: '书架' },
@@ -234,12 +222,33 @@ const props = defineProps({
 
 const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance']);
 
-const shelf = useShelfStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const { isCompact } = useViewport();
 
 const menu = ref(null);
+const headerRef = ref(null);
+let headerObserver = null;
+
+// 安卓 WebView 的 sticky 顶栏会跟着滚动主线程抖，手机端改成固定层；
+// 用外层壳子按实测高度占位，避免顶栏脱离文档流后内容上跳。
+function syncHeaderHeight() {
+  if (!headerRef.value) return;
+  const height = headerRef.value.getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--homura-library-header-height', `${Math.round(height)}px`);
+}
+
+onMounted(() => {
+  syncHeaderHeight();
+  if (typeof ResizeObserver === 'undefined') return;
+  headerObserver = new ResizeObserver(syncHeaderHeight);
+  headerObserver.observe(headerRef.value);
+});
+
+onBeforeUnmount(() => {
+  headerObserver?.disconnect();
+  document.documentElement.style.removeProperty('--homura-library-header-height');
+});
 
 function toggleMenu(name) {
   menu.value = menu.value === name ? null : name;
@@ -251,19 +260,6 @@ function toggleAppearance() {
   emit('toggle-appearance');
 }
 
-// 存储用量：浏览器估算值，书架增减后刷新
-const storage = ref(null);
-const storageLabel = computed(() => {
-  if (!storage.value || !storage.value.quota) return '';
-  return `${formatBytes(storage.value.usage)} / ${formatBytes(storage.value.quota)}`;
-});
-
-async function refreshStorage() {
-  storage.value = await HomuraStore.estimateStorage();
-}
-
-onMounted(refreshStorage);
-watch(() => props.count, refreshStorage);
 watch(isCompact, value => {
   if (!value) menu.value = null;
 });
@@ -311,23 +307,20 @@ function pickSort(value) {
   menu.value = null;
 }
 
-function addDemoManga() {
-  shelf.unshiftBook(createDemoManga());
-  menu.value = null;
-}
-
-function addDemoNovel() {
-  shelf.unshiftBook(createDemoNovel());
-  menu.value = null;
-}
-
-function onClear() {
-  menu.value = null;
-  shelf.clearShelf();
-}
 </script>
 
 <style scoped>
+@media (max-width: 899px) {
+  .library-header-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
 /* 900–1079px 展开侧栏会压缩顶栏中段，搜索框改为独立一行，避免与标题和右侧按钮重叠 */
 @media (min-width: 900px) and (max-width: 1079px) {
   .library-search-slot {

@@ -380,6 +380,9 @@ function select(key) {
     align-items: center;
     justify-content: space-around;
     border-radius: 38px;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     background: color-mix(in oklab, var(--md-primary-container) 22%, var(--md-surface-container));
     box-shadow:
       0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
