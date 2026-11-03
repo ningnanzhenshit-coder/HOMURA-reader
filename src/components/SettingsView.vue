@@ -292,6 +292,31 @@
           </div>
 
           <p class="settings-action-note">关闭后恢复系统默认策略：仅 Windows 显示全屏组件。</p>
+
+          <div class="settings-block">
+            <div class="settings-head">
+              <span class="settings-title">示例内容</span>
+              <span class="settings-value">仅加入本机书架</span>
+            </div>
+            <div class="settings-data-list">
+              <div class="settings-data-row">
+                <span class="settings-data-copy">
+                  <b>示例漫画</b>
+                  <span>6 页分镜样张，用于检查单双页、日漫方向与条漫模式。</span>
+                </span>
+                <button type="button" class="settings-text-button" @click="addDemoManga">添加</button>
+              </div>
+              <div class="settings-data-row">
+                <span class="settings-data-copy">
+                  <b>示例小说</b>
+                  <span>2 章 EPUB 样张，用于检查字号、分页与进度恢复。</span>
+                </span>
+                <button type="button" class="settings-text-button" @click="addDemoNovel">添加</button>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="debugNote" class="settings-action-note" role="status">{{ debugNote }}</p>
         </section>
 
         <section
@@ -457,6 +482,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import packageInfo from '../../package.json';
+import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes, isWindows } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
@@ -488,6 +514,7 @@ const appVersion = packageInfo.version;
 const { isCompact } = useViewport();
 const readerDefaults = settings.readerDefaults;
 const aboutLinkError = ref('');
+const debugNote = ref('');
 
 const transitionOptions = TRANSITION_OPTIONS;
 const directionOptions = [
@@ -612,9 +639,22 @@ async function openRepository() {
 async function selectSection(key) {
   if (activeSection.value === key) return;
   activeSection.value = key;
+  debugNote.value = '';
   if (key === 'storage') refreshStorage();
   await nextTick();
   window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+function addDemoManga() {
+  const book = createDemoManga();
+  shelf.unshiftBook(book);
+  debugNote.value = `已添加「${book.title}」`;
+}
+
+function addDemoNovel() {
+  const book = createDemoNovel();
+  shelf.unshiftBook(book);
+  debugNote.value = `已添加「${book.title}」`;
 }
 
 function requestDataAction(action) {
@@ -900,6 +940,10 @@ onBeforeUnmount(() => {
 }
 
 .settings-block + .settings-block {
+  margin-top: 25px;
+}
+
+.settings-action-note + .settings-block {
   margin-top: 25px;
 }
 
