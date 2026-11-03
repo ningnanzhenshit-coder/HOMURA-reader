@@ -537,6 +537,7 @@ Hover 规则：
 - 收藏星形在 20px 盒子内做 `scale(1.12)` 视觉补偿，设置齿轮做 `scale(0.9)` 收敛，缩放中心不变。
 - 折叠 104px：顶部按钮与头像上下排列；导航项图标在上、11px 标签在下。
 - 选中态整行使用 `primary-container` + `on-primary-container`；4 项顺序固定为「书架 / 最近 / 收藏 / 设置」。
+- 选中底色由独立的 `.sidenav-indicator` 承载，切换时在 300ms 内纵向滑到目标项；`prefers-reduced-motion` 时直接落位。
 - 鼠标悬浮时底色使用 `surface-container`，与筛选 chip 相同，不加投影；选中项保持 `primary-container`，触屏不触发 hover。
 - 展开/折叠使用 `280ms` 宽度过渡，头像、图标与标签同步重排；`prefers-reduced-motion: reduce` 时直接切换。
 - 导航标签使用固定字号的宽/窄两份文案交叉淡化，不插值 `font-size`，避免收起过程中字形重排抖动。
@@ -549,6 +550,7 @@ Hover 规则：
 - 底色使用 `primary-container` 22% 混入 `surface-container`，带柔和投影，不使用贴边直角底栏。
 - 每项 `60px × 56px`、18px 圆角，图标 22px + 11px 标签。
 - 选中项整块使用 `primary`，图标与标签使用 `on-primary`。
+- 选中底色由 `.mobile-nav-indicator` 承载，尺寸与导航项一致（60×56、18px 圆角），切换时横向滑动 300ms。
 - 标签 10.5–12px / 600。
 - 内容页必须通过 `.md-bottom-nav-space`（`6.5rem + safe-area`）预留高度。
 - 底部导航不得被转场容器、`overflow` 或 WebView 视口变化带出屏幕。
@@ -563,6 +565,14 @@ Hover 规则：
 - 筛选 chips 在搜索下方；手机横向滚动，桌面不换行到不可用宽度。
 - 筛选 chip 鼠标悬浮时叠加 `--md-elevation-hover` 投影，只在 `(hover: hover) and (pointer: fine)` 生效。
 - 菜单触发必须有 `aria-haspopup` 与 `aria-expanded`。
+
+### 8.4 设置页偏好栏
+
+组件：`src/components/SettingsView.vue`
+
+- 桌面为 160px 纵向列表，手机为横向可滚动 chips。
+- 选中底色由 `.settings-section-indicator` 承载，按激活项的实际位置与尺寸定位，切换时 300ms 滑动并同步宽高。
+- `prefers-reduced-motion` 时直接落位。
 
 ## 9. 浮层、抽屉与确认
 
