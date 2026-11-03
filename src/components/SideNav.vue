@@ -42,7 +42,13 @@
         :aria-current="active === item.key ? 'page' : undefined"
         @click="select(item.key)"
       >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          :class="{ 'is-star': item.key === 'favorite', 'is-gear': item.key === 'settings' }"
+          aria-hidden="true"
+        >
           <path
             v-if="item.key === 'shelf'"
             stroke-linecap="round"
@@ -91,7 +97,13 @@
         :aria-current="active === item.key ? 'page' : undefined"
         @click="select(item.key)"
       >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          :class="{ 'is-star': item.key === 'favorite', 'is-gear': item.key === 'settings' }"
+          aria-hidden="true"
+        >
           <path
             v-if="item.key === 'shelf'"
             stroke-linecap="round"
@@ -291,13 +303,23 @@ function select(key) {
 
   .sidenav-item svg {
     position: absolute;
-    top: calc(50% - 11px);
-    left: 16px;
-    width: 22px;
-    height: 22px;
+    top: calc(50% - 10px);
+    left: 17px;
+    width: 20px;
+    height: 20px;
     transition:
       top 280ms cubic-bezier(0.2, 0, 0, 1),
       left 280ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .sidenav-item svg.is-star {
+    transform: scale(1.12);
+    transform-origin: center;
+  }
+
+  .sidenav-item svg.is-gear {
+    transform: scale(0.9);
+    transform-origin: center;
   }
 
   .sidenav-label {
@@ -334,8 +356,10 @@ function select(key) {
     transition: opacity 100ms cubic-bezier(0.2, 0, 0, 1) 40ms;
   }
 
-  .sidenav-item:hover {
-    background: color-mix(in oklab, var(--md-surface-low) 65%, transparent);
+  @media (hover: hover) and (pointer: fine) {
+    .sidenav-item:hover {
+      background: var(--md-surface-container);
+    }
   }
 
   .sidenav-item.is-active {
@@ -348,8 +372,8 @@ function select(key) {
   }
 
   .sidenav.is-collapsed .sidenav-item svg {
-    top: 8px;
-    left: calc(50% - 11px);
+    top: 9px;
+    left: calc(50% - 10px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -367,7 +391,7 @@ function select(key) {
 
   /* ---------------- 手机：悬浮胶囊底栏 ---------------- */
   .mobile-nav {
-    position: fixed;
+    position: absolute;
     left: 14px;
     right: 14px;
     bottom: calc(14px + env(safe-area-inset-bottom));
@@ -380,9 +404,6 @@ function select(key) {
     align-items: center;
     justify-content: space-around;
     border-radius: 38px;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
     background: color-mix(in oklab, var(--md-primary-container) 22%, var(--md-surface-container));
     box-shadow:
       0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
@@ -409,6 +430,16 @@ function select(key) {
   .mobile-nav-item svg {
     width: 22px;
     height: 22px;
+  }
+
+  .mobile-nav-item svg.is-star {
+    transform: scale(1.12);
+    transform-origin: center;
+  }
+
+  .mobile-nav-item svg.is-gear {
+    transform: scale(0.9);
+    transform-origin: center;
   }
 
   .mobile-nav-item.is-active {

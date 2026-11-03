@@ -487,6 +487,7 @@ import { HomuraStore } from '../services/storage.js';
 import { formatBytes, isWindows } from '../services/platform.js';
 import { openGitHubUrl } from '../services/external.js';
 import { REPOSITORY_URL } from '../services/updates.js';
+import { scrollAppToTop } from '../services/utils.js';
 import { useShelfStore } from '../stores/shelf.js';
 import { useSettingsStore } from '../stores/settings.js';
 import {
@@ -642,7 +643,7 @@ async function selectSection(key) {
   debugNote.value = '';
   if (key === 'storage') refreshStorage();
   await nextTick();
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  scrollAppToTop('auto');
 }
 
 function addDemoManga() {

@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { computed, watch, onBeforeUnmount } from 'vue';
+import { computed } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import AppearancePanel from './AppearancePanel.vue';
@@ -89,39 +89,4 @@ const {
     open.value = false;
   }
 });
-
-// 手机 Sheet 打开时锁住书架滚动，关闭后恢复到原位置。
-let shelfScrollY = 0;
-let shelfScrollLocked = false;
-
-function lockShelfScroll() {
-  if (shelfScrollLocked) return;
-  shelfScrollY = window.scrollY || 0;
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${shelfScrollY}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
-  document.body.style.width = '100%';
-  document.body.style.overflow = 'hidden';
-  shelfScrollLocked = true;
-}
-
-function unlockShelfScroll() {
-  if (!shelfScrollLocked) return;
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  document.body.style.width = '';
-  document.body.style.overflow = '';
-  window.scrollTo(0, shelfScrollY);
-  shelfScrollLocked = false;
-}
-
-watch([open, isCompact], ([isOpen, compact]) => {
-  if (isOpen && compact) lockShelfScroll();
-  else unlockShelfScroll();
-});
-
-onBeforeUnmount(unlockShelfScroll);
 </script>

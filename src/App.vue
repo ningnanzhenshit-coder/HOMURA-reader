@@ -9,11 +9,11 @@
     <SideNav :active="activeNav" @nav="onRailNav" />
 
     <div
-      class="flex-1 min-w-0 flex flex-col"
+      class="library-main-column flex-1 min-w-0 flex flex-col"
       :class="[
-        isCompact ? 'md-bottom-nav-space' : '',
-        isCompact && activeNav !== 'settings' ? 'md-library-header-space' : ''
+        isCompact && activeNav === 'settings' ? 'is-settings md-bottom-nav-space' : ''
       ]"
+      data-app-scroll
     >
       <SettingsView v-if="activeNav === 'settings'" />
       <template v-else>
@@ -27,7 +27,11 @@
           v-model:sort="sortKey"
         />
 
-        <main class="flex-1 w-full flex flex-col pb-40">
+        <main
+          class="library-scroll flex-1 w-full flex flex-col pb-40"
+          :class="{ 'md-bottom-nav-space': isCompact }"
+          data-app-scroll
+        >
           <p v-if="shelf.error || (!reader.currentBook && reader.openError)" role="alert" class="mx-4 min-[900px]:mx-7 mt-3 text-[13px] text-[var(--md-error)]">{{ shelf.error || reader.openError }}</p>
           <BookShelf v-if="favoritesOnly || shelf.library.length || shelf.collections.length" :books="visibleBooks" :favorites-only="favoritesOnly" :sort-key="sortKey" :query="query" :has-filter="!!query.trim() || typeFilter !== 'all'" :home-request="shelfHomeRequest" @open="reader.openBook" @browse="query = ''; typeFilter = 'all'" />
           <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
@@ -137,7 +141,7 @@ import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
 import { useUpdateStore } from './stores/updates.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
-import { resolveBookFormat } from './services/utils.js';
+import { resolveBookFormat, scrollAppToTop } from './services/utils.js';
 import { sortShelfBooks } from './services/bookTitles.js';
 import { bookShelfCategory } from './services/shelfSections.js';
 import { installProgressFlushHooks } from './services/progress.js';
@@ -198,7 +202,7 @@ useAndroidBackExit(reader, () => {
   }
   if (activeNav.value === 'settings') {
     activeNav.value = 'shelf';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollAppToTop('smooth');
     return true;
   }
   if (importMenuOpen.value) {
@@ -296,7 +300,7 @@ function onRailNav(key) {
   appearanceOpen.value = false;
   activeNav.value = key;
   if (key === 'settings') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollAppToTop('smooth');
     return;
   }
   libraryView.value = key;
@@ -306,7 +310,7 @@ function onRailNav(key) {
   typeFilter.value = 'all';
   if (key === 'recent') sortKey.value = 'progress';
   else sortKey.value = 'title';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollAppToTop('smooth');
 }
 
 // 全屏：F 快捷键与阅读器顶栏按钮共用 ui.toggleFullscreen()

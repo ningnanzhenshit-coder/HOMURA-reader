@@ -8,6 +8,18 @@ export function escapeHtml(str) {
   }[m]));
 }
 
+// 桌面用窗口滚动，手机书架改用内部滚动容器；统一按最近的滚动容器回到顶部。
+export function scrollAppToTop(behavior = 'auto') {
+  const scrollers = document.querySelectorAll('[data-app-scroll]');
+  let scrolled = false;
+  scrollers.forEach(node => {
+    if (node.scrollHeight <= node.clientHeight + 1) return;
+    node.scrollTo({ top: 0, behavior });
+    scrolled = true;
+  });
+  if (!scrolled) window.scrollTo({ top: 0, behavior });
+}
+
 function normalizedUrl(url) {
   return String(url || '')
     .replace(/[\u0000-\u0020\u007f-\u009f]/g, '')

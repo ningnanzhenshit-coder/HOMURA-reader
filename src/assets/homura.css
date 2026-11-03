@@ -317,6 +317,13 @@
     }
 
     /* ==========================================================================
+       3.1 Hover Elevation — 筛选胶囊与侧栏导航项共用的悬浮投影
+       ========================================================================== */
+    :root {
+      --md-elevation-hover: 0 6px 16px -10px color-mix(in oklab, var(--md-on-surface) 52%, transparent);
+    }
+
+    /* ==========================================================================
        4. Legacy Aliases — 组件仍沿用旧变量名，统一映射到 MD3 tokens
        ========================================================================== */
     :root {
@@ -377,6 +384,54 @@
 
     #app {
       min-height: 100vh;
+    }
+
+    /* 手机书架：整页固定外壳，只有内容列滚动。
+       顶栏 / 底栏 / FAB 都留在不滚动的外壳里，避开安卓 WebView 固定层的滚动抖动。 */
+    @media (max-width: 899px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+
+      #app {
+        position: fixed;
+        inset: 0;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #homura-mobile-nav-root {
+        position: absolute;
+        inset: auto 0 0;
+        z-index: 40;
+        height: 0;
+        pointer-events: none;
+      }
+
+      #homura-mobile-nav-root .mobile-nav {
+        pointer-events: auto;
+      }
+
+      .library-main-column {
+        height: 100%;
+        min-height: 0;
+      }
+
+      .library-main-column.is-settings {
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .library-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+      }
     }
 
     /* 预见式返回：系统 BackEvent / 本地指针共用进度，驱动阅读器、书架和遮罩 */
@@ -626,6 +681,7 @@
     }
     @media (max-width: 899px) {
       .md-fab-pos {
+        position: absolute;
         right: 18px;
         bottom: calc(6.5rem + env(safe-area-inset-bottom));
       }
@@ -634,11 +690,6 @@
     /* 手机悬浮胶囊底栏预留高度（14px 外边距 + 76px 栏高 + 14px 余量） */
     .md-bottom-nav-space {
       padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
-    }
-
-    /* 手机书架顶栏改为 fixed 后，用列内边距占住原文档流高度，避免内容上跳 */
-    .md-library-header-space {
-      padding-top: var(--homura-library-header-height, calc(172px + env(safe-area-inset-top)));
     }
 
     .md-scrim {

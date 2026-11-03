@@ -1,8 +1,7 @@
 <template>
   <!-- 书架页头部：MD3 Top App Bar + 搜索栏 + 筛选 chips -->
   <div
-    ref="headerRef"
-    class="library-header-bar sticky top-0 z-20 bg-[var(--md-surface)]"
+    class="library-header-bar z-20 bg-[var(--md-surface)]"
     :style="isCompact ? { paddingTop: 'env(safe-area-inset-top)' } : null"
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
@@ -206,7 +205,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -227,28 +226,6 @@ const ui = useUiStore();
 const { isCompact } = useViewport();
 
 const menu = ref(null);
-const headerRef = ref(null);
-let headerObserver = null;
-
-// 安卓 WebView 的 sticky 顶栏会跟着滚动主线程抖，手机端改成固定层；
-// 用外层壳子按实测高度占位，避免顶栏脱离文档流后内容上跳。
-function syncHeaderHeight() {
-  if (!headerRef.value) return;
-  const height = headerRef.value.getBoundingClientRect().height;
-  document.documentElement.style.setProperty('--homura-library-header-height', `${Math.round(height)}px`);
-}
-
-onMounted(() => {
-  syncHeaderHeight();
-  if (typeof ResizeObserver === 'undefined') return;
-  headerObserver = new ResizeObserver(syncHeaderHeight);
-  headerObserver.observe(headerRef.value);
-});
-
-onBeforeUnmount(() => {
-  headerObserver?.disconnect();
-  document.documentElement.style.removeProperty('--homura-library-header-height');
-});
 
 function toggleMenu(name) {
   menu.value = menu.value === name ? null : name;
@@ -310,14 +287,16 @@ function pickSort(value) {
 </script>
 
 <style scoped>
+.library-header-bar {
+  position: sticky;
+  top: 0;
+}
+
+/* 手机书架改为内部滚动后，顶栏留在固定外壳的文档流里，不再跟随窗口滚动 */
 @media (max-width: 899px) {
   .library-header-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    position: relative;
+    flex: 0 0 auto;
   }
 }
 
@@ -424,6 +403,15 @@ function pickSort(value) {
 @media (hover: hover) and (pointer: fine) {
   .library-filter-chip:not(.is-selected):hover .library-filter-surface {
     background-color: var(--md-surface-container);
+    box-shadow:
+      inset 0 0 0 0.5px var(--md-outline-variant),
+      var(--md-elevation-hover);
+  }
+
+  .library-filter-chip.is-selected:hover .library-filter-surface {
+    box-shadow:
+      inset 0 0 0 0.5px transparent,
+      var(--md-elevation-hover);
   }
 }
 
