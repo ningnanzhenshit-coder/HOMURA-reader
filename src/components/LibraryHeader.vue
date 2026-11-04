@@ -6,8 +6,24 @@
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
     <div class="h-14 min-[900px]:h-16 flex items-center gap-2 min-[900px]:gap-3 px-4 min-[900px]:px-7">
-      <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">{{ title }}</h1>
-      <span class="hidden min-[360px]:inline-flex shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
+      <Transition name="library-title" mode="out-in" @enter="onTitleEnter">
+        <button
+          v-if="renamable"
+          :key="title"
+          type="button"
+          class="group flex items-center gap-1.5 min-w-0 text-left text-[21px] min-[900px]:text-[22px] font-medium tracking-tight"
+          title="重命名书库"
+          :aria-label="`重命名书库：${title}`"
+          @click="$emit('rename')"
+        >
+          <span class="min-w-0 truncate">{{ title }}</span>
+          <svg class="w-3.5 h-3.5 shrink-0 text-[var(--md-on-surface-variant)] opacity-50 group-hover:opacity-80 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/>
+          </svg>
+        </button>
+        <h1 v-else :key="title" class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight min-w-0 truncate">{{ title }}</h1>
+      </Transition>
+      <span ref="countBadgeRef" class="hidden min-[360px]:inline-flex shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-0.5 min-[900px]:gap-2 shrink-0">
         <button
@@ -206,7 +222,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, shallowRef, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -217,16 +233,59 @@ const props = defineProps({
   appearanceOpen: { type: Boolean, default: false },
   query: { type: String, default: '' },
   type: { type: String, default: 'all' },
-  sort: { type: String, default: 'title' }
+  sort: { type: String, default: 'title' },
+  renamable: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance']);
+const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance', 'rename']);
 
 const settings = useSettingsStore();
 const ui = useUiStore();
 const { isCompact } = useViewport();
 
 const menu = ref(null);
+const countBadgeRef = shallowRef(null);
+let previousBadgeLeft = null;
+let badgeAnimation = null;
+
+// 标题变化前记录徽章位置；新标题进场时用 FLIP 补间，制造被文字推动的效果。
+watch(() => props.title, () => {
+  const badge = countBadgeRef.value;
+  if (!badge) {
+    previousBadgeLeft = null;
+    return;
+  }
+  const rect = badge.getBoundingClientRect();
+  previousBadgeLeft = rect.width > 0 ? rect.left : null;
+});
+
+function onTitleEnter() {
+  const badge = countBadgeRef.value;
+  const oldLeft = previousBadgeLeft;
+  previousBadgeLeft = null;
+  if (!badge || oldLeft === null) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  badgeAnimation?.cancel();
+  badgeAnimation = null;
+  const newLeft = badge.getBoundingClientRect().left;
+  const offset = oldLeft - newLeft;
+  if (Math.abs(offset) < 0.5) return;
+
+  badgeAnimation = badge.animate(
+    [
+      { transform: `translate3d(${offset}px, 0, 0)` },
+      { transform: 'translate3d(0, 0, 0)' }
+    ],
+    { duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }
+  );
+  badgeAnimation.onfinish = () => { badgeAnimation = null; };
+}
+
+onBeforeUnmount(() => {
+  badgeAnimation?.cancel();
+  badgeAnimation = null;
+});
 
 function toggleMenu(name) {
   menu.value = menu.value === name ? null : name;
@@ -416,13 +475,38 @@ function pickSort(value) {
   }
 }
 
+.library-title-enter-active {
+  transition:
+    opacity 180ms var(--md-ease-emphasized),
+    transform 180ms var(--md-ease-emphasized);
+}
+.library-title-leave-active {
+  transition:
+    opacity 120ms var(--md-ease-emphasized),
+    transform 120ms var(--md-ease-emphasized);
+}
+.library-title-enter-from {
+  opacity: 0;
+  transform: translate3d(-12px, 0, 0);
+}
+.library-title-leave-to {
+  opacity: 0;
+  transform: translate3d(12px, 0, 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .library-filter-chip,
   .library-filter-surface,
   .library-filter-fill,
   .library-filter-check,
-  .library-filter-label {
+  .library-filter-label,
+  .library-title-enter-active,
+  .library-title-leave-active {
     transition: none;
+  }
+  .library-title-enter-from,
+  .library-title-leave-to {
+    transform: none;
   }
 }
 </style>

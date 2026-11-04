@@ -1,23 +1,69 @@
 <template>
-  <div class="px-4 min-[900px]:px-7 pt-3 flex flex-wrap items-center gap-1">
-    <template v-if="currentCollection">
-      <button class="md-library-text-button" :class="{ 'is-drop-target': touchDrag.home }" data-shelf-home @click="shelf.activeCollectionId = null" @dragover="onRootDragOver" @drop="onRootDrop">← 书架</button>
-      <h2 class="text-[17px] font-semibold break-words min-w-0 flex-1">{{ currentCollection.title }}</h2>
-      <button class="md-library-text-button" @click="renameCurrent">重命名</button>
-      <button class="md-library-text-button" title="删除书库，书本移回主页" @click="deleteCurrent">删除书库</button>
-    </template>
-    <span v-else class="text-[11px] text-[var(--md-on-surface-variant)] flex-1">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : shelf.collections.length ? `${shelf.collections.length} 个书库 · ${displayBooks.length} 本单本` : '我的书架' }}</span>
-    <button class="md-library-text-button" :disabled="!displayBooks.length && !selecting" @click="toggleSelection">{{ selecting ? '取消多选' : '多选' }}</button>
+  <Transition name="shelf-header">
+    <div v-if="showShelfHeaderRow" class="px-4 min-[900px]:px-7 pt-3 flex flex-wrap items-center gap-1">
+      <span v-if="favoritesOnly || !shelf.collections.length" class="text-[11px] text-[var(--md-on-surface-variant)] flex-1">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : '我的书架' }}</span>
+      <button v-if="!selecting" class="md-library-text-button ml-auto bg-[var(--md-secondary-container)]" :disabled="!displayBooks.length && !displayCollections.length" @click="toggleSelection">选择</button>
+    </div>
+  </Transition>
+  <div v-if="currentCollection" class="relative mx-4 min-[900px]:mx-7 mt-2 flex items-center gap-1.5 min-[430px]:gap-2">
+    <button
+      class="shelf-back-button w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-primary)] transition-colors duration-200"
+      :class="{ 'is-drop-target': touchDrag.home }"
+      data-shelf-home
+      title="返回书架"
+      aria-label="返回书架"
+      @click="shelf.activeCollectionId = null"
+      @dragover="onRootDragOver"
+      @drop="onRootDrop"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <div class="relative flex-1 min-w-0 h-11">
+      <Transition name="shelf-select">
+        <button v-if="!selecting" key="select" class="absolute right-0 top-0 md-library-text-button bg-[var(--md-secondary-container)]" :disabled="!displayBooks.length" @click="toggleSelection">选择</button>
+        <ShelfBatchBar
+          v-else
+          key="batch"
+          class="absolute inset-0"
+          :label="selectionLabel"
+          :compact-label="compactSelectionLabel"
+          :all-selected="allSelected"
+          move-label="移出书库"
+          :move-disabled="!selectedIds.length || busy"
+          :delete-label="favoritesOnly ? '取消收藏' : '删除'"
+          :delete-disabled="(!selectedIds.length && !selectedCollectionIds.length) || busy"
+          :danger-delete="!favoritesOnly"
+          @select-all="selectAll"
+          @move="moveSelected(null)"
+          @delete="deleteSelected"
+          @cancel="toggleSelection"
+        />
+      </Transition>
+    </div>
   </div>
-  <div v-if="selecting" class="mx-4 min-[900px]:mx-7 mt-2 p-2 rounded-2xl flex flex-wrap items-center gap-1 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]" aria-label="书本批量操作">
-    <span class="text-[13px] px-2" aria-live="polite">已选 {{ selectedIds.length }} 本</span>
-    <button class="md-library-text-button" @click="selectAll">{{ allSelected ? '取消全选' : '全选' }}</button>
-    <button class="md-library-text-button" :disabled="!selectedIds.length || busy" @click="chooseDestination">移入书库</button>
-    <button v-if="currentCollection" class="md-library-text-button" :disabled="!selectedIds.length || busy" @click="moveSelected(null)">移出到主页</button>
-  </div>
+  <Transition v-else name="shelf-batch">
+    <div v-if="selecting" class="mx-4 min-[900px]:mx-7 mt-2">
+      <ShelfBatchBar
+        :label="selectionLabel"
+        :compact-label="compactSelectionLabel"
+        :all-selected="allSelected"
+        :move-label="'移入书库'"
+        :move-disabled="!selectedIds.length || !!selectedCollectionIds.length || busy"
+        :delete-label="favoritesOnly ? '取消收藏' : '删除'"
+        :delete-disabled="(!selectedIds.length && !selectedCollectionIds.length) || busy"
+        :danger-delete="!favoritesOnly"
+        @select-all="selectAll"
+        @move="chooseDestination"
+        @delete="deleteSelected"
+        @cancel="toggleSelection"
+      />
+    </div>
+  </Transition>
   <section class="md-shelf-grid" :aria-label="favoritesOnly ? '收藏内容' : currentCollection ? `书库：${currentCollection.title}` : '书架内容'">
     <ContinueReading v-if="!favoritesOnly && !currentCollection && !selecting && featuredBooks.length" :books="featuredBooks" @open="$emit('open', $event)" />
-    <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" :touch-over="touchDrag.overId === collection.id" @open="openCollection" @move="moveDropped" />
+    <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" :touch-over="touchDrag.overId === collection.id" :selecting="selecting" :selected="selectedCollectionIds.includes(collection.id)" @open="openCollection" @toggle="toggleCollection" @move="moveDropped" />
     <BookCard v-for="book in orderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :dragging="touchDrag.active && touchDrag.ids.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" @open="openBook" @remove="removeBook" @drag="onBookDrag" @touchstart="onBookTouchStart($event, book.id)" />
     <p v-if="!displayBooks.length && !displayCollections.length" class="col-span-full py-16 text-center text-[13px] text-[var(--md-on-surface-variant)]">{{ emptyShelfHint }}</p>
   </section>
@@ -43,11 +89,11 @@ import { useShelfStore } from '../stores/shelf.js';
 import { useShelfDialogs } from '../composables/useShelfDialogs.js';
 import { useViewport } from '../composables/useViewport.js';
 import { compareBookTitles, normalizeBookTitle } from '../services/bookTitles.js';
-import { collectionNameError } from '../services/collections.js';
 import { groupShelfBooks } from '../services/shelfSections.js';
 import BookCard from './BookCard.vue';
 import ContinueReading from './ContinueReading.vue';
 import CollectionCard from './CollectionCard.vue';
+import ShelfBatchBar from './ShelfBatchBar.vue';
 
 const props = defineProps({ books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, query: { type: String, default: '' }, hasFilter: { type: Boolean, default: false }, homeRequest: { type: Number, default: 0 }, favoritesOnly: { type: Boolean, default: false } });
 const emit = defineEmits(['open', 'browse']);
@@ -56,13 +102,27 @@ const { askShelfDialog } = useShelfDialogs();
 const { isTouch } = useViewport();
 const selecting = ref(false);
 const selectedIds = ref([]);
+const selectedCollectionIds = ref([]);
 const busy = ref(false);
 const currentCollection = computed(() => props.favoritesOnly ? null : shelf.collections.find(item => item.id === shelf.activeCollectionId) || null);
+const showShelfHeaderRow = computed(() => !currentCollection.value && (!selecting.value || props.favoritesOnly || !shelf.collections.length));
 const groupedIds = computed(() => new Set(shelf.collections.flatMap(item => item.bookIds)));
 const displayBooks = computed(() => props.books.filter(book => props.favoritesOnly ? book.favorite : currentCollection.value ? currentCollection.value.bookIds.includes(book.id) : !groupedIds.value.has(book.id)));
 const featuredBooks = computed(() => currentCollection.value ? displayBooks.value : props.hasFilter ? props.books : shelf.library);
 const orderedBooks = computed(() => currentCollection.value ? displayBooks.value : groupShelfBooks(displayBooks.value).flatMap(section => section.books));
-const allSelected = computed(() => displayBooks.value.length > 0 && displayBooks.value.every(book => selectedIds.value.includes(book.id)));
+const allSelected = computed(() => {
+  const total = displayBooks.value.length + displayCollections.value.length;
+  return total > 0 &&
+    displayBooks.value.every(book => selectedIds.value.includes(book.id)) &&
+    displayCollections.value.every(collection => selectedCollectionIds.value.includes(collection.id));
+});
+const selectionLabel = computed(() => {
+  const bookCount = selectedIds.value.length;
+  const collectionCount = selectedCollectionIds.value.length;
+  if (collectionCount) return `已选 ${bookCount + collectionCount} 项`;
+  return `已选 ${bookCount} 本`;
+});
+const compactSelectionLabel = computed(() => currentCollection.value ? `${selectedIds.value.length} 本` : selectionLabel.value);
 const emptyShelfHint = computed(() => {
   if (props.hasFilter) return '没有符合条件的作品，换个关键词或筛选试试';
   if (props.favoritesOnly) return '还没有收藏的书，在阅读器中点亮星星即可收藏';
@@ -123,8 +183,21 @@ function booksForCollection(collection) {
 }
 
 function openCollection(id) { shelf.activeCollectionId = id; emit('browse'); }
-function toggleSelection() { selecting.value = !selecting.value; selectedIds.value = []; }
-function selectAll() { selectedIds.value = allSelected.value ? [] : displayBooks.value.map(book => book.id); }
+function clearSelection() { selectedIds.value = []; selectedCollectionIds.value = []; }
+function toggleSelection() { selecting.value = !selecting.value; clearSelection(); }
+function toggleCollection(id) {
+  selectedCollectionIds.value = selectedCollectionIds.value.includes(id)
+    ? selectedCollectionIds.value.filter(item => item !== id)
+    : [...selectedCollectionIds.value, id];
+}
+function selectAll() {
+  if (allSelected.value) {
+    clearSelection();
+    return;
+  }
+  selectedIds.value = displayBooks.value.map(book => book.id);
+  selectedCollectionIds.value = displayCollections.value.map(collection => collection.id);
+}
 async function removeBook(id) {
   if (!props.favoritesOnly) {
     try {
@@ -153,22 +226,69 @@ async function perform(action) {
   try { await action(); } catch (err) { console.warn('[HOMURA] 书库操作失败', err); } finally { busy.value = false; }
 }
 
-async function renameCurrent() {
-  const item = currentCollection.value;
-  const title = await askShelfDialog({ kind: 'name', title: '重命名书库', initialName: item.title, validate: name => collectionNameError(name, shelf.collections, item.id) });
-  if (title !== null) await perform(() => shelf.renameCollection(item.id, title));
-}
-
-function deleteCurrent() { const id = currentCollection.value.id; return perform(() => shelf.deleteCollection(id)); }
-
 async function chooseDestination() {
   const options = shelf.collections.filter(item => item.id !== shelf.activeCollectionId).sort(compareBookTitles).map(item => ({ value: item.id, title: item.title }));
   const target = await askShelfDialog({ kind: 'move', title: '移入书库', message: `将选中的 ${selectedIds.value.length} 本书移动到：`, options });
   if (target !== null) await moveSelected(target);
 }
 
+async function deleteSelected() {
+  const bookCount = selectedIds.value.length;
+  const collectionCount = selectedCollectionIds.value.length;
+  if ((!bookCount && !collectionCount) || busy.value) return;
+  const removingFavorites = props.favoritesOnly;
+  const changes = [];
+  if (bookCount) changes.push(`删除选中的 ${bookCount} 本作品、原始文件与阅读记录`);
+  if (collectionCount) changes.push(`删除选中的 ${collectionCount} 个书库（书库内作品会移回主页）`);
+  const confirmed = await askShelfDialog({
+    kind: 'confirm',
+    title: removingFavorites
+      ? '取消收藏'
+      : collectionCount && !bookCount
+        ? '删除书库'
+        : bookCount && !collectionCount
+          ? '删除书本'
+          : '删除所选内容',
+    message: removingFavorites
+      ? `将取消收藏选中的 ${bookCount} 本作品，不会删除原始文件。`
+      : `将${changes.join('；')}。此操作无法撤销。`,
+    confirmLabel: removingFavorites ? '取消收藏' : '确认删除'
+  });
+  if (!confirmed) return;
+
+  const bookIds = [...selectedIds.value];
+  const collectionIds = [...selectedCollectionIds.value];
+  await perform(async () => {
+    const failedBooks = [];
+    const failedCollections = [];
+    for (const id of bookIds) {
+      try {
+        if (removingFavorites) await shelf.setFavorite(id, false);
+        else await shelf.removeBook(id);
+      } catch (err) {
+        failedBooks.push(id);
+      }
+    }
+    for (const id of collectionIds) {
+      try {
+        await shelf.deleteCollection(id);
+      } catch (err) {
+        failedCollections.push(id);
+      }
+    }
+    if (failedBooks.length || failedCollections.length) {
+      selectedIds.value = failedBooks;
+      selectedCollectionIds.value = failedCollections;
+      shelf.error = removingFavorites ? '部分作品取消收藏失败，请重试' : '部分内容删除失败，请重试';
+      return;
+    }
+    clearSelection();
+    selecting.value = false;
+  });
+}
+
 async function moveSelected(target) {
-  await perform(async () => { await shelf.moveBooks(selectedIds.value, target); selectedIds.value = []; selecting.value = false; });
+  await perform(async () => { await shelf.moveBooks(selectedIds.value, target); clearSelection(); selecting.value = false; });
 }
 
 function onBookDrag(event, id) {
@@ -396,3 +516,65 @@ onBeforeUnmount(() => {
   resetTouchDrag();
 });
 </script>
+
+<style scoped>
+.shelf-header-enter-active,
+.shelf-header-leave-active,
+.shelf-batch-enter-active,
+.shelf-batch-leave-active {
+  transition:
+    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.shelf-header-enter-from,
+.shelf-header-leave-to,
+.shelf-batch-enter-from,
+.shelf-batch-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+.shelf-select-enter-active,
+.shelf-select-leave-active {
+  transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+.shelf-select-enter-from,
+.shelf-select-leave-to {
+  opacity: 0;
+}
+.shelf-select-leave-active {
+  pointer-events: none;
+}
+.shelf-header-leave-active,
+.shelf-batch-leave-active {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+}
+.shelf-back-button:hover {
+  background: color-mix(in oklab, var(--md-secondary-container) 92%, var(--md-on-secondary-container));
+}
+.shelf-back-button.is-drop-target {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-header-enter-active,
+  .shelf-header-leave-active,
+  .shelf-select-enter-active,
+  .shelf-select-leave-active,
+  .shelf-batch-enter-active,
+  .shelf-batch-leave-active {
+    transition: none;
+  }
+  .shelf-header-enter-from,
+  .shelf-header-leave-to,
+  .shelf-select-enter-from,
+  .shelf-select-leave-to,
+  .shelf-batch-enter-from,
+  .shelf-batch-leave-to {
+    transform: none;
+  }
+}
+</style>

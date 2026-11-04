@@ -18,10 +18,12 @@
       <SettingsView v-if="activeNav === 'settings'" />
       <template v-else>
         <LibraryHeader
-          :count="favoritesOnly ? favoriteBooks.length : shelf.library.length"
-          :title="activeNav === 'favorite' ? '收藏' : activeNav === 'recent' ? '最近' : '书架'"
+          :count="headerCount"
+          :title="headerTitle"
           :appearance-open="appearanceOpen"
+          :renamable="!!activeCollection"
           @toggle-appearance="appearanceOpen = !appearanceOpen"
+          @rename="renameActiveCollection"
           v-model:query="query"
           v-model:type="typeFilter"
           v-model:sort="sortKey"
@@ -155,6 +157,17 @@ const shelfHomeRequest = ref(0);
 const libraryView = ref('shelf');
 const favoritesOnly = computed(() => libraryView.value === 'favorite');
 const favoriteBooks = computed(() => shelf.library.filter(book => book.favorite));
+const activeCollection = computed(() => activeNav.value === 'shelf' ? shelf.collections.find(item => item.id === shelf.activeCollectionId) || null : null);
+const activeCollectionBookCount = computed(() => {
+  const ids = new Set(activeCollection.value?.bookIds || []);
+  return shelf.library.filter(book => ids.has(book.id)).length;
+});
+const headerTitle = computed(() => {
+  if (activeNav.value === 'favorite') return '收藏';
+  if (activeNav.value === 'recent') return '最近';
+  return activeCollection.value?.title || '书架';
+});
+const headerCount = computed(() => activeCollection.value ? activeCollectionBookCount.value : favoritesOnly.value ? favoriteBooks.value.length : shelf.library.length);
 const FORMAT_FILTERS = ['epub', 'pdf', 'mobi', 'txt', 'markdown'];
 const SPLASH_MIN_DURATION = 720;
 let previousUpdateBodyOverflow = '';
@@ -211,6 +224,24 @@ async function createCollection() {
   const title = await askShelfDialog({ kind: 'name', title: '新建书库', initialName: availableCollectionName('新建书库', shelf.collections), validate: name => collectionNameError(name, shelf.collections) });
   if (title === null) return;
   try { await shelf.createCollection(title); } catch (err) { console.warn('[HOMURA] 新建书库失败', err); }
+}
+
+async function renameActiveCollection() {
+  const item = activeCollection.value;
+  if (!item) return;
+  const title = await askShelfDialog({
+    kind: 'name',
+    title: '重命名书库',
+    initialName: item.title,
+    validate: name => collectionNameError(name, shelf.collections, item.id)
+  });
+  if (title === null) return;
+  try {
+    await shelf.renameCollection(item.id, title);
+  } catch (err) {
+    shelf.error = err.message || '重命名书库失败，请重试';
+    console.warn('[HOMURA] 重命名书库失败', err);
+  }
 }
 
 const visibleBooks = computed(() => {

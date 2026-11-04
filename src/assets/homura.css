@@ -741,7 +741,22 @@
     }
     .md-collection-card.is-drop-target .md-collection-board { outline: 3px solid var(--md-primary); outline-offset: 2px; }
     .md-library-text-button.is-drop-target { background: var(--md-primary-container); color: var(--md-on-primary-container); }
-    .md-book-selected { outline: 3px solid var(--md-primary); outline-offset: 2px; }
+    .md-collection-check {
+      position: absolute;
+      z-index: 2;
+      top: 8px;
+      right: 8px;
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      pointer-events: none;
+    }
+    .md-book-selected,
+    .md-collection-selected { outline: 3px solid var(--md-primary); outline-offset: 2px; }
 
     /* 触摸长按拖动：浮层跟随指尖，只负责显示，不拦截命中测试 */
     .md-touch-dragging { cursor: grabbing; }

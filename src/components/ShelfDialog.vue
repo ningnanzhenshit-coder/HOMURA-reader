@@ -20,6 +20,7 @@
           <button type="button" class="md-library-tonal-button" @click="resolveShelfDialog(true)">创建书库</button>
         </template>
         <button v-else-if="pendingShelfDialog.kind === 'name'" type="submit" class="md-library-tonal-button">确定</button>
+        <button v-else-if="pendingShelfDialog.kind === 'confirm'" type="button" class="md-library-tonal-button" @click="resolveShelfDialog(true)">{{ pendingShelfDialog.confirmLabel || '确认删除' }}</button>
       </div>
     </form>
   </dialog>

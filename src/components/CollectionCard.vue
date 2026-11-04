@@ -1,6 +1,6 @@
 <template>
-  <div class="md-collection-card" :class="{ 'is-drop-target': highlighted }" :data-collection-id="collection.id" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
-    <button class="md-collection-open" :aria-label="`打开书库：${collection.title}，${books.length} 本`" @click="$emit('open', collection.id)">
+  <div class="md-collection-card" :class="{ 'is-drop-target': highlighted, 'md-collection-selected': selected }" :data-collection-id="collection.id" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
+    <button class="md-collection-open" :aria-label="selecting ? `选择书库：${collection.title}` : `打开书库：${collection.title}，${books.length} 本`" :aria-pressed="selecting ? selected : undefined" @click="$emit(selecting ? 'toggle' : 'open', collection.id)">
       <span class="md-collection-art" aria-hidden="true">
         <span class="md-collection-board">
           <span v-for="index in 4" :key="index" class="md-collection-tile" :class="{ 'is-empty': !covers[index - 1] }">
@@ -14,6 +14,7 @@
             </svg>
           </span>
         </span>
+        <span v-if="selecting" class="md-collection-check">{{ selected ? '✓' : '○' }}</span>
       </span>
       <span class="md-collection-info">
         <span class="md-collection-title">{{ collection.title }}</span>
@@ -34,8 +35,8 @@ import { computed, ref } from 'vue';
 import { sortShelfBooks } from '../services/bookTitles.js';
 import { useShelfStore } from '../stores/shelf.js';
 
-const props = defineProps({ collection: { type: Object, required: true }, books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, touchOver: { type: Boolean, default: false } });
-const emit = defineEmits(['open', 'move']);
+const props = defineProps({ collection: { type: Object, required: true }, books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, touchOver: { type: Boolean, default: false }, selecting: { type: Boolean, default: false }, selected: { type: Boolean, default: false } });
+const emit = defineEmits(['open', 'toggle', 'move']);
 const hovering = ref(false);
 const shelf = useShelfStore();
 const highlighted = computed(() => hovering.value || props.touchOver);
