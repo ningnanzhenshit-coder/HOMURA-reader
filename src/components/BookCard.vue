@@ -1,5 +1,5 @@
 <template>
-  <article class="md-shelf-card group relative flex flex-col min-w-0" :class="{ 'md-book-selected': selected }" draggable="true" @dragstart="$emit('drag', $event, book.id)">
+  <article class="md-shelf-card group relative flex flex-col min-w-0" :class="{ 'md-book-selected': selected, 'is-touch-dragging': dragging }" draggable="true" @dragstart="$emit('drag', $event, book.id)" @contextmenu.prevent>
     <button class="absolute inset-0 z-10 rounded-2xl" :aria-label="selecting ? `选择书本：${book.title}` : `阅读：${book.title}`" :aria-pressed="selecting ? selected : undefined" @click="$emit('open', book.id)"></button>
     <div class="aspect-[3/4] w-full relative overflow-hidden bg-[var(--md-surface-high)]">
       <img
@@ -64,7 +64,8 @@ const props = defineProps({
   selecting: { type: Boolean, default: false },
   selected: { type: Boolean, default: false },
   removeLabel: { type: String, default: '从书架移除' },
-  progress: { type: Object, default: null }
+  progress: { type: Object, default: null },
+  dragging: { type: Boolean, default: false }
 });
 
 defineEmits(['open', 'remove', 'drag']);

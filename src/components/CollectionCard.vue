@@ -1,5 +1,5 @@
 <template>
-  <div class="md-collection-card" :class="{ 'is-drop-target': hovering }" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
+  <div class="md-collection-card" :class="{ 'is-drop-target': highlighted }" :data-collection-id="collection.id" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
     <button class="md-collection-open" :aria-label="`打开书库：${collection.title}，${books.length} 本`" @click="$emit('open', collection.id)">
       <span class="md-collection-art" aria-hidden="true">
         <span class="md-collection-board">
@@ -18,7 +18,7 @@
       <span class="md-collection-info">
         <span class="md-collection-title">{{ collection.title }}</span>
         <span class="md-collection-meta">
-          <span v-if="hovering" class="md-collection-drop">松开移入书库</span>
+          <span v-if="highlighted" class="md-collection-drop">松开移入书库</span>
           <template v-else>
             <span class="md-collection-count">{{ books.length }} 本作品</span>
             <span class="md-collection-action">打开 →</span>
@@ -34,10 +34,11 @@ import { computed, ref } from 'vue';
 import { sortShelfBooks } from '../services/bookTitles.js';
 import { useShelfStore } from '../stores/shelf.js';
 
-const props = defineProps({ collection: { type: Object, required: true }, books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' } });
+const props = defineProps({ collection: { type: Object, required: true }, books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, touchOver: { type: Boolean, default: false } });
 const emit = defineEmits(['open', 'move']);
 const hovering = ref(false);
 const shelf = useShelfStore();
+const highlighted = computed(() => hovering.value || props.touchOver);
 const covers = computed(() => {
   return sortShelfBooks(props.books, props.sortKey, shelf.progressMap).slice(0, 4);
 });
