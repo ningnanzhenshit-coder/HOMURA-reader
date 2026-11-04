@@ -1565,6 +1565,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-plugin-android-archive",
  "tauri-plugin-android-installer",
  "tauri-plugin-android-predictive-back",
  "tauri-plugin-android-toast",
@@ -3955,6 +3956,14 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-android-archive"
+version = "0.1.0"
+dependencies = [
+ "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

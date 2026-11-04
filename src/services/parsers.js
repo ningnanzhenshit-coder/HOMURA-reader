@@ -13,12 +13,27 @@ import { sanitizeEpubHtml } from './sanitize.js';
 import { parseMobiBuffer } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 import { shouldReadEpubAsManga, TEXT_CHAPTER_MIN_LENGTH } from './epubType.js';
+import {
+  canUseNativeArchive,
+  clearNativeArchiveBookCache,
+  closeNativeArchive,
+  openNativeArchive,
+  readNativePageBlob
+} from './nativeArchive.js';
+import { removeNativeBookDir } from './nativeStorage.js';
 
 // 同名书被跳过时还未入架，及时释放解析阶段创建的位图 URL 与 PDF worker。
 export async function discardParsedBook(book) {
   const urls = new Set([book.cover, ...(book.resourceUrls || []), ...(book.pageItems || []).map(item => item.url)]);
   for (const url of urls) {
     if (typeof url === 'string' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+  }
+  if (book.nativeArchiveId) {
+    await closeNativeArchive(book.nativeArchiveId).catch(() => {});
+    await clearNativeArchiveBookCache(book.nativeArchiveId).catch(() => {});
+  }
+  if (book.nativeArchiveStaged) {
+    await removeNativeBookDir(book.id).catch(() => {});
   }
   try {
     await book.pdfDoc?.loadingTask.destroy();
@@ -190,7 +205,67 @@ export async function parseEpubFileLazy(file) {
   }
 }
 
-export async function parseCbzFileLazy(file) {
+// Android 原生快速路径：压缩包只打开一次，页面按需解出到 AppCache。
+export async function parseCbzNativeArchive(nativePath, options = {}) {
+  if (!canUseNativeArchive() || !nativePath) return null;
+  const archiveId = options.id
+    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const name = options.name || 'book.cbz';
+  let coverUrl = null;
+
+  try {
+    const archive = await openNativeArchive(archiveId, nativePath);
+    const entries = archive?.entries || [];
+    if (!entries.length) throw new Error('压缩包内未找到图片');
+
+    const first = await readNativePageBlob(archiveId, 0);
+    coverUrl = URL.createObjectURL(first.blob);
+    const pageItems = entries.map((entry, index) => ({
+      nativeArchiveId: archiveId,
+      nativeIndex: index,
+      url: index === 0 ? coverUrl : null
+    }));
+
+    return {
+      id: archiveId,
+      type: 'manga',
+      format: 'cbz',
+      title: name.replace(/\.(cbz|zip)$/i, ''),
+      cover: coverUrl,
+      coverBlob: first.blob,
+      pageItems,
+      pageCount: pageItems.length,
+      nativeArchiveId: archiveId,
+      nativeArchivePath: nativePath,
+      nativeArchiveMode: 'pages',
+      nativeArchiveStaged: !!options.staged
+    };
+  } catch (err) {
+    if (coverUrl?.startsWith('blob:')) URL.revokeObjectURL(coverUrl);
+    await closeNativeArchive(archiveId).catch(() => {});
+    await clearNativeArchiveBookCache(archiveId).catch(() => {});
+    throw err;
+  }
+}
+
+export async function parseCbzFileLazy(file, options = {}) {
+  const id = options.id
+    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const name = options.name || file?.name || 'book.cbz';
+
+  if (options.nativePath && canUseNativeArchive()) {
+    try {
+      return await parseCbzNativeArchive(options.nativePath, {
+        ...options,
+        id,
+        name
+      });
+    } catch (err) {
+      console.warn('[HOMURA] Android 原生压缩包解析失败，回退 JSZip', err);
+    }
+  }
+  if (!file) return null;
+
   try {
     const zip = new JSZip();
     const zipContent = await zip.loadAsync(file);
@@ -213,16 +288,17 @@ export async function parseCbzFileLazy(file) {
       url: idx === 0 ? firstUrl : null
     }));
 
-    const title = file.name.replace(/\.(cbz|zip)$/i, '');
+    const title = name.replace(/\.(cbz|zip)$/i, '');
     return {
-      id: 'cbz_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      id,
       type: 'manga',
       format: 'cbz',
       title: title,
       cover: firstUrl,
       coverBlob: firstBlob,
       pageItems: pageItems,
-      pageCount: pageItems.length
+      pageCount: pageItems.length,
+      nativeArchiveStaged: !!options.staged
     };
   } catch (err) {
     console.error(err);

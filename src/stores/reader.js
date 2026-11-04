@@ -17,6 +17,8 @@ import { hydrateBook } from '../services/restore.js';
 import { buildActivePages, ensureBookImagesResolved } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
 import { collectionReadingOrder, adjacentCollectionBook, spreadBounds } from '../services/collectionReading.js';
+import { hasArchiveSource } from '../services/archiveAccess.js';
+import { ensureNativeArchiveSession, releaseNativeArchiveSession } from '../services/nativeArchive.js';
 
 const LAYOUT_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
 const WEBTOON_FITS = ['screen', 'medium', 'wide'];
@@ -165,6 +167,7 @@ export const useReaderStore = defineStore('reader', () => {
   async function openBook(id, options = {}) {
     const book = shelf.library.find(b => b.id === id);
     if (!book) return false;
+    const previousBook = currentBook.value;
     const token = ++openRequestToken;
     openingBook.value = true;
     openError.value = '';
@@ -174,7 +177,12 @@ export const useReaderStore = defineStore('reader', () => {
         if (token !== openRequestToken) return false;
         shelf.touchBook(book);
       }
-      if (book.type !== 'manga' && book.zipContent && book.chapters) {
+      // CBZ 页面项只持有压缩包 id；关书会释放 ZipFile，再开时在这里恢复句柄。
+      if (book.nativeArchiveId) {
+        await ensureNativeArchiveSession(book);
+        if (token !== openRequestToken) return false;
+      }
+      if (book.type !== 'manga' && hasArchiveSource(book) && book.chapters) {
         await ensureBookImagesResolved(book);
         if (token !== openRequestToken) return false;
       }
@@ -212,6 +220,9 @@ export const useReaderStore = defineStore('reader', () => {
       collectionOrderIds.value = order;
       webtoonBounds.value = { atStart: currentIndex.value === 0, atEnd: false };
       currentBook.value = book;
+      if (previousBook && previousBook.id !== id) {
+        void releaseNativeArchiveSession(previousBook);
+      }
       // 先让旧翻页组件卸载、新组件接管渲染入口，再绘制目标书，避免旧缓冲串页。
       await nextTick();
       if (token !== openRequestToken) return false;
@@ -257,7 +268,9 @@ export const useReaderStore = defineStore('reader', () => {
       webtoonObserver.value = null;
     }
     clearTimeout(preloadTimer.value);
+    const closedBook = currentBook.value;
     currentBook.value = null;
+    void releaseNativeArchiveSession(closedBook);
     // 进度已通过 progressMap 响应式流回书架卡片，无需手动重绘书架
   }
 

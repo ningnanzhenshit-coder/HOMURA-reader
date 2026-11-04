@@ -1,0 +1,11 @@
+[default]
+description = "Allows HOMURA to read CBZ/ZIP pages and EPUB document entries through the Android archive cache."
+permissions = [
+  "allow-open",
+  "allow-openDocument",
+  "allow-readTextBatch",
+  "allow-extract",
+  "allow-close",
+  "allow-clearBook",
+  "allow-clearAll"
+]

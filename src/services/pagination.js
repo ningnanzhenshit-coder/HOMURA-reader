@@ -6,6 +6,7 @@
    ========================================================================== */
 
 import { escapeHtml } from './utils.js';
+import { hasArchiveSource, readArchiveBlobByPath, readArchivePageBlob } from './archiveAccess.js';
 
 
 // ---- 页面资源：漫画图 / EPUB 内嵌图按需生成 URL 并解码 ----
@@ -17,10 +18,15 @@ export async function ensurePageUrlLoaded(pageObj) {
     pageObj.url = URL.createObjectURL(pageObj.file);
     return pageObj.url;
   }
-  if (pageObj.zipEntry) {
-    const blob = await pageObj.zipEntry.async('blob');
-    pageObj.url = URL.createObjectURL(blob);
-    return pageObj.url;
+  if (pageObj.nativeArchiveId != null || pageObj.zipEntry) {
+    if (!pageObj.archiveTask) pageObj.archiveTask = readArchivePageBlob(pageObj);
+    try {
+      const blob = await pageObj.archiveTask;
+      if (blob) pageObj.url = URL.createObjectURL(blob);
+    } finally {
+      pageObj.archiveTask = null;
+    }
+    return pageObj.url || '';
   }
   // PDF 等需要现场渲染的页面：同一页并发请求共用一次渲染任务
   if (pageObj.render) {
@@ -97,7 +103,7 @@ function scheduleEpubImageDecode(book, url) {
 }
 
 export async function ensureChapterImagesResolved(chap, book) {
-  if (!chap || chap.imagesResolved || !book.zipContent) return;
+  if (!chap || chap.imagesResolved || !hasArchiveSource(book)) return;
   const wrapper = document.createElement('div');
   wrapper.innerHTML = chap.htmlContent;
   const pendingImgs = wrapper.querySelectorAll('[data-zip-path]');
@@ -109,9 +115,8 @@ export async function ensureChapterImagesResolved(chap, book) {
     if (!cached) {
       // 并发章节可能引用同一张图，缓存 Promise 避免重复解包和生成 URL。
       cached = (async () => {
-        const entry = book.zipContent.file(zipPath);
-        if (!entry) return null;
-        const blob = await entry.async('blob');
+        const blob = await readArchiveBlobByPath(book, zipPath);
+        if (!blob) return null;
         const url = URL.createObjectURL(blob);
         if (!Array.isArray(book.resourceUrls)) book.resourceUrls = [];
         book.resourceUrls.push(url);
@@ -152,7 +157,7 @@ export async function ensureChapterImagesResolved(chap, book) {
 // 分章节并发解包插图，避免整本 EPUB 的图片串行等待。
 export async function ensureBookImagesResolved(book, concurrency = 8) {
   const chapters = book?.chapters || [];
-  if (!book?.zipContent || chapters.length === 0) return;
+  if (!hasArchiveSource(book) || chapters.length === 0) return;
   let nextIndex = 0;
   const workers = Array.from({ length: Math.min(concurrency, chapters.length) }, async () => {
     while (nextIndex < chapters.length) {

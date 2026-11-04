@@ -12,7 +12,9 @@ import { findSameTitleBook } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
-import { makeFileSource, makeFolderSource } from '../services/restore.js';
+import { makeFileSource, makeFolderSource, stageNativeFileSource } from '../services/restore.js';
+import { canUseNativeArchive, releaseNativeArchiveSession } from '../services/nativeArchive.js';
+import { removeNativeBookDir } from '../services/nativeStorage.js';
 import { runShelfMutation } from '../services/mutationQueue.js';
 
 let quotaWarned = false;
@@ -95,6 +97,8 @@ export function useImporter() {
         // 串行等待落盘完成：下一本的同名检测必须能看到这一批已保存的书。
         await shelf.addBook(book, source);
         savedBooks.push(book);
+        await releaseNativeArchiveSession(book);
+        book.nativeArchiveStaged = false;
       } catch (err) {
         failedCount++;
         console.warn('[HOMURA] 本地存档写入失败，已跳过', book.title, err);
@@ -116,8 +120,40 @@ export function useImporter() {
 
     const archiveFiles = files.filter(f => /\.(cbz|zip)$/i.test(f.name));
     for (const archiveFile of archiveFiles) {
-      const book = await parseCbzFileLazy(archiveFile);
-      if (book) await addBook(book, makeFileSource(archiveFile));
+      const bookId = `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      let source = makeFileSource(archiveFile);
+      let nativePath = '';
+
+      // 安卓先把原文件流式落到 AppData，再让 Kotlin 从路径随机读取；
+      // 这样不会先用 JSZip 把整本压缩包读进 WebView。
+      if (canUseNativeArchive()) {
+        try {
+          const staged = await stageNativeFileSource(bookId, archiveFile);
+          source = staged;
+          nativePath = staged.nativePath;
+        } catch (err) {
+          console.warn('[HOMURA] 原生压缩包预存失败，沿用 JSZip', err);
+          await removeNativeBookDir(bookId).catch(() => {});
+        }
+      }
+
+      let book = null;
+      try {
+        book = await parseCbzFileLazy(archiveFile, {
+          id: bookId,
+          name: archiveFile.name,
+          nativePath,
+          staged: !!nativePath
+        });
+      } catch (err) {
+        console.warn('[HOMURA] 压缩包解析失败', err);
+      }
+      if (!book) {
+        if (nativePath) await removeNativeBookDir(bookId).catch(() => {});
+        continue;
+      }
+      book.nativeArchiveStaged = !!nativePath;
+      await addBook(book, source);
     }
 
     const mobiFiles = files.filter(f => /\.(mobi|prc|azw)$/i.test(f.name));

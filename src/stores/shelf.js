@@ -15,6 +15,7 @@ import { restoreLibrary, persistBook } from '../services/restore.js';
 import { loadProgressMap } from '../services/progress.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { prepareBookCover } from '../services/bookCover.js';
+import { createCoverThumbnail } from '../services/coverThumb.js';
 import { runShelfMutation } from '../services/mutationQueue.js';
 
 export const useShelfStore = defineStore('shelf', () => {
@@ -26,6 +27,7 @@ export const useShelfStore = defineStore('shelf', () => {
   const error = ref('');
   let collectionQueue = Promise.resolve();
   let favoriteQueue = Promise.resolve();
+  let coverOptimizationQueued = false;
 
   function booksInCollection(id) {
     const collection = collections.value.find(item => item.id === id);
@@ -202,11 +204,71 @@ export const useShelfStore = defineStore('shelf', () => {
   }
 
   // 启动初始化：恢复书架 + 进度表；第一次使用时放示例书
+  async function optimizeStoredCover(book) {
+    const patch = {};
+    if (book.coverBlob?.size > 96 * 1024) {
+      const thumb = await createCoverThumbnail(book.coverBlob);
+      if (thumb && thumb !== book.coverBlob) patch.coverBlob = thumb;
+    }
+    if (book.customCoverBlob?.size > 96 * 1024) {
+      const thumb = await createCoverThumbnail(book.customCoverBlob);
+      if (thumb && thumb !== book.customCoverBlob) patch.customCoverBlob = thumb;
+    }
+    if (!Object.keys(patch).length) return;
+
+    await HomuraStore.updateBookMeta(book.id, patch);
+    const current = library.value.find(item => item.id === book.id);
+    if (!current) return;
+    Object.assign(current, patch);
+    const source = current.customCoverBlob || current.coverBlob;
+    const previous = current.cover;
+    if (source) current.cover = URL.createObjectURL(source);
+    if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
+    touchBook(current);
+  }
+
+  // 旧版本把原图直接存进书架。启动后利用空闲时间逐本换成长边 720px 的封面，
+  // 避免一次性解码整库封面把启动和滚动拖慢。
+  function scheduleCoverOptimization(books) {
+    if (coverOptimizationQueued) return;
+    const candidates = books.filter(book => book.restored
+      && !book.id.startsWith('demo_')
+      && (book.coverBlob?.size > 96 * 1024 || book.customCoverBlob?.size > 96 * 1024));
+    if (!candidates.length) return;
+    coverOptimizationQueued = true;
+    let index = 0;
+
+    const run = async () => {
+      if (index >= candidates.length) return;
+      if (document.visibilityState === 'hidden' || document.documentElement.classList.contains('reader-active')) {
+        setTimeout(scheduleNext, 1800);
+        return;
+      }
+      const book = candidates[index++];
+      try {
+        await optimizeStoredCover(book);
+      } catch (err) {
+        console.warn('[HOMURA] 封面缩略图生成失败', err);
+      }
+      scheduleNext();
+    };
+
+    const scheduleNext = () => {
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 4000 });
+      } else {
+        setTimeout(run, 900);
+      }
+    };
+    setTimeout(scheduleNext, 2200);
+  }
+
   async function loadLibrary() {
     const restored = await restoreLibrary();
     progressMap.value = await loadProgressMap();
     if (restored === null) return false;
     library.value = restored;
+    scheduleCoverOptimization(restored);
     collections.value = restoreCollections(await HomuraStore.listCollections(), restored);
     if (restored.length === 0 && collections.value.length === 0) {
       unshiftBook(createDemoNovel());

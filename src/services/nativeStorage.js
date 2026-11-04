@@ -7,6 +7,7 @@
 
 import { BaseDirectory, mkdir, readFile, remove, stat, writeFile } from '@tauri-apps/plugin-fs';
 import { isAndroid } from './platform.js';
+import { clearNativeArchiveBookCache, clearNativeArchiveCache } from './nativeArchive.js';
 
 const ROOT_DIR = 'homura-native-sources';
 const BASE_DIR = BaseDirectory.AppData;
@@ -61,6 +62,7 @@ export async function removeNativeFile(path) {
 
 export async function removeNativeBookDir(bookId) {
   if (!canUseNativeStorage() || !bookId) return;
+  await clearNativeArchiveBookCache(bookId).catch(() => {});
   await remove(`${ROOT_DIR}/${safeSegment(bookId)}`, {
     baseDir: BASE_DIR,
     recursive: true
@@ -69,5 +71,6 @@ export async function removeNativeBookDir(bookId) {
 
 export async function clearNativeSources() {
   if (!canUseNativeStorage()) return;
+  await clearNativeArchiveCache().catch(() => {});
   await remove(ROOT_DIR, { baseDir: BASE_DIR, recursive: true }).catch(() => {});
 }

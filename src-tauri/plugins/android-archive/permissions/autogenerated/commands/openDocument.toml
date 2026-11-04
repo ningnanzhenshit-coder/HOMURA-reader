@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-openDocument"
+description = "Enables the openDocument command without any pre-configured scope."
+commands.allow = ["openDocument"]
+
+[[permission]]
+identifier = "deny-openDocument"
+description = "Denies the openDocument command without any pre-configured scope."
+commands.deny = ["openDocument"]

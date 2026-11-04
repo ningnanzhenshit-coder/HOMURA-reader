@@ -90,6 +90,7 @@ pub fn run() {
         .plugin(tauri_plugin_android_toast::init())
         .plugin(tauri_plugin_android_predictive_back::init())
         .plugin(tauri_plugin_android_installer::init())
+        .plugin(tauri_plugin_android_archive::init())
         .invoke_handler(tauri::generate_handler![
             update_downloader::download_update_asset,
             update_downloader::cancel_update_download,

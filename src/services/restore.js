@@ -15,8 +15,9 @@ import {
   removeNativeBookDir,
   removeNativeFile
 } from './nativeStorage.js';
-import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
-
+import { parseEpubFileLazy, parseCbzFileLazy, parseCbzNativeArchive, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
+import { createCoverThumbnail } from './coverThumb.js';
+import { canUseNativeArchive } from './nativeArchive.js';
 
 export function makeFileSource(file) {
   const source = {
@@ -28,6 +29,24 @@ export function makeFileSource(file) {
   };
   if (file.customHandle) source.handle = file.customHandle;
   return source;
+}
+
+// Android CBZ/ZIP 在解析前先流式落到 AppData，原生插件随后直接按路径随机读取。
+// source.preStaged 让 persistBook 复用这份已写好的文件，避免导入后再整本复制一次。
+export async function stageNativeFileSource(bookId, file) {
+  if (!canUseNativeStorage()) throw new Error('原生存档不可用');
+  const nativePath = await putNativeFile(
+    nativeFilePath(bookId, `source/${file.name || 'source'}`),
+    file
+  );
+  return {
+    kind: 'file',
+    name: file.name,
+    size: file.size,
+    lastModified: file.lastModified || Date.now(),
+    nativePath,
+    preStaged: true
+  };
 }
 
 export function makeFolderSource(folderName, files) {
@@ -92,6 +111,10 @@ async function stageBlob(path, blob) {
 async function stageSource(bookId, source) {
   // 桌面端句柄是零拷贝引用，跨重启可用；Android 的 content:// 句柄不可靠。
   if (source.handle && !isAndroid) return withoutBlob(source);
+  if (source.preStaged && source.nativePath) {
+    const { preStaged, ...staged } = source;
+    return staged;
+  }
 
   if (canUseNativeStorage()) {
     try {
@@ -200,6 +223,8 @@ async function stageSource(bookId, source) {
 
 // 失败时抛错，由调用方（shelf store）统一提示
 export async function persistBook(book, source) {
+  // 封面解码和原文件暂存可以并行，避免导入多等一次缩略图生成。
+  const coverThumbTask = createCoverThumbnail(book.coverBlob).catch(() => null);
   const meta = {
     id: book.id,
     type: book.type,
@@ -214,6 +239,8 @@ export async function persistBook(book, source) {
   try {
     const persistence = await HomuraStore.requestPersistence();
     const staged = await stageSource(book.id, source);
+    const coverThumb = await coverThumbTask;
+    if (coverThumb) meta.coverBlob = coverThumb;
     await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
     return { persistence };
   } catch (err) {
@@ -277,6 +304,14 @@ function makeRestoredFile(blob, name, lastModified, type) {
     type: type || blob.type || '',
     lastModified: lastModified || blob.lastModified || Date.now()
   });
+}
+
+function releaseParsedCover(parsed) {
+  const cover = parsed?.cover;
+  if (!cover || !cover.startsWith('blob:')) return;
+  // 漫画 EPUB / CBZ 的第一页与封面共用同一个 Blob URL，不能直接释放。
+  if ((parsed.pageItems || []).some(item => item.url === cover)) return;
+  URL.revokeObjectURL(cover);
 }
 
 // 依次尝试原生 AppData、OPFS、原文件句柄、内嵌 Blob；前一层失效时继续用后一层。
@@ -343,10 +378,10 @@ async function resolveStoredFile(source, displayName) {
   return { file: null, failures };
 }
 
-function parseStoredFile(file) {
+function parseStoredFile(file, options = {}) {
   if (/\.epub$/i.test(file.name)) return parseEpubFileLazy(file);
   if (/\.pdf$/i.test(file.name)) return parsePdfFileLazy(file);
-  if (/\.(cbz|zip)$/i.test(file.name)) return parseCbzFileLazy(file);
+  if (/\.(cbz|zip)$/i.test(file.name)) return parseCbzFileLazy(file, options);
   if (/\.(mobi|prc|azw)$/i.test(file.name)) return parseMobiFileLazy(file);
   if (/\.md$/i.test(file.name)) return parseMarkdownFile(file);
   if (/\.txt$/i.test(file.name)) return parseTxtFile(file);
@@ -436,23 +471,37 @@ export async function hydrateBook(book) {
     const groups = buildImageFolderBooks(files);
     parsed = groups.length > 0 ? groups[0].book : null;
   } else {
-    const { file, failures } = await resolveStoredFile(source, source.name || 'book');
-    logSourceFailures(book.id, failures);
-    if (!file) {
-      console.warn('[HOMURA] 原文件恢复失败', sourceFailureMessage(source, failures, false));
-      return false;
-    }
-    try {
-      parsed = await parseStoredFile(file);
-    } catch (err) {
-      console.error('[HOMURA] 本地存档解析失败', err);
-      return false;
-    }
-    if (!parsed) {
-      if (!isStoredFileFormatSupported(file)) {
-        console.warn('[HOMURA] 无法识别本地存档格式', file.name);
+    // 安卓原生 CBZ/ZIP 不需要把整个原文件读回 JS；失败时才回退到 Blob 解析。
+    if (source.nativePath && /\.(cbz|zip)$/i.test(source.name || '') && canUseNativeArchive()) {
+      try {
+        parsed = await parseCbzNativeArchive(source.nativePath, {
+          id: book.id,
+          name: source.name
+        });
+      } catch (err) {
+        console.warn('[HOMURA] 原生压缩包恢复失败，回退完整存档读取', err);
       }
-      return false;
+    }
+
+    if (!parsed) {
+      const { file, failures } = await resolveStoredFile(source, source.name || 'book');
+      logSourceFailures(book.id, failures);
+      if (!file) {
+        console.warn('[HOMURA] 原文件恢复失败', sourceFailureMessage(source, failures, false));
+        return false;
+      }
+      try {
+        parsed = await parseStoredFile(file, { id: book.id });
+      } catch (err) {
+        console.error('[HOMURA] 本地存档解析失败', err);
+        return false;
+      }
+      if (!parsed) {
+        if (!isStoredFileFormatSupported(file)) {
+          console.warn('[HOMURA] 无法识别本地存档格式', file.name);
+        }
+        return false;
+      }
     }
   }
 
@@ -469,8 +518,16 @@ export async function hydrateBook(book) {
   book.zipContent = parsed.zipContent;
   book.pdfDoc = parsed.pdfDoc;
   book.chapters = parsed.chapters;
-  if (!book.customCoverBlob) book.cover = parsed.cover || book.cover;
-  else if (parsed.cover?.startsWith('blob:')) URL.revokeObjectURL(parsed.cover);
+  book.nativeArchiveId = parsed.nativeArchiveId || null;
+  book.nativeArchivePath = parsed.nativeArchiveId
+    ? (parsed.nativeArchivePath || source.nativePath || null)
+    : null;
+  book.nativeArchiveMode = parsed.nativeArchiveMode || null;
+  book.nativeArchiveStaged = false;
+  // 书架元数据里保存的是小封面，重新解析出的大图不应覆盖它；
+  // 只有旧存档没有封面时才回退到解析结果。
+  if (book.customCoverBlob || book.cover) releaseParsedCover(parsed);
+  else book.cover = parsed.cover || book.cover;
   book.coverBlob = parsed.coverBlob;
   book.restored = false;
   // 旧版本可能把带彩插的轻小说存成漫画；重新解析后把更正写回书架元数据。

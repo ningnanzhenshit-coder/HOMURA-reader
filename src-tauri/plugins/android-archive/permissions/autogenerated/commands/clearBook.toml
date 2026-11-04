@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-clearBook"
+description = "Enables the clearBook command without any pre-configured scope."
+commands.allow = ["clearBook"]
+
+[[permission]]
+identifier = "deny-clearBook"
+description = "Denies the clearBook command without any pre-configured scope."
+commands.deny = ["clearBook"]

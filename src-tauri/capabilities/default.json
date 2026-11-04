@@ -8,7 +8,9 @@
     "android-toast:default",
     "android-predictive-back:default",
     "android-installer:default",
+    "android-archive:default",
     "fs:default",
+    "fs:allow-appcache-read-recursive",
     "fs:allow-appdata-meta-recursive",
     "fs:allow-appdata-write-recursive",
     {
