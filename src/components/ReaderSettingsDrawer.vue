@@ -79,25 +79,26 @@
         </section>
 
         <!-- 翻页布局 -->
-        <section class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
+        <section v-if="!isVertical || isManga" class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
           <div class="flex items-baseline justify-between mb-3">
-            <span class="text-[12px] font-semibold">翻页布局</span>
+            <span class="text-[12px] font-semibold">{{ isVertical ? '条漫尺寸' : '翻页布局' }}</span>
             <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ spreadLabel }}</b>
           </div>
           <MdSegmentedControl
+            v-if="!isVertical && !isPhone"
             class="w-full"
-            :model-value="isVertical ? -1 : config.spread"
+            :model-value="config.spread"
             :options="spreadOptions"
             aria-label="翻页布局"
             @update:model-value="value => reader.setSpreadCount(Number(value))"
           />
 
-          <p v-if="!isVertical && config.spread === 2 && isPhone" class="mt-3 text-[12px] text-[var(--md-on-surface-variant)] leading-relaxed">
-            窄屏会自动按单页显示，改大窗口或横屏后可恢复双页。
+          <p v-if="!isVertical && isPhone" class="mt-3 text-[12px] text-[var(--md-on-surface-variant)] leading-relaxed">
+            当前屏幕按单页显示，窗口变宽后可选择双页。
           </p>
 
           <MdSwitch
-            v-if="!isVertical && config.spread === 2"
+            v-if="!isVertical && !isPhone && config.spread === 2"
             class="mt-3.5"
             :model-value="config.coverOffset"
             title="双页模式下首页单独显示，确保后续跨页大图对齐"
@@ -310,7 +311,7 @@ const webtoonFits = [
 ];
 
 const directionLabel = computed(() => (directions.find(d => d.value === config.direction) || directions[0]).label);
-const spreadLabel = computed(() => (isVertical.value ? '长卷' : (config.spread === 2 ? '双页' : '单页')));
+const spreadLabel = computed(() => (isVertical.value ? '长卷' : (!isPhone.value && config.spread === 2 ? '双页' : '单页')));
 const modeLabel = computed(() => (SURFACE_MODE_OPTIONS.find(option => option.value === theme.surfaceMode) || SURFACE_MODE_OPTIONS[0]).label);
 const themeLabel = computed(() => (THEME_OPTIONS.find(option => option.name === theme.themeColor) || THEME_OPTIONS[0]).title.replace(' (默认)', ''));
 

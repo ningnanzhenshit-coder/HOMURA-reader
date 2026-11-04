@@ -25,10 +25,20 @@
           v-model:query="query"
           v-model:type="typeFilter"
           v-model:sort="sortKey"
-        />
+        >
+          <template v-if="isCompact" #actions>
+            <LibraryImportActions
+              compact
+              v-model:open="importMenuOpen"
+              @create-collection="createCollection"
+              @pick-files="pickFiles"
+              @pick-folder="pickFolder"
+            />
+          </template>
+        </LibraryHeader>
 
         <main
-          class="library-scroll flex-1 w-full flex flex-col pb-40"
+          class="library-scroll relative isolate flex-1 w-full flex flex-col min-[900px]:pb-40"
           :class="{ 'md-bottom-nav-space': isCompact }"
           data-app-scroll
         >
@@ -40,58 +50,13 @@
     </div>
   </div>
 
-  <!-- 唯一主行动：扩展 FAB「导入」，点开选择导入文件 / 文件夹 -->
-  <div v-if="activeNav !== 'settings'" class="md-fab-pos flex flex-col items-end">
-    <div v-if="importMenuOpen" class="fixed inset-0" @click="importMenuOpen = false"></div>
-
-    <Transition
-      enter-active-class="md-sheet-enter-active"
-      enter-from-class="translate-y-2 opacity-0"
-      enter-to-class="translate-y-0 opacity-100"
-      leave-active-class="md-sheet-leave-active"
-      leave-from-class="translate-y-0 opacity-100"
-      leave-to-class="translate-y-2 opacity-0"
-    >
-      <div
-        v-if="importMenuOpen"
-        class="absolute right-0 bottom-[136px] w-48 z-10 rounded-2xl bg-[var(--md-surface-container)] shadow-2xl p-1.5 flex flex-col gap-0.5"
-        role="menu"
-        aria-label="导入作品"
-      >
-        <button @click="pickFiles" role="menuitem" class="md-mobile-menu-item w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors">
-          <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v11M8 8l4-4 4 4"/></svg>
-          导入文件
-        </button>
-        <button
-          v-if="canPickFolder"
-          @click="pickFolder"
-          role="menuitem"
-          class="md-mobile-menu-item w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-surface-high)] transition-colors"
-        >
-          <svg class="w-4 h-4 text-[var(--md-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-          导入文件夹
-        </button>
-      </div>
-    </Transition>
-
-    <button @click="createCollection" class="relative z-10 mb-3 h-14 px-5 rounded-2xl inline-flex items-center gap-2.5 bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] text-[13px] font-bold active:scale-95 transition-transform duration-200" title="新建书库" aria-label="新建书库">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M12 5v14M5 12h14"/></svg>
-      新建
-    </button>
-    <button
-      @click="importMenuOpen = !importMenuOpen"
-      class="relative z-10 h-14 rounded-2xl px-5 inline-flex items-center gap-2.5 bg-[var(--md-primary)] text-[var(--md-on-primary)] text-[13px] font-bold active:scale-95 transition-transform duration-200"
-      style="box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--md-primary) 55%, transparent), 0 2px 4px rgba(0,0,0,0.2);"
-      title="导入作品"
-      aria-haspopup="menu"
-      :aria-expanded="importMenuOpen"
-    >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M12 5v14M5 12h14"/>
-      </svg>
-      导入
-    </button>
-  </div>
+  <LibraryImportActions
+    v-if="!isCompact && activeNav !== 'settings'"
+    v-model:open="importMenuOpen"
+    @create-collection="createCollection"
+    @pick-files="pickFiles"
+    @pick-folder="pickFolder"
+  />
 
   <input ref="fileInput" type="file" multiple :accept="fileAccept" class="hidden" @change="onFileChange" />
   <input v-if="canPickFolder" ref="folderInput" type="file" webkitdirectory directory multiple class="hidden" @change="onFileChange" />
@@ -153,6 +118,7 @@ import { useViewport } from './composables/useViewport.js';
 import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
+import LibraryImportActions from './components/LibraryImportActions.vue';
 import AppearanceSheet from './components/AppearanceSheet.vue';
 import BookShelf from './components/BookShelf.vue';
 import EmptyShelf from './components/EmptyShelf.vue';
@@ -233,6 +199,8 @@ watch(
   }
 );
 
+watch(isCompact, () => { importMenuOpen.value = false; });
+
 // 进入阅读器时收起外观浮层，避免它悬在阅读舞台之上
 watch(() => reader.currentBook, book => {
   if (book) appearanceOpen.value = false;
@@ -262,7 +230,7 @@ const visibleBooks = computed(() => {
 
 function openFilePicker() {
   if (hasFileSystemAccess) {
-    importer.pickFilesViaFSA();
+    importer.pickFilesViaFSA({ offerCollection: isCompact.value });
     return;
   }
   fileInput.value && fileInput.value.click();
@@ -278,8 +246,11 @@ function openFolderPicker() {
 }
 
 async function onFileChange(e) {
-  await importer.handleFiles(e.target.files);
-  e.target.value = '';
+  try {
+    await importer.handleFiles(e.target.files, { offerCollection: isCompact.value });
+  } finally {
+    e.target.value = '';
+  }
 }
 
 // FAB 菜单：先收起菜单再走原有导入流程

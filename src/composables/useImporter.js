@@ -34,29 +34,30 @@ export function useImporter() {
   const { confirmDuplicate } = useDuplicateImport();
   const { askShelfDialog } = useShelfDialogs();
 
-  function handleFiles(fileList) {
+  function handleFiles(fileList, { offerCollection = false } = {}) {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList).filter(f => !f.name.startsWith('.'));
     if (files.length === 0) return;
 
     // 所有导入入口与清空书架共用互斥队列，防止同名漏判和源文件删除竞态。
     const targetId = shelf.activeCollectionId;
-    return runShelfMutation(() => importBatch(files, targetId)).catch(err => {
+    return runShelfMutation(() => importBatch(files, targetId, offerCollection)).catch(err => {
       console.error('[HOMURA] 导入失败', err);
       throw err;
     });
   }
 
-  async function importBatch(files, targetId) {
+  async function importBatch(files, targetId, offerCollection) {
     const importIntoCurrent = async () => {
       const ids = await importFiles(files);
       if (ids.length && targetId && shelf.collections.some(item => item.id === targetId)) await shelf.moveBooks(ids, targetId);
     };
     const plan = planFolderCollections(files);
-    if (!plan.hasDirectories || plan.bookCount < 2) return importIntoCurrent();
+    if (plan.bookCount < 2 || (!plan.hasDirectories && (!offerCollection || targetId))) return importIntoCurrent();
+    const grouping = plan.hasDirectories ? `按目录分别创建 ${plan.groups.length} 个一级书库` : '将这批作品放进一个新书库';
     const create = await askShelfDialog({
       kind: 'folder', title: '为导入内容创建书库？',
-      message: `检测到 ${plan.bookCount} 本作品，将按目录分别创建 ${plan.groups.length} 个一级书库。你可以依次修改名称；选择直接导入则不建立书库。`
+      message: `检测到 ${plan.bookCount} 本作品。可以${grouping}，也可以直接导入。`
     });
     if (create === null) return;
     if (!create) return importIntoCurrent();
@@ -64,7 +65,8 @@ export function useImporter() {
     const groups = [];
     // 所有名称确认后才导入；中途取消不会留下半批书库。
     for (const group of plan.groups) {
-      const title = await askShelfDialog({ kind: 'name', title: '创建导入书库', message: `目录：${group.path || group.title} · ${group.bookCount} 本作品`, initialName: availableCollectionName(group.title, reserved), validate: name => collectionNameError(name, reserved) });
+      const message = group.path ? `目录：${group.path} · ${group.bookCount} 本作品` : `${group.bookCount} 本作品`;
+      const title = await askShelfDialog({ kind: 'name', title: '创建导入书库', message, initialName: availableCollectionName(group.title, reserved), validate: name => collectionNameError(name, reserved) });
       if (title === null) return;
       reserved.push({ title });
       groups.push({ ...group, title });
@@ -219,7 +221,7 @@ export function useImporter() {
 
   // ---- File System Access：优先引用原文件句柄 ----
 
-  async function pickFilesViaFSA() {
+  async function pickFilesViaFSA(options) {
     let handles = [];
     try {
       handles = await window.showOpenFilePicker({ multiple: true });
@@ -234,7 +236,7 @@ export function useImporter() {
         files.push(file);
       } catch (err) {}
     }
-    if (files.length > 0) await handleFiles(files);
+    if (files.length > 0) await handleFiles(files, options);
   }
 
   async function pickFolderViaFSA() {

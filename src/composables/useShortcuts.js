@@ -19,10 +19,10 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
       reader.onLeftButtonClick();
-    } else if (e.key === 'ArrowRight' || e.key === ' ') {
+    } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       reader.onRightButtonClick();
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === 'ArrowDown' || e.key === ' ') {
       e.preventDefault();
       reader.goNextPage();
     } else if (e.key === 'ArrowUp') {
