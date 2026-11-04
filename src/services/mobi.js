@@ -3,22 +3,22 @@
    ----------------------------------------------------------------------------
    纯前端解析 Kindle MOBI6 容器：
      · PDB 记录表 → 文本记录
-     · PalmDOC LZ77 解压（压缩方式 1/2）
+     · PalmDOC LZ77 与 Huffman/CDIC 解压
      · MOBI 头 + EXTH 元数据（书名、封面、图片记录）
      · 按 <mbp:pagebreak> 切章，正文做白名单净化后交给小说渲染管道
-   不支持：DRM 加密文件、Huffman 压缩（方式 17480）、AZW3/KF8 双头格式。
+   不支持：DRM 加密文件、仅包含 KF8 的文件。
    ========================================================================== */
 
-const BLOCKED_TAGS = new Set([
-  'script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
-  'textarea', 'select', 'option', 'link', 'meta', 'base', 'frame', 'frameset', 'applet'
-]);
+import { createHuffDecoder } from './mobiHuff.js';
+
+import { sanitizeBookBody } from './sanitize.js';
+import { isSafeImageUrl } from './utils.js';
 
 const TAG_HEADINGS = 'h1,h2,h3,h4,h5,h6,font,p,div,td,th';
 
-class MobiError extends Error {
-  constructor(code, message) {
-    super(message);
+export class MobiError extends Error {
+  constructor(code, message, options) {
+    super(message, options);
     this.name = 'MobiError';
     this.code = code;
   }
@@ -71,11 +71,44 @@ function decompressPalmDoc(src, limit) {
 
 function readPdbRecords(buf) {
   const count = readU16(buf, 76);
-  if (count <= 0) throw new MobiError('BAD_FILE', 'MOBI 文件记录表为空');
+  const tableEnd = 78 + count * 8;
+  if (count < 2 || tableEnd > buf.length) throw new MobiError('BAD_FILE', 'MOBI 文件记录表不完整');
   const starts = new Array(count + 1);
-  for (let i = 0; i < count; i++) starts[i] = readU32(buf, 78 + i * 8);
+  let previous = tableEnd;
+  for (let i = 0; i < count; i++) {
+    const offset = readU32(buf, 78 + i * 8);
+    if (offset < previous || offset > buf.length) throw new MobiError('BAD_FILE', 'MOBI 记录位置无效');
+    starts[i] = previous = offset;
+  }
   starts[count] = buf.length;
   return starts;
+}
+
+// 每条正文记录末尾可带反向变长项和 UTF-8 跨记录字节；它们不属于压缩数据。
+function stripRecordTrailer(bytes, flags) {
+  let end = bytes.length;
+  for (let extra = flags >>> 1; extra; extra >>>= 1) {
+    if (!(extra & 1)) continue;
+    let length = 0;
+    let used = 0;
+    let terminated = false;
+    while (used < 4 && used < end) {
+      const byte = bytes[end - 1 - used];
+      length |= (byte & 127) << (7 * used++);
+      if (byte & 128) {
+        terminated = true;
+        break;
+      }
+    }
+    if (!terminated || length < used || length > end) throw new MobiError('BAD_FILE', 'MOBI 正文记录尾部无效');
+    end -= length;
+  }
+  if (flags & 1) {
+    const length = (bytes[end - 1] & 3) + 1;
+    if (length > end) throw new MobiError('BAD_FILE', 'MOBI 正文记录尾部无效');
+    end -= length;
+  }
+  return bytes.subarray(0, end);
 }
 
 // ---- 图片：按魔数判断 MIME，不信任扩展名 ----
@@ -122,42 +155,12 @@ function decodeText(bytes, encoding) {
 // ---- 正文净化 + 图片 recindex 解引用 ----
 
 function sanitizeInto(dom, imageUrlFor) {
-  const walker = dom.createTreeWalker(dom.body || dom.documentElement, NodeFilter.SHOW_ELEMENT);
-  const doomed = [];
-  let node = walker.nextNode();
-  while (node) {
-    const tag = node.tagName.toLowerCase();
-    if (BLOCKED_TAGS.has(tag)) {
-      doomed.push(node);
-    } else {
-      for (const attr of Array.from(node.attributes)) {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on') || name === 'style' || name === 'srcset') {
-          node.removeAttribute(attr.name);
-        } else if (name === 'href') {
-          const value = (attr.value || '').trim();
-          if (!/^(https?:|mailto:|tel:)/i.test(value)) node.removeAttribute(attr.name);
-        }
-      }
-      if (tag === 'img') {
-        const recindex = parseInt(node.getAttribute('recindex') || '', 10);
-        node.removeAttribute('recindex');
-        if (Number.isInteger(recindex) && recindex > 0) {
-          const url = imageUrlFor(recindex);
-          if (url) node.setAttribute('src', url);
-          else doomed.push(node);
-        } else if (!/^(https?:|data:image\/)/i.test(node.getAttribute('src') || '')) {
-          doomed.push(node);
-        }
-      }
-      if (tag === 'a' && !node.getAttribute('href')) {
-        // 无 href 的锚点（MOBI 内部 filepos）直接拆掉，避免渲染成彩色假链接
-        node.replaceWith(...Array.from(node.childNodes));
-      }
-    }
-    node = walker.nextNode();
-  }
-  doomed.forEach(el => el.remove());
+  sanitizeBookBody(dom.body, image => {
+    const recindex = Number(image.getAttribute('recindex'));
+    if (Number.isInteger(recindex) && recindex > 0) return imageUrlFor(recindex);
+    const url = image.getAttribute('src') || '';
+    return url.startsWith('data:') && isSafeImageUrl(url) ? url : null;
+  });
 }
 
 // ---- 章节标题：取首个短标题块，否则退化为书号 ----
@@ -175,10 +178,15 @@ function pickChapterTitle(body, fallbackTitle, index) {
 
 export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   const buf = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
-  if (buf.length < 90) throw new MobiError('BAD_FILE', '文件过小，不是有效的 MOBI');
+  const container = String.fromCharCode(...buf.subarray(60, 68));
+  if (buf.length < 90 || (container !== 'BOOKMOBI' && container !== 'TEXtREAd')) {
+    throw new MobiError('BAD_FILE', '文件损坏或不是 MOBI 格式');
+  }
 
   const starts = readPdbRecords(buf);
   const rec0 = starts[0];
+  const headerEnd = starts[1];
+  if (headerEnd - rec0 < 20) throw new MobiError('BAD_FILE', 'MOBI 文件头不完整');
 
   const compression = readU16(buf, rec0);
   const textLength = readU32(buf, rec0 + 4);
@@ -186,17 +194,40 @@ export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   const recordSize = readU16(buf, rec0 + 10) || 4096;
   const encryption = readU16(buf, rec0 + 12);
 
-  if (String.fromCharCode(buf[rec0 + 16], buf[rec0 + 17], buf[rec0 + 18], buf[rec0 + 19]) !== 'MOBI') {
-    throw new MobiError('BAD_FILE', '不是 MOBI 格式（可能为 AZW3/KF8 或 EPUB）');
-  }
+  // DRM v1 可能连 MOBI 魔数一起加密，先检查 PalmDOC 加密标志。
   if (encryption !== 0) {
-    throw new MobiError('DRM', '该 MOBI 带有 DRM 加密，暂不支持打开');
+    throw new MobiError('DRM', '文件带有 DRM 加密，HOMURA 无法读取。');
   }
-  if (compression !== 1 && compression !== 2) {
-    throw new MobiError('COMPRESSION', '该 MOBI 使用 Huffman 压缩，暂不支持');
+  if (container !== 'BOOKMOBI' || String.fromCharCode(...buf.subarray(rec0 + 16, rec0 + 20)) !== 'MOBI') {
+    throw new MobiError('BAD_FILE', '文件损坏或不是 MOBI 格式');
+  }
+  const mobiLength = readU32(buf, rec0 + 20);
+  if (mobiLength < 96 || rec0 + 16 + mobiLength > headerEnd
+    || !textLength || !textRecordCount || textRecordCount >= starts.length - 1) {
+    throw new MobiError('BAD_FILE', 'MOBI 文件头或正文记录不完整');
+  }
+  if (readU32(buf, rec0 + 36) >= 8) {
+    throw new MobiError('KF8', '文件使用 KF8 版式，请导入无 DRM 的 MOBI 或 EPUB。');
+  }
+  if (compression !== 1 && compression !== 2 && compression !== 17480) {
+    throw new MobiError('COMPRESSION', '不支持此 MOBI 文件的压缩方式。');
+  }
+  const trailerFlags = mobiLength >= 228 ? readU16(buf, rec0 + 242) : 0;
+  let decompressHuff;
+  if (compression === 17480) {
+    const first = readU32(buf, rec0 + 112);
+    const count = readU32(buf, rec0 + 116);
+    if (mobiLength < 104 || first <= textRecordCount || count < 2 || first + count >= starts.length) {
+      throw new MobiError('BAD_FILE', 'MOBI 的 Huffman 字典记录不完整');
+    }
+    const records = starts.slice(first, first + count).map((start, i) => buf.subarray(start, starts[first + i + 1]));
+    try {
+      decompressHuff = createHuffDecoder(records);
+    } catch (err) {
+      throw new MobiError('BAD_FILE', 'MOBI 的 Huffman 字典损坏', { cause: err });
+    }
   }
 
-  const mobiLength = readU32(buf, rec0 + 20);
   const textEncodingRaw = readU32(buf, rec0 + 28);
   const encoding = textEncodingRaw === 65001 ? 'utf-8' : 'windows-1252';
   const firstImage = readU32(buf, rec0 + 0x6c);
@@ -211,18 +242,23 @@ export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   const chunks = [];
   let produced = 0;
   for (let r = 0; r < textRecordCount; r++) {
-    const from = starts[r + 1];
-    const to = starts[r + 2] || buf.length;
-    if (from == null || from >= buf.length) break;
     const want = Math.min(recordSize, textLength - produced);
     if (want <= 0) break;
-    const out = compression === 1
-      ? buf.subarray(from, Math.min(to, from + want))
-      : decompressPalmDoc(buf.subarray(from, to), want);
+    const record = stripRecordTrailer(buf.subarray(starts[r + 1], starts[r + 2]), trailerFlags);
+    let out;
+    if (compression === 1) out = record.subarray(0, want);
+    else if (compression === 2) out = decompressPalmDoc(record, want);
+    else {
+      try {
+        out = decompressHuff(record, want);
+      } catch (err) {
+        throw new MobiError('BAD_FILE', 'MOBI 的 Huffman 正文记录损坏', { cause: err });
+      }
+    }
     chunks.push(out);
     produced += out.length;
   }
-  if (produced === 0) throw new MobiError('BAD_FILE', 'MOBI 正文为空');
+  if (produced !== textLength) throw new MobiError('BAD_FILE', 'MOBI 正文记录不完整');
 
   const rawText = decodeText(mergeChunks(chunks), encoding);
   if (!rawText) throw new MobiError('BAD_FILE', 'MOBI 正文解码失败');
@@ -293,7 +329,7 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
     if (!doc.body) return;
     sanitizeInto(doc, imageUrlFor);
     const html = (doc.body.innerHTML || '').trim();
-    if (!html || !doc.body.textContent.replace(/\s+/g, '').length) return;
+    if (!html || (!doc.body.textContent.trim() && !doc.body.querySelector('img'))) return;
     chapters.push({
       title: pickChapterTitle(doc.body, bookTitle, index),
       htmlContent: html

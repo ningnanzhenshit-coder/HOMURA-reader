@@ -118,8 +118,13 @@ export function sanitizeEpubHtml(html) {
   const root = doc.body;
   if (!root) return '';
 
+  sanitizeBookBody(root);
+  return root.innerHTML.trim();
+}
+
+export function sanitizeBookBody(root, resolveImageUrl) {
   const elements = [];
-  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   let node = walker.nextNode();
   while (node) {
     elements.push(node);
@@ -139,8 +144,12 @@ export function sanitizeEpubHtml(html) {
       continue;
     }
 
+    const imageUrl = tagName === 'img' && resolveImageUrl ? resolveImageUrl(el) : undefined;
+    if (imageUrl === null) {
+      el.remove();
+      continue;
+    }
     sanitizeAttributes(el, tagName);
+    if (imageUrl) el.setAttribute('src', imageUrl);
   }
-
-  return root.innerHTML.trim();
 }

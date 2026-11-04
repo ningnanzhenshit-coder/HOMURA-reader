@@ -12,6 +12,7 @@ import { findSameTitleBook } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
+import { MobiError } from '../services/mobi.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
 import { runShelfMutation } from '../services/mutationQueue.js';
 
@@ -41,15 +42,23 @@ export function useImporter() {
 
     // 所有导入入口与清空书架共用互斥队列，防止同名漏判和源文件删除竞态。
     const targetId = shelf.activeCollectionId;
-    return runShelfMutation(() => importBatch(files, targetId)).catch(err => {
+    return runShelfMutation(async () => {
+      const mobiFailures = [];
+      await importBatch(files, targetId, mobiFailures);
+      if (mobiFailures.length) {
+        const details = mobiFailures.slice(0, 5);
+        if (mobiFailures.length > details.length) details.push(`另有 ${mobiFailures.length - details.length} 个 MOBI 文件未导入。`);
+        await askShelfDialog({ kind: 'notice', title: '部分 MOBI 文件未导入', message: details.join('\n') });
+      }
+    }).catch(err => {
       console.error('[HOMURA] 导入失败', err);
       throw err;
     });
   }
 
-  async function importBatch(files, targetId) {
+  async function importBatch(files, targetId, mobiFailures) {
     const importIntoCurrent = async () => {
-      const ids = await importFiles(files);
+      const ids = await importFiles(files, mobiFailures);
       if (ids.length && targetId && shelf.collections.some(item => item.id === targetId)) await shelf.moveBooks(ids, targetId);
     };
     const plan = planFolderCollections(files);
@@ -70,7 +79,7 @@ export function useImporter() {
       groups.push({ ...group, title });
     }
     for (const group of groups) {
-      const ids = await importFiles(group.files);
+      const ids = await importFiles(group.files, mobiFailures);
       if (!ids.length) continue;
       const collection = await shelf.createCollection(group.title);
       await shelf.moveBooks(ids, collection.id);
@@ -78,7 +87,7 @@ export function useImporter() {
     shelf.activeCollectionId = null;
   }
 
-  async function importFiles(files) {
+  async function importFiles(files, mobiFailures) {
     const savedBooks = [];
     let skippedCount = 0;
     let failedCount = 0;
@@ -120,8 +129,16 @@ export function useImporter() {
 
     const mobiFiles = files.filter(f => /\.(mobi|prc|azw)$/i.test(f.name));
     for (const mobiFile of mobiFiles) {
-      const book = await parseMobiFileLazy(mobiFile);
-      if (book) await addBook(book, makeFileSource(mobiFile));
+      let book;
+      try {
+        book = await parseMobiFileLazy(mobiFile);
+      } catch (err) {
+        console.warn('[HOMURA] MOBI 解析失败', mobiFile.name, err);
+        const reason = err instanceof MobiError ? err.message : '文件无法读取。';
+        mobiFailures.push(`${mobiFile.name}：${reason}`);
+        continue;
+      }
+      await addBook(book, makeFileSource(mobiFile));
     }
 
     const mdFiles = files.filter(f => /\.md$/i.test(f.name));
@@ -143,7 +160,7 @@ export function useImporter() {
 
     if (failedCount > 0) {
       console.warn(`[HOMURA] ${failedCount} 部作品未能保存到本地存档`);
-    } else if (savedBooks.length === 0 && skippedCount === 0) {
+    } else if (savedBooks.length === 0 && skippedCount === 0 && !mobiFiles.length) {
       console.warn('[HOMURA] 未找到支持的漫画或小说格式');
     }
     if (savedBooks.length > 0) await warnIfStorageTight();

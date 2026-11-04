@@ -366,29 +366,24 @@ export function parseMarkdownFile(mdFile) {
   });
 }
 
-// ---- MOBI：PalmDOC 解压 + 正文净化，输出小说管道可用的章节 ----
+// ---- MOBI：文本解压 + 正文净化，输出小说管道可用的章节 ----
 
 export async function parseMobiFileLazy(file) {
-  try {
-    const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
-    const data = parseMobiBuffer(await file.arrayBuffer(), fallbackTitle);
-    const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
+  const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
+  const data = parseMobiBuffer(await file.arrayBuffer(), fallbackTitle);
+  const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
 
-    return {
-      id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      type: 'novel',
-      format: 'mobi',
-      title: data.title,
-      cover: coverUrl,
-      coverBlob: data.coverBlob,
-      chapters: data.chapters,
-      resourceUrls: data.resourceUrls,
-      pageCount: data.chapters.length
-    };
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
+  return {
+    id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    type: 'novel',
+    format: 'mobi',
+    title: data.title,
+    cover: coverUrl,
+    coverBlob: data.coverBlob,
+    chapters: data.chapters,
+    resourceUrls: data.resourceUrls,
+    pageCount: data.chapters.length
+  };
 }
 
 // 把散装图片按所在文件夹分组，每组生成一本书

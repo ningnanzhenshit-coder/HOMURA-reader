@@ -37,7 +37,7 @@ HOMURA（ACGN GO）是一个**本地优先**的 ACGN 阅读器：漫画、轻小
 | --- | --- | --- |
 | EPUB / KEPUB | `.epub`、`.kepub.epub` | 读取 OPF spine 与章节正文；图片占主导的 EPUB 会自动按漫画阅读 |
 | PDF | `.pdf` | 按页懒加载并渲染为位图，保留原始版式；不支持重排或改字号，加密 PDF 暂不支持 |
-| MOBI | `.mobi`、`.prc`、`.azw` | 解析 PalmDOC 容器，提取正文、封面与内嵌图片；不支持 DRM、AZW3 / KF8 和 Huffman 压缩 |
+| MOBI | `.mobi`、`.prc`、`.azw` | 支持无 DRM 的经典 MOBI，包括 PalmDOC 和 Huffman（HUFF/CDIC）压缩；提取正文、封面与内嵌图片 |
 | 漫画压缩包 | `.cbz`、`.zip` | 提取图片并按文件名自然序排列，文件夹图片也可导入 |
 | 纯文本 / Markdown | `.txt`、`.md` | TXT 兼容 UTF-8、GBK / GB18030、带 BOM 的 UTF-16 及有明显零字节特征的无 BOM UTF-16，按常见章节标题切分；Markdown 按一级/二级标题切章并渲染常见 GFM 内容 |
 | 图片文件夹 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.avif`、`.bmp` | 按所在子文件夹分组，一组图片视为一本漫画 |
@@ -204,7 +204,7 @@ PDF、Markdown 安全渲染和分页测量需要 DOM / Canvas，因此 `services
 
 ## 已知限制
 
-- 不支持 DRM 加密书籍、AZW3 / KF8、旧版 Huffman 压缩 MOBI 和加密 PDF。
+- 不支持 DRM 加密书籍、仅含 KF8 内容的 AZW3 / MOBI，以及加密 PDF。导入 MOBI 失败时会提示原因。
 - PDF 按固定版式渲染，不能改字号或重排；EPUB 的固定版式、复杂 CSS 和自定义字体也不能完整还原。
 - 目录可以跳转，但目录状态不保存；书签功能尚未实现。
 - 书架搜索只匹配书名，标签和侧栏设置仍是占位功能。
