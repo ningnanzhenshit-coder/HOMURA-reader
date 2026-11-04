@@ -223,12 +223,14 @@ function setReaderScrollLock(locked) {
 watch(() => reader.currentBook?.id, id => {
   cancelVerticalGesture();
   setReaderScrollLock(!!id);
+  document.documentElement.classList.toggle('reader-active', !!id);
   ui.resetReaderUi();
   if (id) ui.showChrome();
 });
 
 onBeforeUnmount(() => {
   setReaderScrollLock(false);
+  document.documentElement.classList.remove('reader-active');
 });
 
 useShortcuts(reader, viewportRef, dismissWithPredictiveBack);

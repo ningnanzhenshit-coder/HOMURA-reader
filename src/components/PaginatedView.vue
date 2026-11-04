@@ -88,6 +88,7 @@ import { useReaderStore } from '../stores/reader.js';
 import { useThemeStore } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import { isAndroid } from '../services/platform.js';
 import { ensurePageUrlLoaded, decodeImgIntoElement } from '../services/pagination.js';
 import { classifyReaderGesture } from '../services/readerGestures.js';
 import NovelCard from './NovelCard.vue';
@@ -119,6 +120,7 @@ const imgEls = [{ single: null, left: null, right: null }, { single: null, left:
 
 // 组件按 书 id+type key 重挂载，首次渲染只填槽位 0、无动画
 let initialized = false;
+let preloadGeneration = 0;
 
 function buildSlotVM(pair, total) {
   const rtl = reader.layoutConfig.direction === 'rtl';
@@ -173,7 +175,7 @@ async function renderReaderViewport(transitionDir = 'fade') {
   const myToken = ++reader.renderToken;
 
   // Pause any background ZIP preloading while preparing or running page turn animation
-  clearTimeout(reader.preloadTimer);
+  cancelIdlePreload();
 
   const total = reader.activePages.length;
   reader.sliderValue = reader.currentIndex;
@@ -270,17 +272,34 @@ async function renderReaderViewport(transitionDir = 'fade') {
 }
 
 // Background Preloader: Only runs AFTER page turn animation completes so animation never drops a frame!
-function scheduleIdlePreload() {
+function cancelIdlePreload() {
+  preloadGeneration++;
   clearTimeout(reader.preloadTimer);
+  reader.preloadTimer = null;
+}
+
+function scheduleIdlePreload() {
+  cancelIdlePreload();
   if (!reader.currentBook || reader.currentBook.type !== 'manga') return;
 
+  const generation = preloadGeneration;
+  const startIndex = reader.currentIndex;
+  // 安卓机减少预载数量和并发解码压力；一次翻页只提前准备两页。
+  const pagesAhead = isAndroid ? 2 : 4;
+  const delay = isAndroid ? 420 : 280;
+
   reader.preloadTimer = setTimeout(async () => {
-    for (let i = 1; i <= 4; i++) {
-      const nextPage = reader.activePages[reader.currentIndex + i];
+    for (let i = 1; i <= pagesAhead; i++) {
+      if (generation !== preloadGeneration) return;
+      if (document.visibilityState === 'hidden') return;
+      if (reader.currentIndex !== startIndex) return;
+      const nextPage = reader.activePages[startIndex + i];
       if (nextPage && nextPage.itemRef && !nextPage.itemRef.url) {
         const url = await ensurePageUrlLoaded(nextPage.itemRef);
+        if (generation !== preloadGeneration || reader.currentIndex !== startIndex) return;
         if (url) {
           const img = new Image();
+          img.decoding = 'async';
           img.src = url;
           if (img.decode) {
             try { await img.decode(); } catch (e) {}
@@ -288,7 +307,7 @@ function scheduleIdlePreload() {
         }
       }
     }
-  }, 280);
+  }, delay);
 }
 
 // ---- 统一指针手势：移动越过阈值后，即使回到原位也不再当成点击 ----
@@ -420,6 +439,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  cancelIdlePreload();
   stageResizeObserver?.disconnect();
   window.removeEventListener('blur', onPointerCancel);
   reader.renderFn = null;

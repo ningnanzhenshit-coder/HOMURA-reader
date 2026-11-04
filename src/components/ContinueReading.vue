@@ -15,6 +15,8 @@
         :src="featured.book.cover"
         class="cover-image"
         alt=""
+        loading="lazy"
+        decoding="async"
         draggable="false"
       />
       <span v-else class="cover-fallback" aria-hidden="true">
@@ -327,7 +329,6 @@ const progressSegments = computed(() => {
     background: color-mix(in oklab, var(--md-surface) 78%, transparent);
     font-size: 9px;
     font-weight: 700;
-    backdrop-filter: blur(8px);
   }
 
   .content {

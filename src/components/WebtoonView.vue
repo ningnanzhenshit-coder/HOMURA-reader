@@ -11,9 +11,9 @@
       v-for="(p, idx) in reader.activePages"
       :key="idx"
       :id="'webtoon-page-' + idx"
-      class="w-full flex flex-col items-center justify-center shrink-0"
+      class="webtoon-page w-full flex flex-col items-center justify-center shrink-0"
     >
-      <img :data-lazy-index="idx" class="manga-page-img bg-[var(--bg-card)] shadow-sm rounded-sm select-none" :class="imgFitClass" :alt="'第 ' + p.pageNumber + ' 页'" />
+      <img :data-lazy-index="idx" class="manga-page-img bg-[var(--bg-card)] shadow-sm rounded-sm select-none" :class="imgFitClass" :alt="'第 ' + p.pageNumber + ' 页'" decoding="async" draggable="false" />
     </div>
     <div class="shrink-0" style="height: calc(4.5rem + env(safe-area-inset-bottom));" aria-hidden="true"></div>
   </div>
@@ -31,7 +31,7 @@
         v-for="p in reader.activePages"
         :key="p.pageNumber"
         :id="'webtoon-page-' + (p.pageNumber - 1)"
-        class="border-b-[0.5px] border-[var(--border-line)] pb-6 last:border-none"
+        class="webtoon-chapter border-b-[0.5px] border-[var(--border-line)] pb-6 last:border-none"
       >
         <div class="text-xs font-bold text-[var(--brand-primary)] mb-4 flex items-center gap-2">
           <span class="truncate">{{ p.title }}</span>

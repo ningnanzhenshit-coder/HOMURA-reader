@@ -240,6 +240,13 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(8px);
 }
 
+@media (max-width: 899px) {
+  .changelog-layer {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .changelog-panel {
   width: min(372px, calc(100% - 24px));
   height: 100%;

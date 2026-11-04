@@ -1033,10 +1033,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      will-change: transform, opacity;
       backface-visibility: hidden;
       transform: translate3d(0, 0, 0);
       overflow: hidden;
+    }
+
+    /* 安卓 WebView 对超长小说章节跳过屏外排版，减少滚动时的样式与绘制开销。
+       auto 会记住已经渲染过的高度，回滚时不会明显跳动。 */
+    html[data-platform="android"] .webtoon-chapter {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 1200px;
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }

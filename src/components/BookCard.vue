@@ -5,8 +5,10 @@
       <img
         v-if="book.cover"
         :src="book.cover"
-        class="manga-page-img w-full h-full object-cover group-hover:scale-105 transition duration-300"
+        class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
         loading="lazy"
+        decoding="async"
+        fetchpriority="low"
         draggable="false"
       />
       <div
@@ -22,7 +24,7 @@
       <!-- 类型徽标 -->
       <span
         class="absolute top-2.5 left-2.5 px-2 py-[3px] rounded-full font-mono text-[10px] min-[900px]:text-[12px] font-semibold tracking-[0.04em] text-[var(--md-on-surface)]"
-        :style="{ background: 'color-mix(in oklab, var(--md-surface) 84%, transparent)', backdropFilter: 'blur(8px)' }"
+        :style="{ background: 'color-mix(in oklab, var(--md-surface) 92%, transparent)' }"
       >{{ badgeText }}</span>
 
       <button

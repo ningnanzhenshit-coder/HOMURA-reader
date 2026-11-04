@@ -445,6 +445,13 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(8px);
 }
 
+@media (max-width: 899px) {
+  .update-dialog-layer {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .update-dialog-panel {
   width: min(520px, calc(100vw - 48px));
   max-height: min(760px, calc(100dvh - 48px));

@@ -5,7 +5,7 @@
         <span class="md-collection-board">
           <span v-for="index in 4" :key="index" class="md-collection-tile" :class="{ 'is-empty': !covers[index - 1] }">
             <template v-if="covers[index - 1]">
-              <img v-if="covers[index - 1].cover" :src="covers[index - 1].cover" alt="" draggable="false" />
+              <img v-if="covers[index - 1].cover" :src="covers[index - 1].cover" alt="" loading="lazy" decoding="async" draggable="false" />
               <span v-else class="md-collection-fallback">{{ covers[index - 1].title }}</span>
             </template>
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
