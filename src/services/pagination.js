@@ -205,6 +205,21 @@ export function collectNovelBlocks(html) {
   return blocks;
 }
 
+function getStandaloneIllustration(html) {
+  if (!/<img\b/i.test(html)) return null;
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const content = template.content;
+  if (content.textContent.trim()) return null;
+  const images = content.querySelectorAll('img');
+  if (images.length !== 1) return null;
+  // 旧式 MOBI 的图片旁可能有空的 font 标签。上面的文字检查仍会保留带图注的页面。
+  if (content.querySelector(':not(img, a, article, br, center, div, figure, font, hr, main, p, section, span)')) return null;
+  const image = images[0];
+  const src = image.getAttribute('src');
+  return src ? { src, alt: image.alt } : null;
+}
+
 export function buildActivePages(book, layoutConfig, measurer) {
   if (book.type === 'manga') {
     return (book.pageItems || []).map((item, idx) => ({
@@ -301,6 +316,7 @@ export function buildActivePages(book, layoutConfig, measurer) {
     pageNumber: idx + 1,
     title: item.title,
     html: item.html,
-    chapterIndex: item.chapterIndex
+    chapterIndex: item.chapterIndex,
+    illustration: getStandaloneIllustration(item.html)
   }));
 }

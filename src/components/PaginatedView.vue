@@ -23,20 +23,20 @@
       :class="slot === 0 ? 'z-20' : 'z-10 pointer-events-none'"
       :style="slot === 0 ? 'opacity: 1; transform: translate3d(0,0,0);' : 'opacity: 0; transform: translate3d(0,0,0);'"
     >
-      <!-- Manga: 1P Single -->
-      <template v-if="isManga">
+      <!-- 漫画和独立插图共用画布尺寸 -->
+      <template v-if="slotVMs[slot]?.imageOnly">
         <div class="w-full h-full items-center justify-center overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'single' ? 'flex' : 'hidden'">
-          <img :ref="el => { if (el) imgEls[slot].single = el; }" class="manga-page-img h-full w-auto max-w-full object-contain select-none" />
+          <img :ref="el => { if (el) imgEls[slot].single = el; }" :alt="slotVMs[slot].single?.illustration?.alt || ''" class="manga-page-img h-full w-auto max-w-full object-contain select-none" />
         </div>
         <!-- Manga: 2P Double -->
         <div class="w-full h-full items-center justify-center overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'double' ? 'flex' : 'hidden'">
           <div class="flex items-center justify-center w-full h-full relative">
             <div class="w-1/2 h-full flex items-center justify-end overflow-hidden">
-              <img :ref="el => { if (el) imgEls[slot].left = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-right select-none" />
+              <img :ref="el => { if (el) imgEls[slot].left = el; }" :alt="slotVMs[slot].left?.illustration?.alt || ''" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-right select-none" />
             </div>
             <div class="w-2 h-full book-spine-shadow pointer-events-none z-10 shrink-0"></div>
             <div class="w-1/2 h-full flex items-center justify-start overflow-hidden">
-              <img :ref="el => { if (el) imgEls[slot].right = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-left select-none" />
+              <img :ref="el => { if (el) imgEls[slot].right = el; }" :alt="slotVMs[slot].right?.illustration?.alt || ''" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-left select-none" />
             </div>
           </div>
         </div>
@@ -122,9 +122,11 @@ let initialized = false;
 
 function buildSlotVM(pair, total) {
   const rtl = reader.layoutConfig.direction === 'rtl';
+  const imageOnly = isManga.value || pair.every(page => page.illustration);
   if (pair.length === 1) {
     return {
       mode: 'single',
+      imageOnly,
       single: pair[0],
       singleLabel: rtl ? '[右→左]' : '[左→右]',
       total
@@ -134,6 +136,7 @@ function buildSlotVM(pair, total) {
   const right = rtl ? pair[0] : pair[1];
   return {
     mode: 'double',
+    imageOnly,
     left,
     right,
     leftLabel: rtl ? '左页(后读)' : '左页(先读)',
@@ -156,13 +159,14 @@ async function populateBufferSlot(slotIndex, pair, total) {
   // 等 Vue 把槽位内容（包装显隐 / 小说 v-html）patch 进 DOM 后再解码或开启动画
   await nextTick();
 
-  if (isManga.value) {
+  if (vm.imageOnly) {
+    const imageUrl = page => page.illustration?.src || page.itemRef?.url;
     if (vm.mode === 'single') {
-      await decodeImgIntoElement(imgEls[slotIndex].single, vm.single.itemRef.url);
+      await decodeImgIntoElement(imgEls[slotIndex].single, imageUrl(vm.single));
     } else {
       await Promise.all([
-        decodeImgIntoElement(imgEls[slotIndex].left, vm.left.itemRef.url),
-        decodeImgIntoElement(imgEls[slotIndex].right, vm.right.itemRef.url)
+        decodeImgIntoElement(imgEls[slotIndex].left, imageUrl(vm.left)),
+        decodeImgIntoElement(imgEls[slotIndex].right, imageUrl(vm.right))
       ]);
     }
   }

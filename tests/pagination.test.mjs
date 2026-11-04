@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { splitLongParagraph, collectNovelBlocks } from '../src/services/pagination.js';
+import { splitLongParagraph, collectNovelBlocks, buildActivePages } from '../src/services/pagination.js';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>');
 globalThis.window = dom.window;
@@ -74,4 +74,18 @@ test('容器内混有直接文本时保留原容器，避免丢字', () => {
   assert.equal(blocks[0].type, 'div');
   assert.match(blocks[0].html, /前置文字/);
   assert.match(blocks[0].html, /后置文字/);
+});
+
+test('MOBI 的空字体标签不会让独立漫画图退回正文排版', () => {
+  const image = '<img src="blob:local-page" alt="漫画页">';
+  const book = { type: 'novel', chapters: [
+    { htmlContent: `<p>${image}<font size="2">&nbsp;</font></p>` },
+    { htmlContent: `<p>${image}<font size="2">图注</font></p>` },
+    { htmlContent: `<p>${image}${image}</p>` }
+  ] };
+  const pages = buildActivePages(book, { direction: 'ltr', spread: 2, fontSize: 18 }, document.createElement('div'));
+
+  assert.deepEqual(pages[0].illustration, { src: 'blob:local-page', alt: '漫画页' });
+  assert.equal(pages[1].illustration, null);
+  assert.equal(pages[2].illustration, null);
 });

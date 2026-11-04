@@ -1,5 +1,9 @@
 <template>
+  <div v-if="page?.illustration" class="flex-1 min-w-0 h-full flex items-center justify-center overflow-hidden">
+    <img :src="page.illustration.src" :alt="page.illustration.alt" class="h-full w-auto max-w-full object-contain select-none" />
+  </div>
   <article
+    v-else
     class="flex-1 h-full max-w-[660px] bg-[var(--md-surface-low)] text-[var(--md-on-surface)] rounded-[16px] shadow-sm border-[0.5px] border-[var(--md-outline-variant)] px-6 py-5 sm:px-10 sm:py-7 flex flex-col justify-between overflow-hidden"
     :style="{ fontSize: fontSize + 'px' }"
   >
