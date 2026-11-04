@@ -16,7 +16,7 @@
     <button v-if="currentCollection" class="md-library-text-button" :disabled="!selectedIds.length || busy" @click="moveSelected(null)">移出到主页</button>
   </div>
   <section class="md-shelf-grid" :aria-label="favoritesOnly ? '收藏内容' : currentCollection ? `书库：${currentCollection.title}` : '书架内容'">
-    <ContinueReading v-if="!favoritesOnly && !selecting && featuredBooks.length" :books="featuredBooks" @open="$emit('open', $event)" />
+    <ContinueReading v-if="!favoritesOnly && !currentCollection && !selecting && featuredBooks.length" :books="featuredBooks" @open="$emit('open', $event)" />
     <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" @open="openCollection" @move="moveDropped" />
     <BookCard v-for="book in orderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" @open="openBook" @remove="removeBook" @drag="onBookDrag" />
     <p v-if="!displayBooks.length && !displayCollections.length" class="col-span-full py-16 text-center text-[13px] text-[var(--md-on-surface-variant)]">{{ hasFilter ? '没有符合条件的作品，换个关键词或筛选试试' : favoritesOnly ? '还没有收藏的书，在阅读器中点亮星星即可收藏' : '书库还是空的，可从主页拖入书本，或多选后移入书库' }}</p>
@@ -66,7 +66,15 @@ function openCollection(id) { shelf.activeCollectionId = id; emit('browse'); }
 function toggleSelection() { selecting.value = !selecting.value; selectedIds.value = []; }
 function selectAll() { selectedIds.value = allSelected.value ? [] : displayBooks.value.map(book => book.id); }
 async function removeBook(id) {
-  if (!props.favoritesOnly) return shelf.removeBook(id);
+  if (!props.favoritesOnly) {
+    try {
+      await shelf.removeBook(id);
+    } catch (err) {
+      shelf.error = err.message || '移除书本失败，请重试';
+      console.warn('[HOMURA] 移除书本失败', err);
+    }
+    return;
+  }
   try {
     await shelf.setFavorite(id, false);
   } catch (err) {

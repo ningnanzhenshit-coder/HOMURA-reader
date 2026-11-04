@@ -650,21 +650,96 @@
       .md-library-dialog { inset: 0; margin: auto; width: 372px; border-radius: 28px; padding: 0; }
     }
 
-    /* 书库只错开 2px 一层，露出真实封面边缘，避免厚重的立体块。 */
-    .md-collection-card { min-width: 0; padding-top: 8px; }
-    .md-collection-open { display: block; width: 100%; text-align: left; color: var(--md-on-surface); padding: 0 7px 0 0; }
-    .md-collection-art { display: block; position: relative; aspect-ratio: 3 / 4; margin-top: 13px; }
-    .md-collection-tab { position: absolute; top: -13px; left: 0; width: 42%; height: 20px; border-radius: 9px 9px 0 0; background: var(--md-primary-container); }
-    .md-collection-shadow, .md-collection-front { position: absolute; inset: 0; border-radius: 2px 14px 14px 14px; overflow: hidden; background: var(--md-primary-container); color: var(--md-on-primary-container); }
-    .md-collection-shadow { transform: translate(calc(var(--collection-layer) * 2px), calc(var(--collection-layer) * -2px)); box-shadow: 0 0 0 1px color-mix(in oklab, var(--md-outline) 36%, transparent); }
-    .md-collection-front { box-shadow: 0 3px 9px -5px var(--md-on-surface); }
-    .md-collection-art img { width: 100%; height: 100%; object-fit: cover; }
-    .md-collection-fallback { display: flex; align-items: center; height: 100%; padding: 12px; font-family: var(--font-display, serif); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; background: linear-gradient(145deg, var(--md-primary-container), var(--md-secondary-container)); color: var(--md-on-primary-container); }
-    .md-collection-label { position: absolute; inset: auto 0 0; padding: 9px 10px; font-size: 11px; font-weight: 600; background: color-mix(in oklab, var(--md-surface-container) 92%, transparent); color: var(--md-on-surface); }
-    .md-collection-card.is-drop-target .md-collection-front { outline: 3px solid var(--md-primary); outline-offset: 2px; }
+    /* 书库卡与书本卡同构：封面固定 3:4，底部信息栏共用相同的内边距与字号。 */
+    .md-collection-card {
+      display: flex;
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      background-color: var(--md-surface-container);
+      box-shadow:
+        0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 52%, transparent),
+        0 2px 8px -3px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+    }
+    .md-collection-open { display: flex; flex: 1; flex-direction: column; width: 100%; padding: 0; text-align: left; color: var(--md-on-surface); }
+    .md-collection-art { display: block; position: relative; aspect-ratio: 3 / 4; background: var(--md-surface-high); }
+    .md-collection-board {
+      position: absolute;
+      inset: 5px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg,
+          color-mix(in oklab, var(--md-surface) 36%, transparent),
+          color-mix(in oklab, var(--md-primary-container) 16%, var(--md-surface-high)));
+      box-shadow:
+        inset 0 0 0 1px color-mix(in oklab, var(--md-primary) 16%, var(--md-outline-variant)),
+        inset 0 1px 0 color-mix(in oklab, var(--md-surface) 70%, transparent),
+        0 8px 20px -18px var(--md-on-surface);
+    }
+    .md-collection-tile {
+      position: relative;
+      display: grid;
+      min-width: 0;
+      overflow: hidden;
+      place-items: center;
+      border-radius: 4px;
+      background: var(--md-surface-container);
+      box-shadow:
+        inset 0 0 0 1px color-mix(in oklab, var(--md-outline) 20%, transparent),
+        0 2px 5px -3px color-mix(in oklab, var(--md-on-surface) 36%, transparent);
+    }
+    .md-collection-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .md-collection-tile.is-empty {
+      background:
+        radial-gradient(circle at 50% 38%, color-mix(in oklab, var(--md-primary-container) 20%, transparent), transparent 45%),
+        color-mix(in oklab, var(--md-surface) 28%, var(--md-surface-container));
+      box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 56%, transparent);
+      color: color-mix(in oklab, var(--md-on-surface-variant) 36%, transparent);
+    }
+    .md-collection-tile.is-empty svg { width: 16px; height: 16px; }
+    .md-collection-fallback {
+      display: -webkit-box;
+      overflow: hidden;
+      height: 100%;
+      padding: 5px;
+      font-family: var(--font-display, serif);
+      font-size: 8px;
+      font-weight: 650;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      background: linear-gradient(145deg, var(--md-primary-container), var(--md-secondary-container));
+      color: var(--md-on-primary-container);
+    }
+    @media (min-width: 768px) {
+      .md-collection-board { inset: 8px; gap: 6px; padding: 7px; border-radius: 11px; }
+      .md-collection-tile { border-radius: 6px; }
+      .md-collection-tile.is-empty svg { width: 18px; height: 18px; }
+      .md-collection-fallback { padding: 6px; font-size: 9px; }
+    }
+    .md-collection-info { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; padding: 8px 10px 10px; }
+    .md-collection-title { overflow: hidden; font-size: 12px; font-weight: 700; line-height: 1.375; text-overflow: ellipsis; white-space: nowrap; }
+    .md-collection-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; color: var(--md-on-surface-variant); font-size: 10px; line-height: normal; font-variant-numeric: tabular-nums; }
+    .md-collection-count { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .md-collection-action, .md-collection-drop { color: var(--md-primary); font-weight: 600; white-space: nowrap; }
+    .md-collection-action { flex: none; }
+    @media (min-width: 768px) {
+      .md-collection-info { padding: 10px 12px 12px; }
+      .md-collection-title { font-size: 13px; }
+      .md-collection-meta { font-size: 12px; }
+    }
+    .md-collection-card.is-drop-target .md-collection-board { outline: 3px solid var(--md-primary); outline-offset: 2px; }
     .md-book-selected { outline: 3px solid var(--md-primary); outline-offset: 2px; }
     @media (hover: hover) and (pointer: fine) {
-      .md-shelf-card:hover {
+      .md-shelf-card:hover,
+      .md-collection-card:hover {
         transform: translateY(-2px);
         box-shadow:
           0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 60%, transparent),

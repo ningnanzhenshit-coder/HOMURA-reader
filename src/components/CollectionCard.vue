@@ -2,19 +2,29 @@
   <div class="md-collection-card" :class="{ 'is-drop-target': hovering }" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
     <button class="md-collection-open" :aria-label="`打开书库：${collection.title}，${books.length} 本`" @click="$emit('open', collection.id)">
       <span class="md-collection-art" aria-hidden="true">
-        <span class="md-collection-tab"></span>
-        <span v-for="layer in [3, 2, 1]" :key="layer" class="md-collection-shadow" :style="{ '--collection-layer': layer }">
-          <img v-if="covers[layer]?.cover" :src="covers[layer].cover" alt="" draggable="false" />
-          <span v-else-if="covers[layer]" class="md-collection-fallback">{{ covers[layer].title }}</span>
-        </span>
-        <span class="md-collection-front">
-          <img v-if="covers[0]?.cover" :src="covers[0].cover" alt="" draggable="false" />
-          <span v-else class="md-collection-fallback">{{ covers[0]?.title || collection.title }}</span>
-          <span class="md-collection-label">书库 · {{ books.length }} 本</span>
+        <span class="md-collection-board">
+          <span v-for="index in 4" :key="index" class="md-collection-tile" :class="{ 'is-empty': !covers[index - 1] }">
+            <template v-if="covers[index - 1]">
+              <img v-if="covers[index - 1].cover" :src="covers[index - 1].cover" alt="" draggable="false" />
+              <span v-else class="md-collection-fallback">{{ covers[index - 1].title }}</span>
+            </template>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v13H7.5A2.5 2.5 0 0 1 5 17.5v-13Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 8h7M8 11h5" />
+            </svg>
+          </span>
         </span>
       </span>
-      <span class="block text-[13px] font-semibold truncate mt-2">{{ collection.title }}</span>
-      <span class="block mt-1 text-[11px] text-[var(--md-on-surface-variant)]">{{ hovering ? '松开移入书库' : `${books.length} 本作品` }}</span>
+      <span class="md-collection-info">
+        <span class="md-collection-title">{{ collection.title }}</span>
+        <span class="md-collection-meta">
+          <span v-if="hovering" class="md-collection-drop">松开移入书库</span>
+          <template v-else>
+            <span class="md-collection-count">{{ books.length }} 本作品</span>
+            <span class="md-collection-action">打开 →</span>
+          </template>
+        </span>
+      </span>
     </button>
   </div>
 </template>
