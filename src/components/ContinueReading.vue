@@ -43,7 +43,7 @@
         <span class="kind">{{ typeLabel }}</span>
         <span class="position">
           <template v-if="started">第 {{ featured.progress.index + 1 }} / {{ totalPages }} 页</template>
-          <template v-else>{{ totalPages }} 页</template>
+          <template v-else>{{ totalPages }} {{ countUnit }}</template>
         </span>
         <span class="status">{{ remainingText }}</span>
       </span>
@@ -129,6 +129,9 @@ const totalPages = computed(() => {
 
 const started = computed(() => !!featured.value && featured.value.progress.updatedAt > 0);
 
+// 未开始阅读的小说显示章节数，漫画 / PDF 才是页数；读起来之后一律用实际分页。
+const countUnit = computed(() => (featured.value?.book?.type === 'manga' ? '页' : '章'));
+
 // 上次阅读时间：当天只显示时刻，跨天显示日期
 const clockText = computed(() => {
   const item = featured.value;
@@ -188,7 +191,7 @@ const progressSegments = computed(() => {
         var(--md-surface-container));
     box-shadow:
       0 1px 0 color-mix(in oklab, var(--md-primary) 13%, transparent) inset,
-      0 14px 30px -26px color-mix(in oklab, var(--md-primary) 50%, transparent);
+      0 14px 30px -26px color-mix(in oklab, var(--md-shadow-color) 50%, transparent);
   }
 
   .continue-card::after {
