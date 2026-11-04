@@ -5,11 +5,11 @@
     :style="isCompact ? { paddingTop: 'env(safe-area-inset-top)' } : null"
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
-    <div class="h-14 min-[900px]:h-16 flex items-center gap-3 px-4 min-[900px]:px-7">
+    <div class="h-14 min-[900px]:h-16 flex items-center gap-2 min-[900px]:gap-3 px-4 min-[900px]:px-7">
       <h1 class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight shrink-0">{{ title }}</h1>
-      <span class="shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
+      <span class="hidden min-[360px]:inline-flex shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
-      <div class="ml-auto flex items-center gap-2 shrink-0">
+      <div class="ml-auto flex items-center gap-0.5 min-[900px]:gap-2 shrink-0">
         <button
           v-if="settings.showFullscreenButton"
           @click="ui.toggleFullscreen()"
@@ -47,6 +47,7 @@
           </svg>
         </button>
 
+        <slot name="actions" />
         <div class="relative">
           <button
             @click="toggleMenu('sort')"

@@ -180,10 +180,14 @@ export const useReaderStore = defineStore('reader', () => {
           if (token !== openRequestToken) return false;
         }
       }
+      const collection = shelf.collections.find(item => item.bookIds.includes(id));
       const nextLayout = applyLayoutForBook(book);
+      if (options.preserveCollectionOrder && collection?.id === readingCollectionId.value && layoutConfig.direction === 'vertical') {
+        nextLayout.direction = 'vertical';
+        nextLayout.webtoonFit = layoutConfig.webtoonFit;
+      }
       const pages = buildActivePages(book, nextLayout, measurerEl.value);
       if (!pages.length) throw new Error('没有可阅读的页面');
-      const collection = shelf.collections.find(item => item.bookIds.includes(id));
       // 固定进入阅读器时的顺序，防止“最近阅读”时间更新后前后本突然重排。
       const order = options.preserveCollectionOrder && collection?.id === currentCollection.value?.id
         ? collectionBooks.value.map(item => item.id)
