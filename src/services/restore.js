@@ -457,6 +457,11 @@ export async function hydrateBook(book) {
   }
 
   if (!parsed) return false;
+  const previousMeta = {
+    type: book.type,
+    format: book.format || null,
+    pageCount: book.pageCount
+  };
   book.type = parsed.type;
   book.format = parsed.format;
   book.pageCount = parsed.pageCount;
@@ -468,5 +473,20 @@ export async function hydrateBook(book) {
   else if (parsed.cover?.startsWith('blob:')) URL.revokeObjectURL(parsed.cover);
   book.coverBlob = parsed.coverBlob;
   book.restored = false;
+  // 旧版本可能把带彩插的轻小说存成漫画；重新解析后把更正写回书架元数据。
+  const metaNeedsRefresh = previousMeta.type !== book.type
+    || previousMeta.format !== (book.format || null)
+    || previousMeta.pageCount !== book.pageCount;
+  if (metaNeedsRefresh) {
+    try {
+      await HomuraStore.updateBookMeta(book.id, {
+        type: book.type,
+        format: book.format || null,
+        pageCount: book.pageCount
+      });
+    } catch (err) {
+      console.warn('[HOMURA] 书本信息回写失败，下次打开会再次校正', err);
+    }
+  }
   return true;
 }

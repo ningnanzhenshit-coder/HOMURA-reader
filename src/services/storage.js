@@ -104,6 +104,25 @@ export const HomuraStore = (() => {
     }));
   }
 
+  // 只更新解析后可能变化的元数据，保留加入时间、收藏与自定义封面。
+  function updateBookMeta(id, patch) {
+    if (disabled) return Promise.reject(new Error('本地存储不可用，书本信息未保存'));
+    return openDb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_BOOKS, 'readwrite');
+      const store = tx.objectStore(STORE_BOOKS);
+      let found = false;
+      const req = store.get(id);
+      req.onsuccess = () => {
+        if (!req.result) return;
+        found = true;
+        store.put({ ...req.result, ...patch });
+      };
+      tx.oncomplete = () => found ? resolve() : reject(new Error('书本尚未保存，请稍后重试'));
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    }));
+  }
+
   function getSource(id) {
     return run(STORE_SOURCES, 'readonly', store => store.get(id));
   }
@@ -228,6 +247,7 @@ export const HomuraStore = (() => {
     saveBook,
     listBooks,
     updateBookCover,
+    updateBookMeta,
     updateBookFavorite,
     getSource,
     listCollections,

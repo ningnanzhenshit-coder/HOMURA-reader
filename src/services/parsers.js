@@ -12,6 +12,7 @@ import { renderMarkdown } from './markdown.js';
 import { sanitizeEpubHtml } from './sanitize.js';
 import { parseMobiBuffer } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
+import { shouldReadEpubAsManga, TEXT_CHAPTER_MIN_LENGTH } from './epubType.js';
 
 // 同名书被跳过时还未入架，及时释放解析阶段创建的位图 URL 与 PDF worker。
 export async function discardParsedBook(book) {
@@ -83,6 +84,7 @@ export async function parseEpubFileLazy(file) {
     const seenGlobalPaths = new Set();
     const chapters = [];
     let imageHeavyCount = 0;
+    let textChapterCount = 0;
 
     for (const idref of spineIds) {
       const item = manifest[idref];
@@ -114,6 +116,7 @@ export async function parseEpubFileLazy(file) {
       }
 
       const plainText = (htmlDoc.body?.textContent || '').trim();
+      if (plainText.length >= TEXT_CHAPTER_MIN_LENGTH) textChapterCount++;
       if (foundEntriesInPage.length > 0 && plainText.length < 60) {
         imageHeavyCount++;
         foundEntriesInPage.forEach(ent => {
@@ -136,7 +139,13 @@ export async function parseEpubFileLazy(file) {
       }
     }
 
-    const isMangaEpub = imageHeavyCount > 0 && (imageHeavyCount >= chapters.length * 0.45 || lazyMangaEntries.length >= 6);
+    // 轻小说的封面和彩插同样是零文字页，判定漫画时必须同时看正文页占比。
+    const isMangaEpub = shouldReadEpubAsManga({
+      chapterCount: chapters.length,
+      textChapterCount,
+      imageHeavyChapterCount: imageHeavyCount,
+      imageCount: lazyMangaEntries.length
+    });
 
     if (isMangaEpub && lazyMangaEntries.length > 0) {
       const firstBlob = await lazyMangaEntries[0].zipEntry.async('blob');
