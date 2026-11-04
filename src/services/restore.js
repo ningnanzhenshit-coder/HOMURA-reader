@@ -6,7 +6,7 @@
 
 import { HomuraStore } from './storage.js';
 import { canUseOPFS, isAndroid } from './platform.js';
-import { putFile, getFile, removeFile } from './opfs.js';
+import { putFile, getFile, removeFile, removeBookDir } from './opfs.js';
 import {
   canUseNativeStorage,
   getNativeFile,
@@ -211,15 +211,16 @@ export async function persistBook(book, source) {
     coverBlob: book.coverBlob || null
   };
   // 在用户触发导入时申请持久存储，避免配额压力下先清掉小体积的书架记录
-  const persistence = await HomuraStore.requestPersistence();
-  const staged = await stageSource(book.id, source);
   try {
+    const persistence = await HomuraStore.requestPersistence();
+    const staged = await stageSource(book.id, source);
     await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
+    return { persistence };
   } catch (err) {
-    await removeNativeBookDir(book.id);
+    // 元数据没有提交成功时，OPFS / AppData 里已暂存的文件都属于失败导入，必须一并回收。
+    await Promise.allSettled([removeBookDir(book.id), removeNativeBookDir(book.id)]);
     throw err;
   }
-  return { persistence };
 }
 
 // 返回按添加时间倒序的书架数组；IndexedDB 不可用时返回 null

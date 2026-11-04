@@ -85,7 +85,8 @@ export async function removeBookDir(bookId) {
 
 export async function clearAll() {
   try {
-    const root = await getRoot(false);
+    if (!navigator.storage || typeof navigator.storage.getDirectory !== 'function') return;
+    const root = await navigator.storage.getDirectory();
     await root.removeEntry(ROOT_DIR, { recursive: true });
   } catch (err) {}
 }

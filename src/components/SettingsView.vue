@@ -714,16 +714,22 @@ async function confirmDataAction() {
   if (!pendingAction.value || actionBusy.value) return;
   const action = pendingAction.value;
   actionBusy.value = true;
-  if (action === 'shelf') {
-    await shelf.clearShelf();
-    actionNote.value = '书架与原始文件已清空';
-  } else {
-    await shelf.clearProgress();
-    actionNote.value = '阅读进度已清空';
+  try {
+    if (action === 'shelf') {
+      await shelf.clearShelf();
+      actionNote.value = '书架与原始文件已清空';
+    } else {
+      await shelf.clearProgress();
+      actionNote.value = '阅读进度已清空';
+    }
+  } catch (err) {
+    actionNote.value = err.message || '清空失败，请重试';
+    console.warn('[HOMURA] 清空数据失败', err);
+  } finally {
+    await refreshStorage();
+    actionBusy.value = false;
+    pendingAction.value = null;
   }
-  await refreshStorage();
-  actionBusy.value = false;
-  pendingAction.value = null;
 }
 
 function onDialogKeydown(event) {

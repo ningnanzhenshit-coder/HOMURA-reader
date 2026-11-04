@@ -13,9 +13,9 @@ import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
 import { makeFileSource, makeFolderSource } from '../services/restore.js';
+import { runShelfMutation } from '../services/mutationQueue.js';
 
 let quotaWarned = false;
-let importQueue = Promise.resolve();
 
 // 移动端原文件会整份落盘，配额比桌面更容易吃满，导入后检查一次
 async function warnIfStorageTight() {
@@ -39,11 +39,12 @@ export function useImporter() {
     const files = Array.from(fileList).filter(f => !f.name.startsWith('.'));
     if (files.length === 0) return;
 
-    // 所有入口共用队列，防止拖拽与文件选择同时导入时漏判同名书。
+    // 所有导入入口与清空书架共用互斥队列，防止同名漏判和源文件删除竞态。
     const targetId = shelf.activeCollectionId;
-    const task = importQueue.then(() => importBatch(files, targetId));
-    importQueue = task.catch(err => console.error('[HOMURA] 导入失败', err));
-    return task;
+    return runShelfMutation(() => importBatch(files, targetId)).catch(err => {
+      console.error('[HOMURA] 导入失败', err);
+      throw err;
+    });
   }
 
   async function importBatch(files, targetId) {
@@ -78,9 +79,9 @@ export function useImporter() {
   }
 
   async function importFiles(files) {
-    const importedBooks = [];
-    const persistTasks = [];
+    const savedBooks = [];
     let skippedCount = 0;
+    let failedCount = 0;
     const addBook = async (book, source) => {
       const existingBook = findSameTitleBook(shelf.library, book.title);
       if (existingBook && !(await confirmDuplicate(book, existingBook))) {
@@ -88,12 +89,15 @@ export function useImporter() {
         await discardParsedBook(book);
         return;
       }
-      importedBooks.push(book);
-      // 等待用户确认期间写盘也可能失败，立即挂上拒绝处理，避免未处理的 Promise。
-      persistTasks.push(shelf.addBook(book, source).then(
-        () => ({ status: 'fulfilled' }),
-        reason => ({ status: 'rejected', reason })
-      ));
+      try {
+        // 串行等待落盘完成：下一本的同名检测必须能看到这一批已保存的书。
+        await shelf.addBook(book, source);
+        savedBooks.push(book);
+      } catch (err) {
+        failedCount++;
+        console.warn('[HOMURA] 本地存档写入失败，已跳过', book.title, err);
+        await discardParsedBook(book);
+      }
     };
 
     const epubFiles = files.filter(f => /\.epub$/i.test(f.name));
@@ -137,21 +141,13 @@ export function useImporter() {
       await addBook(group.book, makeFolderSource(group.folderName, group.files));
     }
 
-    // 先确保写盘完成，避免导入后立刻关闭页面导致存档丢失
-    const persistResults = await Promise.all(persistTasks);
-    const failedBooks = persistResults
-      .map((result, index) => result.status === 'rejected' ? importedBooks[index] : null)
-      .filter(Boolean);
-    const importedCount = importedBooks.length;
-    const savedCount = importedCount - failedBooks.length;
-
-    if (failedBooks.length > 0) {
-      console.warn(`[HOMURA] ${failedBooks.length} 部作品未能保存到本地存档`);
-    } else if (importedCount === 0 && skippedCount === 0) {
+    if (failedCount > 0) {
+      console.warn(`[HOMURA] ${failedCount} 部作品未能保存到本地存档`);
+    } else if (savedBooks.length === 0 && skippedCount === 0) {
       console.warn('[HOMURA] 未找到支持的漫画或小说格式');
     }
-    if (savedCount > 0) await warnIfStorageTight();
-    return importedBooks.filter((book, index) => persistResults[index].status === 'fulfilled').map(book => book.id);
+    if (savedBooks.length > 0) await warnIfStorageTight();
+    return savedBooks.map(book => book.id);
   }
 
   // ---- 拖拽：递归遍历 webkitGetAsEntry 目录树 ----

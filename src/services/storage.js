@@ -161,35 +161,39 @@ export const HomuraStore = (() => {
     return run(STORE_PROGRESS, 'readwrite', store => store.clear());
   }
 
-  function deleteBook(id) {
-    removeBookDir(id).catch(() => {});
-    removeNativeBookDir(id).catch(() => {});
-    if (disabled) return Promise.resolve();
-    return openDb().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
-      tx.objectStore(STORE_BOOKS).delete(id);
-      tx.objectStore(STORE_SOURCES).delete(id);
-      tx.objectStore(STORE_PROGRESS).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    }));
+  async function deleteBook(id) {
+    // 先提交元数据删除，再回收原始文件；事务失败时不能留下「记录还在、源文件已删」的坏书。
+    if (!disabled) {
+      const db = await openDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS], 'readwrite');
+        tx.objectStore(STORE_BOOKS).delete(id);
+        tx.objectStore(STORE_SOURCES).delete(id);
+        tx.objectStore(STORE_PROGRESS).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    await Promise.allSettled([removeBookDir(id), removeNativeBookDir(id)]);
   }
 
-  function clear() {
-    clearAll().catch(() => {});
-    clearNativeSources().catch(() => {});
-    if (disabled) return Promise.resolve();
-    return openDb().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS, STORE_COLLECTIONS], 'readwrite');
-      tx.objectStore(STORE_BOOKS).clear();
-      tx.objectStore(STORE_SOURCES).clear();
-      tx.objectStore(STORE_PROGRESS).clear();
-      tx.objectStore(STORE_COLLECTIONS).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    }));
+  async function clear() {
+    // 清空也必须先完成元数据事务，再由调用方在互斥队列内回收源文件。
+    if (!disabled) {
+      const db = await openDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_BOOKS, STORE_SOURCES, STORE_PROGRESS, STORE_COLLECTIONS], 'readwrite');
+        tx.objectStore(STORE_BOOKS).clear();
+        tx.objectStore(STORE_SOURCES).clear();
+        tx.objectStore(STORE_PROGRESS).clear();
+        tx.objectStore(STORE_COLLECTIONS).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    await Promise.allSettled([clearAll(), clearNativeSources()]);
   }
 
   // 存储用量：usage/quota 来自浏览器估算，用于书架展示与配额预警

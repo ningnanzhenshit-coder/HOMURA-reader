@@ -15,6 +15,7 @@ import { restoreLibrary, persistBook } from '../services/restore.js';
 import { loadProgressMap } from '../services/progress.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { prepareBookCover } from '../services/bookCover.js';
+import { runShelfMutation } from '../services/mutationQueue.js';
 
 export const useShelfStore = defineStore('shelf', () => {
   const library = shallowRef([]);
@@ -81,41 +82,65 @@ export const useShelfStore = defineStore('shelf', () => {
 
   // 新增书籍并落盘；写入失败由导入层汇总记录
   async function addBook(book, source) {
-    unshiftBook(book);
     if (!source) throw new Error('缺少原文件来源');
     try {
-      return await persistBook(book, source);
+      const result = await persistBook(book, source);
+      // 只有元数据与原文件都提交成功后才公开这本书，避免失败导入留下无法恢复的幽灵书。
+      unshiftBook(book);
+      return result;
     } catch (err) {
       console.error('[HOMURA] 本地存档写入失败', err);
       throw err;
     }
   }
 
-  function removeBook(id) {
+  async function removeBook(id) {
+    try {
+      await HomuraStore.deleteBook(id);
+    } catch (err) {
+      error.value = err.message || '移除书本失败，请重试';
+      console.error('[HOMURA] 移除书本失败', err);
+      throw err;
+    }
     library.value = library.value.filter(b => b.id !== id);
-    HomuraStore.deleteBook(id).catch(() => {});
-    updateCollections(current => moveCollectionBooks(current, [id], null)).catch(() => {});
+    if (progressMap.value[id]) {
+      const next = { ...progressMap.value };
+      delete next[id];
+      progressMap.value = next;
+    }
+    if (collections.value.some(item => item.bookIds.includes(id))) {
+      try {
+        await updateCollections(current => moveCollectionBooks(current, [id], null));
+      } catch (err) {
+        console.warn('[HOMURA] 书本已移除，但书库归属清理失败', err);
+      }
+    }
   }
 
   async function clearShelf() {
-    library.value = [];
-    progressMap.value = {};
-    activeCollectionId.value = null;
-    collections.value = [];
-    collectionQueue = collectionQueue.then(async () => {
+    return runShelfMutation(async () => {
+      // 清空与导入共用互斥队列；清空完成后才允许下一批文件写入存储。
+      await collectionQueue.catch(() => {});
       await HomuraStore.clear();
+      library.value = [];
+      progressMap.value = {};
       collections.value = [];
       activeCollectionId.value = null;
-    }).catch(err => console.warn('[HOMURA] 清空书架失败', err));
-    await collectionQueue;
+      error.value = '';
+    }).catch(err => {
+      error.value = err.message || '清空书架失败，请重试';
+      console.warn('[HOMURA] 清空书架失败', err);
+      throw err;
+    });
   }
 
   async function clearProgress() {
-    progressMap.value = {};
     try {
       await HomuraStore.clearProgress();
+      progressMap.value = {};
     } catch (err) {
       console.error('[HOMURA] 清空阅读进度失败', err);
+      throw err;
     }
   }
 
