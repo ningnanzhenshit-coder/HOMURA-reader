@@ -3961,6 +3961,7 @@ dependencies = [
 name = "tauri-plugin-android-installer"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "tauri",
  "tauri-plugin",
 ]

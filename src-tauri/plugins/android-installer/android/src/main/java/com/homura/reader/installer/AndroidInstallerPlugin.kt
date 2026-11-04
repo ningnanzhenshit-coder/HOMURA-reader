@@ -2,7 +2,9 @@ package com.homura.reader.installer
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -11,6 +13,7 @@ import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
+import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import java.io.File
 
@@ -24,6 +27,24 @@ class InstallOptions {
 
 @TauriPlugin
 class AndroidInstallerPlugin(private val activity: Activity) : Plugin(activity) {
+  @Command
+  fun getSystemProxy(invoke: Invoke) {
+    // 返回 null 表示没有可用的直连代理，调用方会回退到系统网络栈。
+    try {
+      val manager = activity.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+      val proxy = manager?.defaultProxy
+      val host = proxy?.host?.trim().orEmpty()
+      val port = proxy?.port ?: -1
+      if (host.isEmpty() || port !in 1..65535) {
+        invoke.resolve()
+        return
+      }
+      invoke.resolve(JSObject().put("host", host).put("port", port))
+    } catch (_: Exception) {
+      invoke.resolve()
+    }
+  }
+
   @Command
   fun install(invoke: Invoke) {
     try {

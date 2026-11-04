@@ -20,6 +20,7 @@ const DOWNLOAD_DIR: &str = "updates";
 const DOWNLOAD_ID_MAX_LEN: usize = 80;
 const FILE_NAME_MAX_LEN: usize = 160;
 const EMIT_INTERVAL: Duration = Duration::from_millis(100);
+const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const ALLOWED_EXTENSIONS: &[&str] = &["apk", "dmg", "exe", "msi", "deb", "rpm", "appimage"];
 
 #[derive(Default)]
@@ -121,6 +122,39 @@ fn updates_dir(app: &AppHandle) -> Result<PathBuf, DownloadCommandError> {
         .map_err(|error| command_error("CACHE_UNAVAILABLE", error.to_string()))
 }
 
+#[cfg(target_os = "android")]
+fn format_proxy_url(proxy: tauri_plugin_android_installer::SystemProxy) -> Option<String> {
+    let host = proxy.host.trim();
+    let valid = !host.is_empty()
+        && host.len() <= 255
+        && !host
+            .chars()
+            .any(|character| character.is_control() || matches!(character, '/' | '@' | '#' | '?'));
+    if !valid {
+        return None;
+    }
+
+    let host = if host.contains(':') && !host.starts_with('[') {
+        format!("[{host}]")
+    } else {
+        host.to_string()
+    };
+    Some(format!("http://{host}:{}", proxy.port))
+}
+
+#[cfg(target_os = "android")]
+fn android_system_proxy(app: &AppHandle) -> Option<String> {
+    let installer = app
+        .try_state::<tauri_plugin_android_installer::AndroidInstaller<tauri::Wry>>()?;
+    match installer.system_proxy() {
+        Ok(proxy) => proxy.and_then(format_proxy_url),
+        Err(error) => {
+            eprintln!("读取 Android 系统代理失败: {error}");
+            None
+        }
+    }
+}
+
 fn progress_payload(
     download_id: &str,
     downloaded_bytes: u64,
@@ -163,6 +197,7 @@ async fn download_asset<F>(
     url: Url,
     file_name: String,
     expected_size: Option<u64>,
+    proxy_url: Option<String>,
     cancelled: Arc<AtomicBool>,
     mut on_progress: F,
 ) -> Result<DownloadedUpdate, DownloadCommandError>
@@ -180,9 +215,20 @@ where
 
     let client_builder = Client::builder()
         .connect_timeout(Duration::from_secs(20))
+        .read_timeout(IDLE_TIMEOUT)
         .timeout(Duration::from_secs(30 * 60))
         .redirect(reqwest::redirect::Policy::limited(10))
         .user_agent(format!("HOMURA/{}", env!("CARGO_PKG_VERSION")));
+    #[cfg(target_os = "android")]
+    let client_builder = match proxy_url.as_deref() {
+        Some(proxy_url) => client_builder.proxy(
+            reqwest::Proxy::all(proxy_url)
+                .map_err(|error| command_error("NETWORK", error.to_string()))?,
+        ),
+        None => client_builder,
+    };
+    #[cfg(not(target_os = "android"))]
+    let _ = proxy_url;
     // Android 的 rustls 平台校验器需要先经 JNI 初始化，否则请求线程会直接 panic。
     // 更新源固定为 GitHub HTTPS，这里改用随包分发的 Mozilla 根证书。
     #[cfg(target_os = "android")]
@@ -327,6 +373,10 @@ pub async fn download_update_asset(
     }
 
     let dir = updates_dir(&app)?;
+    #[cfg(target_os = "android")]
+    let proxy_url = android_system_proxy(&app);
+    #[cfg(not(target_os = "android"))]
+    let proxy_url = None;
     let progress_app = app.clone();
     let result = download_asset(
         dir,
@@ -334,6 +384,7 @@ pub async fn download_update_asset(
         url,
         file_name,
         expected_size,
+        proxy_url,
         cancelled,
         move |download_id, downloaded_bytes, total_bytes| {
             let _ = progress_app.emit(
@@ -462,6 +513,7 @@ mod tests {
             Url::parse(&format!("http://{address}/HOMURA_2.2.0_universal.dmg")).unwrap(),
             "HOMURA_2.2.0_universal.dmg".to_string(),
             Some(expected_len as u64),
+            None,
             Arc::new(AtomicBool::new(false)),
             move |_, downloaded, _| progress_sink.lock().unwrap().push(downloaded),
         ))

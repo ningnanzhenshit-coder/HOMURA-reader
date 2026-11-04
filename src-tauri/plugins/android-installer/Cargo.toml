@@ -10,4 +10,5 @@ links = "tauri-plugin-android-installer"
 tauri-plugin = { version = "2", features = ["build"] }
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
 tauri = { version = "2", features = [] }
