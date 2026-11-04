@@ -14,7 +14,7 @@ import { ref, shallowRef, reactive, computed, nextTick } from 'vue';
 import { useShelfStore } from './shelf.js';
 import { useSettingsStore } from './settings.js';
 import { hydrateBook } from '../services/restore.js';
-import { buildActivePages, ensureChapterImagesResolved } from '../services/pagination.js';
+import { buildActivePages, ensureBookImagesResolved } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
 import { collectionReadingOrder, adjacentCollectionBook, spreadBounds } from '../services/collectionReading.js';
 
@@ -175,10 +175,8 @@ export const useReaderStore = defineStore('reader', () => {
         shelf.touchBook(book);
       }
       if (book.type !== 'manga' && book.zipContent && book.chapters) {
-        for (const chap of book.chapters) {
-          await ensureChapterImagesResolved(chap, book);
-          if (token !== openRequestToken) return false;
-        }
+        await ensureBookImagesResolved(book);
+        if (token !== openRequestToken) return false;
       }
       const collection = shelf.collections.find(item => item.bookIds.includes(id));
       const nextLayout = applyLayoutForBook(book);

@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { splitLongParagraph, collectNovelBlocks } from '../src/services/pagination.js';
+import {
+  splitLongParagraph,
+  collectNovelBlocks,
+  buildActivePages,
+  ensureBookImagesResolved
+} from '../src/services/pagination.js';
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>');
 globalThis.window = dom.window;
@@ -74,4 +79,107 @@ test('容器内混有直接文本时保留原容器，避免丢字', () => {
   assert.equal(blocks[0].type, 'div');
   assert.match(blocks[0].html, /前置文字/);
   assert.match(blocks[0].html, /后置文字/);
+});
+
+test('并发章节复用同一张 EPUB 插图，不重复解包', async () => {
+  let blobRequests = 0;
+  const entry = {
+    async async() {
+      blobRequests++;
+      await new Promise(resolve => setTimeout(resolve, 10));
+      return new Blob(['image'], { type: 'image/jpeg' });
+    }
+  };
+  const book = {
+    zipContent: { file: path => path === 'images/shared.jpg' ? entry : null },
+    chapters: Array.from({ length: 6 }, () => ({
+      htmlContent: '<figure><img data-zip-path="images/shared.jpg" alt=""></figure>'
+    }))
+  };
+  const originalCreateObjectURL = URL.createObjectURL;
+  URL.createObjectURL = () => 'blob:shared-image';
+
+  try {
+    await ensureBookImagesResolved(book, 6);
+  } finally {
+    URL.createObjectURL = originalCreateObjectURL;
+  }
+
+  assert.equal(blobRequests, 1);
+  assert.equal(book.epubImageUrls.size, 1);
+  assert.deepEqual(book.resourceUrls, ['blob:shared-image']);
+  assert.ok(book.chapters.every(chapter => chapter.imagesResolved));
+  assert.ok(book.chapters.every(chapter => chapter.htmlContent.includes('src="blob:shared-image"')));
+});
+
+test('解码后的 EPUB 插图写入天然宽高，保证分页测量稳定', async () => {
+  const book = {
+    zipContent: {
+      file: () => ({
+        async async() {
+          return new Blob(['image'], { type: 'image/jpeg' });
+        }
+      })
+    },
+    chapters: [{
+      htmlContent: '<figure><img data-zip-path="images/illustration.jpg" alt=""></figure>'
+    }]
+  };
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalImage = Object.getOwnPropertyDescriptor(globalThis, 'Image');
+  URL.createObjectURL = () => 'blob:sized-image';
+  globalThis.Image = class {
+    constructor() {
+      this.naturalWidth = 800;
+      this.naturalHeight = 1200;
+    }
+    async decode() {}
+  };
+
+  try {
+    await ensureBookImagesResolved(book);
+  } finally {
+    URL.createObjectURL = originalCreateObjectURL;
+    if (originalImage) Object.defineProperty(globalThis, 'Image', originalImage);
+    else delete globalThis.Image;
+  }
+
+  assert.match(book.chapters[0].htmlContent, /width="800"/);
+  assert.match(book.chapters[0].htmlContent, /height="1200"/);
+});
+
+test('增量测量分页保持段落顺序且不丢正文', () => {
+  const originalWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+  const originalHeight = Object.getOwnPropertyDescriptor(document.documentElement, 'clientHeight');
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+  Object.defineProperty(document.documentElement, 'clientHeight', { configurable: true, value: 710 });
+
+  const measurer = document.createElement('div');
+  Object.defineProperty(measurer, 'scrollHeight', {
+    get() {
+      return this.childNodes.length * 160;
+    }
+  });
+  const book = {
+    type: 'novel',
+    chapters: [{
+      title: '第一章',
+      htmlContent: '<p>甲</p><p>乙</p><p>丙</p><p>丁</p><p>戊</p>'
+    }]
+  };
+
+  try {
+    const pages = buildActivePages(book, { direction: 'ltr', spread: 1, fontSize: 18 }, measurer);
+    const texts = pages.map(page => {
+      const node = document.createElement('div');
+      node.innerHTML = page.html;
+      return node.textContent;
+    });
+
+    assert.deepEqual(texts, ['甲乙', '丙丁', '戊']);
+    assert.deepEqual(pages.map(page => page.pageNumber), [1, 2, 3]);
+  } finally {
+    if (originalWidth) Object.defineProperty(window, 'innerWidth', originalWidth);
+    if (originalHeight) Object.defineProperty(document.documentElement, 'clientHeight', originalHeight);
+  }
 });

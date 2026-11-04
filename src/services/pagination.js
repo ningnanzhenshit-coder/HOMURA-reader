@@ -52,28 +52,116 @@ export async function decodeImgIntoElement(imgEl, url) {
   }
 }
 
+// 限制并发解码，避免一本书的插图同时展开占满低端机内存。
+function scheduleEpubImageDecode(book, url) {
+  if (typeof Image === 'undefined' || !url) return null;
+  const decodeCache = book.epubImageDecodes instanceof Map
+    ? book.epubImageDecodes
+    : (book.epubImageDecodes = new Map());
+  if (decodeCache.has(url)) return decodeCache.get(url);
+
+  const slots = book.epubImageDecodeSlots || (book.epubImageDecodeSlots = { active: 0, waiters: [] });
+  const task = (async () => {
+    if (slots.active >= 4) await new Promise(resolve => slots.waiters.push(resolve));
+    slots.active++;
+    try {
+      const imageEl = new Image();
+      imageEl.decoding = 'async';
+      imageEl.src = url;
+      if (imageEl.decode) {
+        try {
+          await imageEl.decode();
+        } catch (err) {
+          // 解码失败也继续尝试读取已经拿到的天然尺寸。
+        }
+      } else if (!imageEl.complete) {
+        await new Promise(resolve => {
+          imageEl.addEventListener('load', resolve, { once: true });
+          imageEl.addEventListener('error', resolve, { once: true });
+        });
+      }
+      return imageEl.naturalWidth > 0 && imageEl.naturalHeight > 0
+        ? { width: imageEl.naturalWidth, height: imageEl.naturalHeight }
+        : null;
+    } catch (err) {
+      // 单张插图解码失败不应阻断整本书打开，显示时会再次尝试。
+      return null;
+    } finally {
+      slots.active--;
+      const next = slots.waiters.shift();
+      if (next) next();
+    }
+  })();
+  decodeCache.set(url, task);
+  return task;
+}
+
 export async function ensureChapterImagesResolved(chap, book) {
   if (!chap || chap.imagesResolved || !book.zipContent) return;
   const wrapper = document.createElement('div');
   wrapper.innerHTML = chap.htmlContent;
   const pendingImgs = wrapper.querySelectorAll('[data-zip-path]');
+  const urlCache = book.epubImageUrls instanceof Map ? book.epubImageUrls : (book.epubImageUrls = new Map());
+  const decodedImages = [];
   for (const img of pendingImgs) {
     const zipPath = img.getAttribute('data-zip-path');
-    const entry = book.zipContent.file(zipPath);
-    if (entry) {
-      const blob = await entry.async('blob');
-      const url = URL.createObjectURL(blob);
+    let cached = urlCache.get(zipPath);
+    if (!cached) {
+      // 并发章节可能引用同一张图，缓存 Promise 避免重复解包和生成 URL。
+      cached = (async () => {
+        const entry = book.zipContent.file(zipPath);
+        if (!entry) return null;
+        const blob = await entry.async('blob');
+        const url = URL.createObjectURL(blob);
+        if (!Array.isArray(book.resourceUrls)) book.resourceUrls = [];
+        book.resourceUrls.push(url);
+        return url;
+      })();
+      urlCache.set(zipPath, cached);
+    }
+    let url;
+    try {
+      url = await cached;
+    } catch (err) {
+      urlCache.delete(zipPath);
+      throw err;
+    }
+    if (url) {
+      const decodeTask = scheduleEpubImageDecode(book, url);
       if (img.tagName.toLowerCase() === 'image') {
         img.setAttribute('href', url);
         img.setAttribute('xlink:href', url);
       } else {
         img.setAttribute('src', url);
+        if (decodeTask) decodedImages.push({ img, decodeTask });
       }
       img.removeAttribute('data-zip-path');
     }
   }
+  // 把天然尺寸写回 HTML，分页测量不再依赖图片是否仍留在浏览器缓存。
+  await Promise.all(decodedImages.map(async ({ img, decodeTask }) => {
+    const size = await decodeTask;
+    if (!size) return;
+    if (!img.hasAttribute('width')) img.setAttribute('width', size.width);
+    if (!img.hasAttribute('height')) img.setAttribute('height', size.height);
+  }));
   chap.htmlContent = wrapper.innerHTML;
   chap.imagesResolved = true;
+}
+
+// 分章节并发解包插图，避免整本 EPUB 的图片串行等待。
+export async function ensureBookImagesResolved(book, concurrency = 8) {
+  const chapters = book?.chapters || [];
+  if (!book?.zipContent || chapters.length === 0) return;
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(concurrency, chapters.length) }, async () => {
+    while (nextIndex < chapters.length) {
+      const chapter = chapters[nextIndex++];
+      await ensureChapterImagesResolved(chapter, book);
+    }
+  });
+  await Promise.all(workers);
+  await Promise.all(book.epubImageDecodes instanceof Map ? book.epubImageDecodes.values() : []);
 }
 
 // ---- 小说智能分页：按窗口高度与字号切成一屏一页 ----
@@ -170,6 +258,7 @@ export function splitLongParagraph(html, measurer, maxHeight) {
 }
 
 const NOVEL_CONTAINER_TAGS = new Set(['body', 'main', 'section', 'article', 'div', 'header', 'footer', 'aside']);
+const novelPageCache = new WeakMap();
 
 // EPUB 常把整章包在 section/div 里；结构容器必须拆开分页，否则含图的整章会被裁成一页。
 // 只在容器没有直接文本时递归展开，避免丢掉混在子元素之间的文字。
@@ -238,6 +327,11 @@ export function buildActivePages(book, layoutConfig, measurer) {
   // 工具栏（顶 56 + 底 48）与卡片内外边距之和：桌面沿用既有实测值，移动端按紧凑布局
   const chromeHeight = compact ? 236 : 267;
   const availableTextHeight = Math.max(160, vh - chromeHeight);
+  const cacheKey = [contentWidth, availableTextHeight, layoutConfig.fontSize, layoutConfig.spread].join('|');
+  const cached = novelPageCache.get(book);
+  if (cached && cached.key === cacheKey && cached.chapters === book.chapters) {
+    return cached.pages;
+  }
 
   measurer.style.width = contentWidth + 'px';
   measurer.style.fontSize = layoutConfig.fontSize + 'px';
@@ -259,37 +353,50 @@ export function buildActivePages(book, layoutConfig, measurer) {
       continue;
     }
 
-    let currentPageHtml = '';
+    let currentPageParts = [];
     measurer.innerHTML = '';
 
     const flushCurrentPage = () => {
+      const currentPageHtml = currentPageParts.join('');
       if (currentPageHtml.trim()) {
         paginatedList.push({
           title: chap.title || `第 ${cIdx + 1} 章`,
           html: currentPageHtml,
           chapterIndex: cIdx
         });
-        currentPageHtml = '';
-        measurer.innerHTML = '';
       }
+      currentPageParts = [];
+      measurer.innerHTML = '';
     };
 
     for (let bIdx = 0; bIdx < blocks.length; bIdx++) {
       const blk = blocks[bIdx];
-      const prevHtml = currentPageHtml;
-      const candidateHtml = prevHtml + blk.html;
-      measurer.innerHTML = candidateHtml;
+      const previousChildCount = measurer.childNodes.length;
+      measurer.insertAdjacentHTML('beforeend', blk.html);
 
       if (measurer.scrollHeight <= availableTextHeight) {
-        currentPageHtml = candidateHtml;
+        currentPageParts.push(blk.html);
       } else {
-        if (prevHtml) flushCurrentPage();
+        // 只移除刚测高的块，避免每加一段都重新解析整页 HTML。
+        while (measurer.childNodes.length > previousChildCount && measurer.lastChild) {
+          measurer.lastChild.remove();
+        }
+        if (currentPageParts.length) flushCurrentPage();
         measurer.innerHTML = blk.html;
         const parts = measurer.scrollHeight > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
         for (let index = 0; index < parts.length; index++) {
-          currentPageHtml = parts[index];
-          measurer.innerHTML = currentPageHtml;
-          if (index < parts.length - 1 || measurer.scrollHeight > availableTextHeight) flushCurrentPage();
+          const part = parts[index];
+          measurer.innerHTML = part;
+          if (index < parts.length - 1) {
+            paginatedList.push({
+              title: chap.title || `第 ${cIdx + 1} 章`,
+              html: part,
+              chapterIndex: cIdx
+            });
+          } else {
+            currentPageParts = [part];
+            if (measurer.scrollHeight > availableTextHeight) flushCurrentPage();
+          }
         }
       }
     }
@@ -297,10 +404,12 @@ export function buildActivePages(book, layoutConfig, measurer) {
   }
 
   measurer.innerHTML = '';
-  return paginatedList.map((item, idx) => ({
+  const pages = paginatedList.map((item, idx) => ({
     pageNumber: idx + 1,
     title: item.title,
     html: item.html,
     chapterIndex: item.chapterIndex
   }));
+  novelPageCache.set(book, { key: cacheKey, chapters: book.chapters, pages });
+  return pages;
 }
