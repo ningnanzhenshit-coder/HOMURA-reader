@@ -5,10 +5,11 @@
   "description": "HOMURA — ACGN GO 本地漫画与轻小说阅读器",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "check:dark-glow": "node scripts/check-dark-glow.mjs",
     "tauri": "tauri",
     "icons:generate": "node scripts/generate-icons.mjs",
     "dev:vite": "vite",
-    "build:vite": "vite build",
+    "build:vite": "npm run check:dark-glow && vite build",
     "dev": "tauri dev",
     "build": "tauri build",
     "android:sync-icons": "node scripts/sync-android-icons.mjs",

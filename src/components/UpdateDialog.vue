@@ -440,7 +440,7 @@ onBeforeUnmount(() => {
   padding: 24px;
   display: grid;
   place-items: center;
-  background: color-mix(in oklab, var(--md-on-surface) 34%, transparent);
+  background: color-mix(in oklab, var(--md-shadow-color) 34%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
   background: var(--md-surface-container);
   color: var(--md-on-surface);
   box-shadow:
-    0 30px 80px -28px color-mix(in oklab, var(--md-on-surface) 58%, transparent),
+    0 30px 80px -28px color-mix(in oklab, var(--md-shadow-color) 58%, transparent),
     inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
 }
 

@@ -30,6 +30,7 @@ HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集
 | `npm install` | 安装前端依赖；Tauri 命令找不到时先跑这个 |
 | `npm run dev:vite` | 只起 Vite 开发服务器，固定端口 **5173**，带 HMR |
 | `npm run build:vite` | 只构建前端到 `dist/`（最常用的快速验证） |
+| `npm run check:dark-glow` | 扫描夜间白色泛光；`build:vite` 会自动执行 |
 | `npm run dev` | `dev:vite` + `tauri dev`，打开桌面窗口 |
 | `npm run build` | `build:vite` + `tauri build`，产物在 `src-tauri/target/release/bundle/` |
 | `npm run android:dev` | Android 开发 |
@@ -76,6 +77,7 @@ src-tauri/                 Tauri 2 壳：lib.rs、tauri.conf.json、capabilities
 public/vendor/             运行时 Tailwind（断网可用），不要换成构建版
 public/pdfjs/              pdf.js 运行时资源，由 vite 插件生成，已 gitignore
 scripts/release-notes.mjs  Conventional Commits → Release 说明
+scripts/check-dark-glow.mjs 夜间投影/遮罩泛光检查（build:vite 自动执行）
 design-preview/            设计原型 HTML 与截图，不是生产代码
 .github/workflows/         三平台 + Android 自动打包
 ```
@@ -109,6 +111,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - 容器色必须成对使用 `on-*` 文字色；暗色模式靠这对 token 自动反转，不要写死白字/黑字。
 - 不要再用旧别名 `--brand-* / --bg-* / --fg-*`；新代码直接用 `--md-*`。
 - Tailwind 在 CSS 变量上直接加透明度修饰（如 `bg-[var(--md-surface)]/92`）不可靠，会变成透明；需要透明度就用 `color-mix`。
+- 夜间阴影与遮罩统一用 `var(--md-shadow-color)`；不要在 `box-shadow` / `drop-shadow` / `text-shadow` / scrim 背景里使用 `--md-on-surface` 或 `--md-on-surface-variant`，它们在夜间会翻转成近白色并产生泛光。`npm run check:dark-glow` 会拦截这类写法。
 - 一屏只保留一个 `primary` 实心主行动（书架只有「导入」FAB）。
 
 ### 5.2 主题与表面
@@ -165,6 +168,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - `dist/index.html` 用 `file://` 打开会因相对路径 / IndexedDB 限制而异常，必须走 `http://localhost`。
 - PDF 白屏优先查 `public/pdfjs/` 是否生成、控制台是否有 cmaps / standard_fonts 404。
 - Tailwind 对 CSS 变量加透明度修饰会失效，改用 `color-mix`。
+- 夜间出现白色泛光时，优先检查 `--md-on-surface` / `--md-on-surface-variant` 是否被当作阴影或遮罩色；投影统一改用 `--md-shadow-color`，并运行 `npm run check:dark-glow`。
 - 触屏上不要依赖 `:hover` 显示操作按钮；触屏常显，鼠标设备才 hover。
 - iOS Safari 不支持文件夹选择与 File System Access API；Android WebView 可能暴露 `showOpenFilePicker`，但 `content://` 句柄跨重启会失去权限，`platform.js` 已强制 Android 关闭 FSA。Android 系统选择器也选不到目录，不要绕开这些降级。
 - 本地与 `origin` 分叉时直接 push 会被拒；先 `git pull --rebase`，别强推。
@@ -192,6 +196,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - [ ] 改导入 / 解析：用真实样本验证对应格式；PDF 需覆盖中文文本与扫描件；Markdown 需测 `<script>` 与 `javascript:` 链接。
 - [ ] 改 Tauri / 窗口：跑 `npm run dev`，确认启动不黑屏、标题栏随模式换色、全屏可进出。
 - [ ] 新代码里搜不到新增 hex / `rgb(`，没有引入图标库或组件库。
+- [ ] 新增投影 / 遮罩使用 `--md-shadow-color`，`npm run check:dark-glow` 通过。
 - [ ] 没有提交任何构建产物。
 
 ## 10. 去哪里找上下文

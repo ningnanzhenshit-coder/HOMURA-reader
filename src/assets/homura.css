@@ -248,6 +248,7 @@
 
     /* ==========================================================================
        2. MD3 Surface Scales（白昼 / 暖色护眼 / 夜间）
+       --md-shadow-color 专供投影与遮罩；夜间保持深色，避免白色泛光。
        ========================================================================== */
     [data-mode="light"] {
       color-scheme: light;
@@ -260,6 +261,7 @@
       --md-on-surface-variant: #475569;
       --md-outline: #6B7280;
       --md-outline-variant: #CBD5E1;
+      --md-shadow-color: var(--md-on-surface);
       --manga-filter: none;
     }
 
@@ -275,6 +277,7 @@
       --md-on-surface-variant: #57503F;
       --md-outline: #8A7F68;
       --md-outline-variant: #D8CDB6;
+      --md-shadow-color: var(--md-on-surface);
       --manga-filter: sepia(0.18) brightness(0.97) contrast(0.98);
     }
 
@@ -290,6 +293,7 @@
       --md-on-surface-variant: #B9C2CE;
       --md-outline: #8B95A3;
       --md-outline-variant: #3A424C;
+      --md-shadow-color: var(--md-surface);
       --manga-filter: brightness(0.92);
     }
 
@@ -320,7 +324,7 @@
        3.1 Hover Elevation — 筛选胶囊与侧栏导航项共用的悬浮投影
        ========================================================================== */
     :root {
-      --md-elevation-hover: 0 6px 16px -10px color-mix(in oklab, var(--md-on-surface) 52%, transparent);
+      --md-elevation-hover: 0 6px 16px -10px color-mix(in oklab, var(--md-shadow-color) 52%, transparent);
     }
 
     /* ==========================================================================
@@ -616,7 +620,7 @@
       user-select: none;
       box-shadow:
         0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 42%, transparent),
-        0 2px 8px -3px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+        0 2px 8px -3px color-mix(in oklab, var(--md-shadow-color) 18%, transparent);
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
     }
     .md-shelf-card.is-touch-dragging { opacity: 0.38; transform: scale(0.96); }
@@ -649,7 +653,7 @@
       background: var(--md-surface-container);
       color: var(--md-on-surface);
     }
-    .md-library-dialog::backdrop { background: color-mix(in oklab, var(--md-on-surface) 32%, transparent); }
+    .md-library-dialog::backdrop { background: color-mix(in oklab, var(--md-shadow-color) 32%, transparent); }
     @media (min-width: 900px) {
       .md-library-dialog { inset: 0; margin: auto; width: 372px; border-radius: 28px; padding: 0; }
     }
@@ -663,7 +667,7 @@
       background-color: var(--md-surface-container);
       box-shadow:
         0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 52%, transparent),
-        0 2px 8px -3px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+        0 2px 8px -3px color-mix(in oklab, var(--md-shadow-color) 18%, transparent);
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
     }
     .md-collection-open { display: flex; flex: 1; flex-direction: column; width: 100%; padding: 0; text-align: left; color: var(--md-on-surface); }
@@ -684,7 +688,7 @@
       box-shadow:
         inset 0 0 0 1px color-mix(in oklab, var(--md-primary) 16%, var(--md-outline-variant)),
         inset 0 1px 0 color-mix(in oklab, var(--md-surface) 70%, transparent),
-        0 8px 20px -18px var(--md-on-surface);
+        0 8px 20px -18px var(--md-shadow-color);
     }
     .md-collection-tile {
       position: relative;
@@ -696,7 +700,7 @@
       background: var(--md-surface-container);
       box-shadow:
         inset 0 0 0 1px color-mix(in oklab, var(--md-outline) 20%, transparent),
-        0 2px 5px -3px color-mix(in oklab, var(--md-on-surface) 36%, transparent);
+        0 2px 5px -3px color-mix(in oklab, var(--md-shadow-color) 36%, transparent);
     }
     .md-collection-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .md-collection-tile.is-empty {
@@ -775,7 +779,7 @@
       background: var(--md-surface-high);
       color: var(--md-on-surface);
       box-shadow:
-        0 18px 40px -18px color-mix(in oklab, var(--md-on-surface) 46%, transparent),
+        0 18px 40px -18px color-mix(in oklab, var(--md-shadow-color) 46%, transparent),
         0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 70%, transparent);
       pointer-events: none;
       will-change: transform;
@@ -819,7 +823,7 @@
         transform: translateY(-2px);
         box-shadow:
           0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 60%, transparent),
-          0 10px 24px -12px color-mix(in oklab, var(--md-on-surface) 30%, transparent);
+          0 10px 24px -12px color-mix(in oklab, var(--md-shadow-color) 30%, transparent);
       }
     }
 
@@ -844,10 +848,10 @@
     }
 
     .md-scrim {
-      background: color-mix(in oklab, var(--md-on-surface) 32%, transparent);
+      background: color-mix(in oklab, var(--md-shadow-color) 32%, transparent);
     }
     .md-scrim-soft {
-      background: color-mix(in oklab, var(--md-on-surface) 30%, transparent);
+      background: color-mix(in oklab, var(--md-shadow-color) 30%, transparent);
     }
 
     /* 200ms · 强调曲线：sheet / bar 统一动效（曲线见第 3 节 motion tokens） */
@@ -1167,8 +1171,8 @@
       background-position: bottom;
       background-size: 100% 50%;
       box-shadow:
-        inset 0 0 0 0.5px color-mix(in oklab, var(--md-on-surface) 14%, transparent),
-        0 0 0 1px color-mix(in oklab, var(--md-on-surface) 22%, transparent);
+        inset 0 0 0 0.5px color-mix(in oklab, var(--md-shadow-color) 14%, transparent),
+        0 0 0 1px color-mix(in oklab, var(--md-shadow-color) 22%, transparent);
       transition: transform var(--md-duration-short) var(--md-ease-emphasized);
     }
     .theme-swatch-check {
@@ -1180,7 +1184,7 @@
       border-radius: 9999px;
       background: var(--md-surface-container);
       color: var(--md-on-surface);
-      box-shadow: 0 1px 4px color-mix(in oklab, var(--md-on-surface) 18%, transparent);
+      box-shadow: 0 1px 4px color-mix(in oklab, var(--md-shadow-color) 18%, transparent);
     }
     .theme-swatch-check svg {
       width: 10px;

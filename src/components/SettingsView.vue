@@ -1281,8 +1281,8 @@ onBeforeUnmount(() => {
   border-radius: 17px;
   object-fit: cover;
   box-shadow:
-    0 1px 2px color-mix(in oklab, var(--md-on-surface) 18%, transparent),
-    0 10px 24px -14px color-mix(in oklab, var(--md-on-surface) 55%, transparent);
+    0 1px 2px color-mix(in oklab, var(--md-shadow-color) 18%, transparent),
+    0 10px 24px -14px color-mix(in oklab, var(--md-shadow-color) 55%, transparent);
 }
 
 .about-brand-copy {
@@ -1469,7 +1469,7 @@ onBeforeUnmount(() => {
     var(--md-surface-low);
   box-shadow:
     inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 68%, transparent),
-    0 18px 50px -34px color-mix(in oklab, var(--md-on-surface) 44%, transparent);
+    0 18px 50px -34px color-mix(in oklab, var(--md-shadow-color) 44%, transparent);
 }
 
 .settings-preview-head {
@@ -1529,8 +1529,8 @@ onBeforeUnmount(() => {
   color: var(--md-on-surface);
   background: color-mix(in oklab, var(--md-surface) 88%, var(--md-primary-container));
   box-shadow:
-    0 2px 3px color-mix(in oklab, var(--md-on-surface) 14%, transparent),
-    0 20px 34px -18px color-mix(in oklab, var(--md-on-surface) 42%, transparent);
+    0 2px 3px color-mix(in oklab, var(--md-shadow-color) 14%, transparent),
+    0 20px 34px -18px color-mix(in oklab, var(--md-shadow-color) 42%, transparent);
   transform: rotate(-1.2deg);
   transition: width var(--md-duration-medium) var(--md-ease-emphasized);
 }
@@ -1700,7 +1700,7 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 70;
   padding: 24px;
-  background: color-mix(in oklab, var(--md-on-surface) 38%, transparent);
+  background: color-mix(in oklab, var(--md-shadow-color) 38%, transparent);
   display: grid;
   place-items: center;
 }
@@ -1711,7 +1711,7 @@ onBeforeUnmount(() => {
   border-radius: 28px;
   background: var(--md-surface-container);
   color: var(--md-on-surface);
-  box-shadow: 0 24px 64px -24px color-mix(in oklab, var(--md-on-surface) 56%, transparent);
+  box-shadow: 0 24px 64px -24px color-mix(in oklab, var(--md-shadow-color) 56%, transparent);
 }
 
 .settings-dialog-icon {

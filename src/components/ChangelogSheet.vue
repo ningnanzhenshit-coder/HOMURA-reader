@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
   z-index: 70;
   display: flex;
   justify-content: flex-end;
-  background: color-mix(in oklab, var(--md-on-surface) 34%, transparent);
+  background: color-mix(in oklab, var(--md-shadow-color) 34%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
   color: var(--md-on-surface);
   display: flex;
   flex-direction: column;
-  box-shadow: -24px 0 70px -34px color-mix(in oklab, var(--md-on-surface) 52%, transparent);
+  box-shadow: -24px 0 70px -34px color-mix(in oklab, var(--md-shadow-color) 52%, transparent);
 }
 
 .changelog-drag-zone {
@@ -623,7 +623,7 @@ onBeforeUnmount(() => {
     height: auto;
     max-height: 78dvh;
     border-radius: 28px 28px 0 0;
-    box-shadow: 0 -24px 70px -34px color-mix(in oklab, var(--md-on-surface) 52%, transparent);
+    box-shadow: 0 -24px 70px -34px color-mix(in oklab, var(--md-shadow-color) 52%, transparent);
   }
 
   .changelog-panel.is-compact .changelog-drag-zone {

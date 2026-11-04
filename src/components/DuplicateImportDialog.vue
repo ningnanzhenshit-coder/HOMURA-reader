@@ -91,7 +91,7 @@ onBeforeUnmount(() => resolveImport());
 }
 
 .duplicate-import-dialog::backdrop {
-  background: color-mix(in oklab, var(--md-on-surface) 32%, transparent);
+  background: color-mix(in oklab, var(--md-shadow-color) 32%, transparent);
 }
 
 @media (min-width: 900px) {

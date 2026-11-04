@@ -263,7 +263,7 @@ onBeforeUnmount(() => {
     background: color-mix(in oklab, var(--md-primary-container) 18%, var(--md-surface-low));
     box-shadow:
       0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
-      0 14px 34px -20px color-mix(in oklab, var(--md-on-surface) 55%, transparent);
+      0 14px 34px -20px color-mix(in oklab, var(--md-shadow-color) 55%, transparent);
     transition:
       flex-basis 280ms cubic-bezier(0.2, 0, 0, 1),
       width 280ms cubic-bezier(0.2, 0, 0, 1),
@@ -493,7 +493,7 @@ onBeforeUnmount(() => {
     background: color-mix(in oklab, var(--md-primary-container) 22%, var(--md-surface-container));
     box-shadow:
       0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
-      0 18px 36px -16px color-mix(in oklab, var(--md-on-surface) 55%, transparent);
+      0 18px 36px -16px color-mix(in oklab, var(--md-shadow-color) 55%, transparent);
   }
 
   .mobile-nav-indicator {

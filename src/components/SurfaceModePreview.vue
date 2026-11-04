@@ -108,7 +108,7 @@ function selectMode(mode, event) {
   border: 0.5px solid color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
   border-radius: 16px;
   background: color-mix(in oklab, var(--md-surface-container) 84%, transparent);
-  box-shadow: 0 10px 22px -18px color-mix(in oklab, var(--md-on-surface) 32%, transparent);
+  box-shadow: 0 10px 22px -18px color-mix(in oklab, var(--md-shadow-color) 32%, transparent);
   transition:
     transform var(--md-duration-short) var(--md-ease-emphasized),
     box-shadow var(--md-duration-short) var(--md-ease-emphasized),
@@ -209,7 +209,7 @@ function selectMode(mode, event) {
   border-radius: 999px;
   background: var(--md-surface-container);
   color: var(--md-on-surface);
-  box-shadow: 0 1px 4px color-mix(in oklab, var(--md-on-surface) 20%, transparent);
+  box-shadow: 0 1px 4px color-mix(in oklab, var(--md-shadow-color) 20%, transparent);
 }
 
 .surface-mode-check svg {
@@ -275,7 +275,7 @@ function selectMode(mode, event) {
 @media (hover: hover) and (pointer: fine) {
   .surface-mode-option:hover .surface-mode-card {
     transform: translateY(-2px);
-    box-shadow: 0 16px 26px -20px color-mix(in oklab, var(--md-on-surface) 38%, transparent);
+    box-shadow: 0 16px 26px -20px color-mix(in oklab, var(--md-shadow-color) 38%, transparent);
   }
 
   .surface-mode-option.is-selected:hover .surface-mode-card {
