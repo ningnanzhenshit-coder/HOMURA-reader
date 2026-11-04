@@ -6,6 +6,8 @@
 
 HOMURA（ACGN GO）是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、PDF 和图集导入后即可阅读，解析、分页与渲染全部在本机完成，书籍内容不会上传。桌面端使用 Tauri 2 打包，同一套前端也提供 Android 构建。
 
+**资源声明：本仓库不提供任何小说或漫画资源。**
+
 - 当前版本：**2.1.91**
 - 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（纯 JavaScript）
 - 仓库：[ningnanzhenshit-coder/homura-reader](https://github.com/ningnanzhenshit-coder/homura-reader)
