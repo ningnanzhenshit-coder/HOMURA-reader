@@ -83,9 +83,9 @@ fn validate_download_id(download_id: &str) -> Result<(), DownloadCommandError> {
 fn validate_file_name(file_name: &str) -> Result<(), DownloadCommandError> {
     let valid = !file_name.is_empty()
         && file_name.len() <= FILE_NAME_MAX_LEN
-        && file_name
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | '_' | '+'))
+        && file_name.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '.' | '-' | '_' | '+')
+        })
         && Path::new(file_name)
             .extension()
             .and_then(|extension| extension.to_str())
@@ -102,8 +102,8 @@ fn validate_file_name(file_name: &str) -> Result<(), DownloadCommandError> {
 }
 
 fn validate_asset_url(value: &str) -> Result<Url, DownloadCommandError> {
-    let url = Url::parse(value)
-        .map_err(|_| command_error("INVALID_URL", "Release 安装包地址无效。"))?;
+    let url =
+        Url::parse(value).map_err(|_| command_error("INVALID_URL", "Release 安装包地址无效。"))?;
     let repository_prefix = "/ningnanzhenshit-coder/HOMURA-reader/releases/download/";
     let valid = url.scheme() == "https"
         && url.host_str() == Some("github.com")
@@ -111,7 +111,10 @@ fn validate_asset_url(value: &str) -> Result<Url, DownloadCommandError> {
     if valid {
         Ok(url)
     } else {
-        Err(command_error("INVALID_URL", "拒绝下载非 HOMURA Release 文件。"))
+        Err(command_error(
+            "INVALID_URL",
+            "拒绝下载非 HOMURA Release 文件。",
+        ))
     }
 }
 
@@ -144,8 +147,8 @@ fn format_proxy_url(proxy: tauri_plugin_android_installer::SystemProxy) -> Optio
 
 #[cfg(target_os = "android")]
 fn android_system_proxy(app: &AppHandle) -> Option<String> {
-    let installer = app
-        .try_state::<tauri_plugin_android_installer::AndroidInstaller<tauri::Wry>>()?;
+    let installer =
+        app.try_state::<tauri_plugin_android_installer::AndroidInstaller<tauri::Wry>>()?;
     match installer.system_proxy() {
         Ok(proxy) => proxy.and_then(format_proxy_url),
         Err(error) => {
@@ -407,10 +410,7 @@ pub async fn download_update_asset(
 }
 
 #[tauri::command]
-pub fn cancel_update_download(
-    state: State<'_, UpdateDownloadState>,
-    download_id: String,
-) -> bool {
+pub fn cancel_update_download(state: State<'_, UpdateDownloadState>, download_id: String) -> bool {
     let Ok(active) = state.active.lock() else {
         return false;
     };
@@ -451,7 +451,10 @@ pub fn open_update_file(
         .canonicalize()
         .map_err(|error| command_error("INSTALL_FAILED", error.to_string()))?;
     if !canonical.starts_with(&root) {
-        return Err(command_error("INSTALL_FAILED", "安装包路径不在应用缓存中。"));
+        return Err(command_error(
+            "INSTALL_FAILED",
+            "安装包路径不在应用缓存中。",
+        ));
     }
 
     app.opener()

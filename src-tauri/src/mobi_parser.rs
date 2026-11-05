@@ -56,9 +56,8 @@ fn decode_text(bytes: &[u8], encoding: &'static Encoding) -> String {
 }
 
 fn read_pdb_records(bytes: &[u8]) -> Result<Vec<usize>, String> {
-    let count = read_u16(bytes, 76)
-        .ok_or_else(|| "MOBI_BAD_FILE: 文件记录表为空".to_string())?
-        as usize;
+    let count =
+        read_u16(bytes, 76).ok_or_else(|| "MOBI_BAD_FILE: 文件记录表为空".to_string())? as usize;
     if count == 0 || count > MAX_PDB_RECORDS {
         return Err("MOBI_BAD_FILE: 文件记录表无效".to_string());
     }
@@ -241,11 +240,10 @@ fn parse_mobi_container_bytes(bytes: &[u8], fallback_title: &str) -> Result<Mobi
 
     let starts = read_pdb_records(bytes)?;
     let rec0 = starts[0];
-    let compression = read_u16(bytes, rec0)
-        .ok_or_else(|| "MOBI_BAD_FILE: 缺少压缩信息".to_string())?;
+    let compression =
+        read_u16(bytes, rec0).ok_or_else(|| "MOBI_BAD_FILE: 缺少压缩信息".to_string())?;
     let text_length = read_u32(bytes, rec0 + 4)
-        .ok_or_else(|| "MOBI_BAD_FILE: 缺少正文长度".to_string())?
-        as usize;
+        .ok_or_else(|| "MOBI_BAD_FILE: 缺少正文长度".to_string())? as usize;
     let text_record_count = read_u16(bytes, rec0 + 8)
         .ok_or_else(|| "MOBI_BAD_FILE: 缺少正文记录数".to_string())?
         as usize;
@@ -253,8 +251,8 @@ fn parse_mobi_container_bytes(bytes: &[u8], fallback_title: &str) -> Result<Mobi
     let record_size = read_u16(bytes, rec0 + 10)
         .filter(|value| *value > 0)
         .unwrap_or(4096) as usize;
-    let encryption = read_u16(bytes, rec0 + 12)
-        .ok_or_else(|| "MOBI_BAD_FILE: 缺少加密信息".to_string())?;
+    let encryption =
+        read_u16(bytes, rec0 + 12).ok_or_else(|| "MOBI_BAD_FILE: 缺少加密信息".to_string())?;
 
     let header_end = rec0
         .checked_add(20)
@@ -286,8 +284,7 @@ fn parse_mobi_container_bytes(bytes: &[u8], fallback_title: &str) -> Result<Mobi
     let full_name_length = read_u32(bytes, rec0 + 0x58).unwrap_or(0) as usize;
     let exth = read_exth(bytes, rec0, mobi_length);
     let header_title = if full_name_length > 0 && full_name_offset > 0 {
-        rec0
-            .checked_add(full_name_offset)
+        rec0.checked_add(full_name_offset)
             .and_then(|start| start.checked_add(full_name_length).map(|end| (start, end)))
             .and_then(|(start, end)| bytes.get(start..end))
             .map(|value| decode_text(value, encoding))
@@ -428,7 +425,11 @@ mod tests {
     }
 
     fn write_exth(bytes: &mut [u8], base: usize, entries: &[(u32, &[u8])]) {
-        let length = 12 + entries.iter().map(|(_, value)| 8 + value.len()).sum::<usize>();
+        let length = 12
+            + entries
+                .iter()
+                .map(|(_, value)| 8 + value.len())
+                .sum::<usize>();
         bytes[base..base + 4].copy_from_slice(b"EXTH");
         write_u32(bytes, base + 4, length as u32);
         write_u32(bytes, base + 8, entries.len() as u32);
@@ -506,7 +507,10 @@ mod tests {
         assert_eq!(container.image_records.len(), 1);
         assert_eq!(container.image_records[0].recindex, 1);
         assert_eq!(container.image_records[0].mime, "image/jpeg");
-        assert_eq!(container.image_records[0].start, container.cover.as_ref().unwrap().start);
+        assert_eq!(
+            container.image_records[0].start,
+            container.cover.as_ref().unwrap().start
+        );
         assert!(container.cover.is_some());
     }
 
@@ -572,7 +576,8 @@ mod tests {
     #[test]
     fn command_decodes_base64_payload() {
         let bytes = build_mobi("<p>正文</p>", "命令测试", None);
-        let container = parse_mobi_container(STANDARD.encode(bytes), "fallback".to_string()).unwrap();
+        let container =
+            parse_mobi_container(STANDARD.encode(bytes), "fallback".to_string()).unwrap();
         assert_eq!(container.title, "命令测试");
         assert_eq!(container.raw_text, "<p>正文</p>");
     }
