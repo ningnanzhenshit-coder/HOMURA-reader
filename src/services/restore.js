@@ -16,6 +16,7 @@ import {
   removeNativeFile
 } from './nativeStorage.js';
 import { parseEpubFileLazy, parseCbzFileLazy, parseCbzNativeArchive, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
+import { parseEpubNativeArchive } from './epubParser.js';
 import { createCoverThumbnail } from './coverThumb.js';
 import { canUseNativeArchive } from './nativeArchive.js';
 
@@ -31,7 +32,7 @@ export function makeFileSource(file) {
   return source;
 }
 
-// Android CBZ/ZIP 在解析前先流式落到 AppData，原生插件随后直接按路径随机读取。
+// Android 压缩包 / EPUB 在解析前先流式落到 AppData，原生插件随后直接按路径随机读取。
 // source.preStaged 让 persistBook 复用这份已写好的文件，避免导入后再整本复制一次。
 export async function stageNativeFileSource(bookId, file) {
   if (!canUseNativeStorage()) throw new Error('原生存档不可用');
@@ -379,7 +380,7 @@ async function resolveStoredFile(source, displayName) {
 }
 
 function parseStoredFile(file, options = {}) {
-  if (/\.epub$/i.test(file.name)) return parseEpubFileLazy(file);
+  if (/\.epub$/i.test(file.name)) return parseEpubFileLazy(file, options);
   if (/\.pdf$/i.test(file.name)) return parsePdfFileLazy(file);
   if (/\.(cbz|zip)$/i.test(file.name)) return parseCbzFileLazy(file, options);
   if (/\.(mobi|prc|azw)$/i.test(file.name)) return parseMobiFileLazy(file);
@@ -471,15 +472,26 @@ export async function hydrateBook(book) {
     const groups = buildImageFolderBooks(files);
     parsed = groups.length > 0 ? groups[0].book : null;
   } else {
-    // 安卓原生 CBZ/ZIP 不需要把整个原文件读回 JS；失败时才回退到 Blob 解析。
-    if (source.nativePath && /\.(cbz|zip)$/i.test(source.name || '') && canUseNativeArchive()) {
-      try {
-        parsed = await parseCbzNativeArchive(source.nativePath, {
-          id: book.id,
-          name: source.name
-        });
-      } catch (err) {
-        console.warn('[HOMURA] 原生压缩包恢复失败，回退完整存档读取', err);
+    // 安卓原生压缩包 / EPUB 不需要把整个原文件读回 JS；失败时才回退到 Blob 解析。
+    if (source.nativePath && canUseNativeArchive()) {
+      if (/\.epub$/i.test(source.name || '')) {
+        try {
+          parsed = await parseEpubNativeArchive(source.nativePath, {
+            id: book.id,
+            name: source.name
+          });
+        } catch (err) {
+          console.warn('[HOMURA] 原生 EPUB 恢复失败，回退完整存档读取', err);
+        }
+      } else if (/\.(cbz|zip)$/i.test(source.name || '')) {
+        try {
+          parsed = await parseCbzNativeArchive(source.nativePath, {
+            id: book.id,
+            name: source.name
+          });
+        } catch (err) {
+          console.warn('[HOMURA] 原生压缩包恢复失败，回退完整存档读取', err);
+        }
       }
     }
 
@@ -523,6 +535,7 @@ export async function hydrateBook(book) {
     ? (parsed.nativeArchivePath || source.nativePath || null)
     : null;
   book.nativeArchiveMode = parsed.nativeArchiveMode || null;
+  book.nativeEntryIndexByPath = parsed.nativeEntryIndexByPath || null;
   book.nativeArchiveStaged = false;
   // 书架元数据里保存的是小封面，重新解析出的大图不应覆盖它；
   // 只有旧存档没有封面时才回退到解析结果。

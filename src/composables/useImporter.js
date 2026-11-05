@@ -11,7 +11,8 @@ import { planFolderCollections, availableCollectionName, collectionNameError } f
 import { findSameTitleBook } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes } from '../services/platform.js';
-import { parseEpubFileLazy, parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
+import { parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
+import { makeEpubId, parseEpubFile } from '../services/epubParser.js';
 import { makeFileSource, makeFolderSource, stageNativeFileSource } from '../services/restore.js';
 import { canUseNativeArchive, releaseNativeArchiveSession } from '../services/nativeArchive.js';
 import { removeNativeBookDir } from '../services/nativeStorage.js';
@@ -108,8 +109,39 @@ export function useImporter() {
 
     const epubFiles = files.filter(f => /\.epub$/i.test(f.name));
     for (const epubFile of epubFiles) {
-      const book = await parseEpubFileLazy(epubFile);
-      if (book) await addBook(book, makeFileSource(epubFile));
+      const bookId = makeEpubId();
+      let source = makeFileSource(epubFile);
+      let nativePath = '';
+
+      // Android EPUB 同样先流式落到 AppData。原生解析只读 spine 文本和封面，
+      // 大画集不再把整个压缩包搬进 WebView 内存。
+      if (canUseNativeArchive()) {
+        try {
+          const staged = await stageNativeFileSource(bookId, epubFile);
+          source = staged;
+          nativePath = staged.nativePath;
+        } catch (err) {
+          console.warn('[HOMURA] 原生 EPUB 预存失败，沿用 JSZip', err);
+          await removeNativeBookDir(bookId).catch(() => {});
+        }
+      }
+
+      let book = null;
+      try {
+        book = await parseEpubFile(epubFile, {
+          id: bookId,
+          name: epubFile.name,
+          nativePath
+        });
+      } catch (err) {
+        console.warn('[HOMURA] EPUB 解析失败', err);
+      }
+      if (!book) {
+        if (nativePath) await removeNativeBookDir(bookId).catch(() => {});
+        continue;
+      }
+      book.nativeArchiveStaged = !!nativePath;
+      await addBook(book, source);
     }
 
     const pdfFiles = files.filter(f => /\.pdf$/i.test(f.name));

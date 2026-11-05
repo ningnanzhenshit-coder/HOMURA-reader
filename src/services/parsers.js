@@ -9,10 +9,9 @@ import JSZip from 'jszip';
 import { escapeHtml } from './utils.js';
 import { decodeTxtBytes } from './textEncoding.js';
 import { renderMarkdown } from './markdown.js';
-import { sanitizeEpubHtml } from './sanitize.js';
 import { parseMobiBuffer } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
-import { shouldReadEpubAsManga, TEXT_CHAPTER_MIN_LENGTH } from './epubType.js';
+import { parseEpubFile } from './epubParser.js';
 import {
   canUseNativeArchive,
   clearNativeArchiveBookCache,
@@ -42,163 +41,13 @@ export async function discardParsedBook(book) {
   }
 }
 
-
-// ---- EPUB 内部相对路径解析 ----
-
-function resolveRelativePath(basePath, relativePath) {
-  const baseDir = basePath.includes('/') ? basePath.substring(0, basePath.lastIndexOf('/') + 1) : '';
-  const stack = baseDir.split('/').filter(Boolean);
-  const parts = relativePath.split('/');
-  for (const p of parts) {
-    if (p === '..') stack.pop();
-    else if (p !== '.' && p !== '') stack.push(p);
-  }
-  return stack.join('/');
-}
-
 // ---- EPUB 解析：章节正文 + 图片型 EPUB 自动转漫画 ----
 // ---- CBZ / ZIP 解析：压缩包内图片按自然序排列 ----
 // ---- TXT / Markdown 解析：按章节标题切分 ----
 
-export async function parseEpubFileLazy(file) {
+export async function parseEpubFileLazy(file, options = {}) {
   try {
-    const zip = new JSZip();
-    const zipContent = await zip.loadAsync(file);
-
-    const containerFile = zipContent.file('META-INF/container.xml');
-    if (!containerFile) throw new Error('缺少 META-INF/container.xml');
-    const containerXml = await containerFile.async('text');
-    const parser = new DOMParser();
-    const containerDoc = parser.parseFromString(containerXml, 'text/xml');
-    const rootfileEl = containerDoc.querySelector('rootfile');
-    const opfPath = rootfileEl ? rootfileEl.getAttribute('full-path') : 'content.opf';
-    const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
-
-    const opfFile = zipContent.file(opfPath);
-    if (!opfFile) throw new Error('未找到 OPF 配置文件');
-    const opfText = await opfFile.async('text');
-    const opfDoc = parser.parseFromString(opfText, 'text/xml');
-
-    const titleEl = opfDoc.querySelector('title, dc\\:title');
-    const bookTitle = titleEl ? titleEl.textContent.trim() : file.name.replace(/(\.kepub)?\.epub$/i, '');
-
-    const manifest = {};
-    opfDoc.querySelectorAll('manifest > item').forEach(item => {
-      manifest[item.getAttribute('id')] = {
-        href: item.getAttribute('href'),
-        mediaType: item.getAttribute('media-type') || ''
-      };
-    });
-
-    const spineIds = [];
-    opfDoc.querySelectorAll('spine > itemref').forEach(ref => {
-      spineIds.push(ref.getAttribute('idref'));
-    });
-
-    const lazyMangaEntries = [];
-    const seenGlobalPaths = new Set();
-    const chapters = [];
-    let imageHeavyCount = 0;
-    let textChapterCount = 0;
-
-    for (const idref of spineIds) {
-      const item = manifest[idref];
-      if (!item) continue;
-      const fullPath = opfDir + decodeURIComponent(item.href);
-      const entry = zipContent.file(fullPath) || zipContent.file(item.href);
-      if (!entry) continue;
-
-      const rawHtml = await entry.async('text');
-      const htmlDoc = parser.parseFromString(rawHtml, 'text/html');
-      const imgs = htmlDoc.querySelectorAll('img, image');
-      const foundEntriesInPage = [];
-      const seenInCurrentPage = new Set();
-
-      for (const img of imgs) {
-        const srcAttr = img.getAttribute('src') || img.getAttribute('xlink:href') || img.getAttribute('href');
-        if (srcAttr && !srcAttr.startsWith('http') && !srcAttr.startsWith('data:')) {
-          const cleanSrc = decodeURIComponent(srcAttr.split('#')[0]);
-          const resolved = resolveRelativePath(fullPath, cleanSrc);
-          const imgEntry = zipContent.file(resolved) || zipContent.file(cleanSrc);
-          if (imgEntry) {
-            img.setAttribute('data-zip-path', imgEntry.name);
-            if (!seenInCurrentPage.has(imgEntry.name)) {
-              seenInCurrentPage.add(imgEntry.name);
-              foundEntriesInPage.push(imgEntry);
-            }
-          }
-        }
-      }
-
-      const plainText = (htmlDoc.body?.textContent || '').trim();
-      if (plainText.length >= TEXT_CHAPTER_MIN_LENGTH) textChapterCount++;
-      if (foundEntriesInPage.length > 0 && plainText.length < 60) {
-        imageHeavyCount++;
-        foundEntriesInPage.forEach(ent => {
-          if (!seenGlobalPaths.has(ent.name)) {
-            seenGlobalPaths.add(ent.name);
-            lazyMangaEntries.push({ zipEntry: ent, url: null });
-          }
-        });
-      }
-
-      const chapterHeading = htmlDoc.querySelector('h1, h2, h3, title')?.textContent?.trim()
-        || item.href.split('/').pop().replace(/\.[^.]+$/, '');
-      const bodyHtml = sanitizeEpubHtml(htmlDoc.body ? htmlDoc.body.innerHTML : rawHtml);
-
-      if (bodyHtml.length > 0) {
-        chapters.push({
-          title: chapterHeading,
-          htmlContent: bodyHtml
-        });
-      }
-    }
-
-    // 轻小说的封面和彩插同样是零文字页，判定漫画时必须同时看正文页占比。
-    const isMangaEpub = shouldReadEpubAsManga({
-      chapterCount: chapters.length,
-      textChapterCount,
-      imageHeavyChapterCount: imageHeavyCount,
-      imageCount: lazyMangaEntries.length
-    });
-
-    if (isMangaEpub && lazyMangaEntries.length > 0) {
-      const firstBlob = await lazyMangaEntries[0].zipEntry.async('blob');
-      const coverUrl = URL.createObjectURL(firstBlob);
-      lazyMangaEntries[0].url = coverUrl;
-
-      return {
-        id: 'epub_manga_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        type: 'manga',
-        format: 'epub',
-        title: bookTitle,
-        cover: coverUrl,
-        coverBlob: firstBlob,
-        pageItems: lazyMangaEntries,
-        pageCount: lazyMangaEntries.length
-      };
-    }
-
-    if (chapters.length === 0) throw new Error('未能提取出有效章节内容');
-
-    let coverUrl = null;
-    let coverBlob = null;
-    if (lazyMangaEntries.length > 0) {
-      coverBlob = await lazyMangaEntries[0].zipEntry.async('blob');
-      coverUrl = URL.createObjectURL(coverBlob);
-    }
-
-    return {
-      id: 'epub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      type: 'epub',
-      format: 'epub',
-      title: bookTitle,
-      cover: coverUrl,
-      coverBlob: coverBlob,
-      zipContent: zipContent,
-      chapters: chapters,
-      pageCount: chapters.length
-    };
+    return await parseEpubFile(file, options);
   } catch (err) {
     console.error(err);
     return null;
