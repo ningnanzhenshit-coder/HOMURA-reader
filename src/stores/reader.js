@@ -24,7 +24,7 @@ const LAYOUT_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
 const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 export const WEBTOON_FIT_LABELS = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
 export const NOVEL_FONT_MIN = 12;
-export const NOVEL_FONT_MAX = 48;
+export const NOVEL_FONT_MAX = 28;
 
 export const useReaderStore = defineStore('reader', () => {
   const settings = useSettingsStore();
@@ -48,6 +48,7 @@ export const useReaderStore = defineStore('reader', () => {
   const activeTransitionAnims = shallowRef([]);
   const preloadTimer = ref(null);
   const resizeTimer = ref(null);
+  let fontPaginationTimer = 0;
   // App.vue 的 #novelPaginationMeasurer 隐藏 div，供智能分页实测 scrollHeight
   const measurerEl = shallowRef(null);
 
@@ -206,6 +207,8 @@ export const useReaderStore = defineStore('reader', () => {
       if (token !== openRequestToken) return false;
       clearTimeout(preloadTimer.value);
       clearTimeout(resizeTimer.value);
+      clearTimeout(fontPaginationTimer);
+      fontPaginationTimer = 0;
       renderToken.value++;
       webtoonObserver.value?.disconnect();
       webtoonObserver.value = null;
@@ -268,6 +271,8 @@ export const useReaderStore = defineStore('reader', () => {
       webtoonObserver.value = null;
     }
     clearTimeout(preloadTimer.value);
+    clearTimeout(fontPaginationTimer);
+    fontPaginationTimer = 0;
     const closedBook = currentBook.value;
     currentBook.value = null;
     void releaseNativeArchiveSession(closedBook);
@@ -278,6 +283,8 @@ export const useReaderStore = defineStore('reader', () => {
 
   // 小说重排：保持阅读比例不变，按新窗口 / 字号 / 单双页重新切页
   function recalculateNovelPaginationAndRender() {
+    clearTimeout(fontPaginationTimer);
+    fontPaginationTimer = 0;
     const book = currentBook.value;
     if (!book || book.type === 'manga' || !measurerEl.value) return;
     const oldTotal = activePages.value.length;
@@ -347,9 +354,21 @@ export const useReaderStore = defineStore('reader', () => {
   function setFontSize(value) {
     if (!currentBook.value || currentBook.value.type === 'manga' || !Number.isFinite(Number(value))) return;
     const size = Math.min(NOVEL_FONT_MAX, Math.max(NOVEL_FONT_MIN, Math.round(Number(value))));
-    if (size === layoutConfig.fontSize) return;
+    if (size === layoutConfig.fontSize) {
+      // 拖动回到原字号时，取消尚未执行的整本重排即可，当前页仍然有效。
+      clearTimeout(fontPaginationTimer);
+      fontPaginationTimer = 0;
+      return;
+    }
     layoutConfig.fontSize = size;
-    recalculateNovelPaginationAndRender();
+    // 先让当前页立即反馈新字号，再在停止拖动后统一重排整本。
+    // 拖一次滑块会触发几十个 input 事件，逐次同步分页会直接卡死主线程。
+    touchProgress();
+    clearTimeout(fontPaginationTimer);
+    fontPaginationTimer = setTimeout(() => {
+      fontPaginationTimer = 0;
+      recalculateNovelPaginationAndRender();
+    }, 140);
   }
 
   function changeFontSize(delta) {

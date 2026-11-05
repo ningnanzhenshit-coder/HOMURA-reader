@@ -173,11 +173,82 @@ export async function ensureBookImagesResolved(book, concurrency = 8) {
 // 返回 activePages 数组，不写任何全局状态
 
 // 长段落按实际高度二分切开，保留行内标记；不依赖句号，避免整段被裁掉。
+// 纯文本段落走按行数估算的快路径，只做少量实测校正；带行内标记的段落
+// 继续使用 Range 精确切分，避免为了性能丢掉 strong/em 等结构。
+function splitPlainTextParagraph(text, measurer, maxHeight) {
+  if (!text) return null;
+  measurer.innerHTML = '<p></p>';
+  const paragraph = measurer.firstElementChild;
+  if (!paragraph) return null;
+
+  paragraph.textContent = text;
+  const fullHeight = measureBlockHeight(measurer);
+  if (fullHeight <= maxHeight) return [`<p>${escapeHtml(text)}</p>`];
+
+  const lineHeight = parseFloat(getComputedStyle(paragraph).lineHeight);
+  if (!Number.isFinite(lineHeight) || lineHeight <= 0) return null;
+
+  const parts = [];
+  let start = 0;
+  while (start < text.length) {
+    const remaining = text.length - start;
+    let guess = Math.max(1, Math.min(remaining, Math.round(remaining * maxHeight / fullHeight)));
+    let measured = 0;
+
+    // 按行数做少量比例校正，通常 1-2 次即可贴满一页；每次都以真实布局为准。
+    for (let round = 0; round < 4; round++) {
+      paragraph.textContent = text.slice(start, start + guess);
+      measured = measureBlockHeight(measurer);
+      if (measured <= maxHeight) {
+        const spareLines = Math.floor((maxHeight - measured) / lineHeight);
+        if (spareLines < 1) break;
+        const lines = Math.max(1, measured / lineHeight);
+        const charsPerLine = Math.max(1, guess / lines);
+        const next = Math.min(remaining, guess + Math.floor(spareLines * charsPerLine));
+        if (next <= guess) break;
+        guess = next;
+      } else {
+        const next = Math.max(1, Math.min(guess - 1, Math.floor(guess * maxHeight / measured)));
+        if (next >= guess) break;
+        guess = next;
+      }
+    }
+
+    paragraph.textContent = text.slice(start, start + guess);
+    measured = measureBlockHeight(measurer);
+    if (measured > maxHeight) {
+      let low = 1;
+      let high = guess - 1;
+      let fit = 1;
+      while (low <= high) {
+        const middle = Math.floor((low + high) / 2);
+        paragraph.textContent = text.slice(start, start + middle);
+        if (measureBlockHeight(measurer) <= maxHeight) {
+          fit = middle;
+          low = middle + 1;
+        } else {
+          high = middle - 1;
+        }
+      }
+      guess = fit;
+    }
+
+    parts.push(`<p>${escapeHtml(text.slice(start, start + guess))}</p>`);
+    start += guess;
+  }
+  return parts;
+}
+
 export function splitLongParagraph(html, measurer, maxHeight) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
   const source = wrapper.firstElementChild;
   if (!source || source.tagName !== 'P' || source.querySelector('img, svg, image')) return [html];
+
+  if (source.children.length === 0) {
+    const plainParts = splitPlainTextParagraph(source.textContent, measurer, maxHeight);
+    if (plainParts) return plainParts;
+  }
 
   // <br> 没有文本，但换行本身占高度；把它当作一个虚拟字符参与 Range 定位。
   const atoms = [];
@@ -253,7 +324,7 @@ export function splitLongParagraph(html, measurer, maxHeight) {
     while (low <= high) {
       const middle = Math.floor((low + high) / 2);
       measurer.innerHTML = fragment(offsets[start], offsets[middle]);
-      if (measurer.scrollHeight <= maxHeight) { fit = middle; low = middle + 1; }
+      if (measureBlockHeight(measurer) <= maxHeight) { fit = middle; low = middle + 1; }
       else high = middle - 1;
     }
     parts.push(fragment(offsets[start], offsets[fit]));
@@ -264,6 +335,19 @@ export function splitLongParagraph(html, measurer, maxHeight) {
 
 const NOVEL_CONTAINER_TAGS = new Set(['body', 'main', 'section', 'article', 'div', 'header', 'footer', 'aside']);
 const novelPageCache = new WeakMap();
+
+// 分页只关心“这一页最后一行的底部”，不应把最后一段的 margin-bottom
+// 也算成溢出。否则 1px 的下边距就会把整段拆到下一页，页数翻倍且大幅变慢。
+function measureBlockHeight(measurer) {
+  const last = measurer.lastElementChild;
+  if (last && typeof last.getBoundingClientRect === 'function') {
+    const rect = last.getBoundingClientRect();
+    if (rect.height > 0) {
+      return rect.bottom - measurer.getBoundingClientRect().top;
+    }
+  }
+  return measurer.scrollHeight;
+}
 
 // EPUB 常把整章包在 section/div 里；结构容器必须拆开分页，否则含图的整章会被裁成一页。
 // 只在容器没有直接文本时递归展开，避免丢掉混在子元素之间的文字。
@@ -379,7 +463,7 @@ export function buildActivePages(book, layoutConfig, measurer) {
       const previousChildCount = measurer.childNodes.length;
       measurer.insertAdjacentHTML('beforeend', blk.html);
 
-      if (measurer.scrollHeight <= availableTextHeight) {
+      if (measureBlockHeight(measurer) <= availableTextHeight) {
         currentPageParts.push(blk.html);
       } else {
         // 只移除刚测高的块，避免每加一段都重新解析整页 HTML。
@@ -388,7 +472,7 @@ export function buildActivePages(book, layoutConfig, measurer) {
         }
         if (currentPageParts.length) flushCurrentPage();
         measurer.innerHTML = blk.html;
-        const parts = measurer.scrollHeight > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
+        const parts = measureBlockHeight(measurer) > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
         for (let index = 0; index < parts.length; index++) {
           const part = parts[index];
           measurer.innerHTML = part;
@@ -400,7 +484,7 @@ export function buildActivePages(book, layoutConfig, measurer) {
             });
           } else {
             currentPageParts = [part];
-            if (measurer.scrollHeight > availableTextHeight) flushCurrentPage();
+            if (measureBlockHeight(measurer) > availableTextHeight) flushCurrentPage();
           }
         }
       }

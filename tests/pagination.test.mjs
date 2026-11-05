@@ -48,6 +48,39 @@ test('长段落中的 br 与行内标记可安全跨页拆分', () => {
   assert.ok(parts.some(part => part.includes('<em>')));
 });
 
+test('段落末尾的 margin 不计入分页高度', () => {
+  const measurer = document.createElement('div');
+  Object.defineProperty(measurer, 'scrollHeight', {
+    get() {
+      // 模拟真实布局：scrollHeight 把最后一段的 margin-bottom 一并算进去。
+      return this.textContent.length * 10 + 25;
+    }
+  });
+
+  const originalGetRect = dom.window.Element.prototype.getBoundingClientRect;
+  const originalGetStyle = window.getComputedStyle;
+  dom.window.Element.prototype.getBoundingClientRect = function() {
+    if (this === measurer) return { top: 0, bottom: 0, height: 0 };
+    if (this.tagName === 'P' && measurer.contains(this)) {
+      const height = this.textContent.length * 10;
+      return { top: 0, bottom: height, height };
+    }
+    return { top: 0, bottom: 0, height: 0 };
+  };
+  window.getComputedStyle = element => (
+    element.tagName === 'P' ? { lineHeight: '10px' } : originalGetStyle(element)
+  );
+
+  const text = '字'.repeat(100);
+  try {
+    // scrollHeight 是 1025，但正文实际只有 1000，不应该被拆成两页。
+    assert.deepEqual(splitLongParagraph(`<p>${text}</p>`, measurer, 1000), [`<p>${text}</p>`]);
+  } finally {
+    dom.window.Element.prototype.getBoundingClientRect = originalGetRect;
+    window.getComputedStyle = originalGetStyle;
+  }
+});
+
 test('含不可拆分媒体时保留原始段落', () => {
   const html = '<p>正文<img src="cover.jpg" alt=""></p>';
   const measurer = document.createElement('div');
