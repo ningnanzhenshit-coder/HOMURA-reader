@@ -36,37 +36,52 @@
       </template>
 
       <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="-translate-y-3 opacity-0"
+        enter-active-class="md-reader-bar-enter-active"
+        enter-from-class="-translate-y-2 opacity-0"
         enter-to-class="translate-y-0 opacity-100"
-        leave-active-class="transition duration-150 ease-in"
+        leave-active-class="md-reader-bar-leave-active"
         leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="-translate-y-3 opacity-0"
+        leave-to-class="-translate-y-2 opacity-0"
       >
         <ReaderTopBar
           v-if="ui.readerChromeVisible"
-          class="absolute top-0 inset-x-0 z-30"
           @back="dismissWithPredictiveBack"
         />
       </Transition>
 
       <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="translate-y-3 opacity-0"
+        enter-active-class="md-reader-bar-enter-active"
+        enter-from-class="translate-y-2 opacity-0"
         enter-to-class="translate-y-0 opacity-100"
-        leave-active-class="transition duration-150 ease-in"
+        leave-active-class="md-reader-bar-leave-active"
         leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="translate-y-3 opacity-0"
+        leave-to-class="translate-y-2 opacity-0"
       >
-        <ReaderBottomBar v-if="ui.readerChromeVisible" class="absolute bottom-0 inset-x-0 z-30" />
+        <ReaderBottomBar v-if="ui.readerChromeVisible" />
       </Transition>
 
       <ReaderTocDrawer />
       <ReaderSettingsDrawer />
       <ReaderCollectionDrawer />
-      <div v-if="reader.openingBook || reader.openError" class="absolute top-[72px] inset-x-4 z-50 px-4 py-3 rounded-2xl bg-[var(--md-surface-container)] text-[var(--md-on-surface)] text-[13px] flex items-center gap-3" :role="reader.openError ? 'alert' : 'status'">
-        <span class="flex-1 break-words">{{ reader.openError || '正在打开书本…' }}</span><button v-if="reader.openError" class="md-library-text-button" @click="reader.clearOpenError()">关闭</button>
-      </div>
+      <Transition
+        enter-active-class="md-fade-enter-active"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="md-fade-leave-active"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="reader.openingBook || reader.openError"
+          class="md-reader-status"
+          :role="reader.openError ? 'alert' : 'status'"
+          :aria-live="reader.openError ? 'assertive' : 'polite'"
+        >
+          <span v-if="!reader.openError" class="md-reader-spinner" aria-hidden="true"></span>
+          <span class="md-reader-status-copy">{{ reader.openError || '正在打开书本…' }}</span>
+          <button v-if="reader.openError" type="button" class="md-text-button" @click="reader.clearOpenError()">关闭</button>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -119,7 +134,7 @@ const columnReserveStyle = computed(() =>
 function onMouseMove(e) {
   if (e.pointerType !== 'mouse' || e.buttons) return;
   if (!reader.currentBook) return;
-  const nearEdge = e.clientY <= 72 || e.clientY >= window.innerHeight - 72;
+  const nearEdge = e.clientY <= 88 || e.clientY >= window.innerHeight - 88;
   if (nearEdge || ui.readerChromeVisible) ui.showChrome();
 }
 

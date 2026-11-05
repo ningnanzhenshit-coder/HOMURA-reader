@@ -29,7 +29,7 @@ defineEmits(['update:modelValue']);
 .md-switch-row {
   display: flex;
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   align-items: center;
   justify-content: space-between;
   color: var(--md-on-surface);

@@ -1,10 +1,10 @@
 <template>
-  <!-- 目录抽屉 -->
+  <!-- 目录抽屉：M3 side sheet / bottom sheet，与设置和本目录共用外壳 -->
   <Transition
-    enter-active-class="transition-opacity duration-200"
+    enter-active-class="md-fade-enter-active"
     enter-from-class="opacity-0"
     enter-to-class="opacity-100"
-    leave-active-class="transition-opacity duration-150"
+    leave-active-class="md-fade-leave-active"
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
@@ -13,69 +13,67 @@
 
   <Transition
     enter-active-class="md-sheet-enter-active"
-    :enter-from-class="isCompact ? 'translate-y-full' : '-translate-x-full'"
+    :enter-from-class="isCompact ? 'translate-y-full' : 'translate-x-full'"
     :enter-to-class="isCompact ? 'translate-y-0' : 'translate-x-0'"
     leave-active-class="md-sheet-leave-active"
     :leave-from-class="isCompact ? 'translate-y-0' : 'translate-x-0'"
-    :leave-to-class="isCompact ? 'translate-y-full' : '-translate-x-full'"
+    :leave-to-class="isCompact ? 'translate-y-full' : 'translate-x-full'"
   >
     <aside
       v-if="ui.tocOpen"
       ref="tocSheetRef"
-      class="absolute z-50 bg-[var(--md-surface-container)] shadow-2xl flex flex-col"
-      :class="isCompact
-        ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-[28px]'
-        : 'inset-y-0 left-0 w-[320px] max-w-[88%] h-full rounded-r-[28px]'"
-      :style="isCompact ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
+      id="reader-toc-drawer"
+      class="md-drawer"
+      aria-labelledby="reader-toc-title"
     >
-      <div
-        v-if="isCompact"
-        class="mobile-sheet-drag-zone h-9 flex shrink-0 items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
-        @pointerdown="onSheetDragStart"
-        @pointermove="onSheetDragMove"
-        @pointerup="onSheetDragEnd"
-        @pointercancel="onSheetDragCancel"
-      >
-        <span class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></span>
-      </div>
-      <div class="h-14 px-4 flex items-center justify-between shrink-0">
-        <h3 class="text-[17px] font-semibold">目录</h3>
-        <button @click="ui.closeToc()" class="md-hit-target w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition" title="关闭" aria-label="关闭目录">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
-      </div>
+      <ReaderDrawerHeader
+        :is-compact="isCompact"
+        title="目录"
+        :subtitle="tocSubtitle"
+        title-id="reader-toc-title"
+        close-label="关闭目录"
+        @close="ui.closeToc()"
+        @drag-start="onSheetDragStart"
+        @drag-move="onSheetDragMove"
+        @drag-end="onSheetDragEnd"
+        @drag-cancel="onSheetDragCancel"
+      />
 
-      <div class="flex-1 overflow-y-auto overscroll-contain px-3 py-2">
+      <div class="md-drawer-body px-3 pb-4">
         <!-- 漫画：页码网格 -->
-        <div v-if="isManga" class="grid grid-cols-5 gap-2">
+        <nav v-if="isManga" class="md-toc-grid" aria-label="漫画页码">
           <button
             v-for="(page, idx) in reader.activePages"
             :key="idx"
+            type="button"
             @click="jumpTo(idx)"
-            class="h-11 rounded-lg border-[0.5px] text-[12px] font-mono font-bold transition"
-            :style="idx === reader.currentIndex
-              ? 'background-color: var(--md-primary); border-color: var(--md-primary); color: var(--md-on-primary);'
-              : 'background-color: var(--md-surface-high); border-color: transparent; color: var(--md-on-surface-variant);'"
+            class="md-toc-page"
+            :class="{ 'is-active': idx === reader.currentIndex }"
+            :aria-label="`跳转到第 ${idx + 1} 页`"
+            :aria-current="idx === reader.currentIndex ? 'page' : undefined"
           >
             {{ idx + 1 }}
           </button>
-        </div>
+        </nav>
 
         <!-- 小说 / EPUB：章节列表 -->
-        <div v-else class="flex flex-col gap-0.5">
+        <nav v-else class="flex flex-col gap-1 pb-3" aria-label="章节目录">
           <button
-            v-for="group in groups"
+            v-for="(group, index) in groups"
             :key="group.key"
+            type="button"
             @click="jumpTo(group.index)"
-            class="w-full min-h-11 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition truncate"
-            :class="isCurrentChapter(group)
-              ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]'
-              : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-high)]'"
+            class="md-drawer-list-item"
+            :class="{ 'is-active': isCurrentChapter(group) }"
+            :title="group.title"
+            :aria-current="isCurrentChapter(group) ? 'true' : undefined"
           >
-            <span class="line-clamp-2 leading-snug">{{ group.title }}</span>
+            <span class="md-drawer-item-index" aria-hidden="true">{{ String(index + 1).padStart(2, '0') }}</span>
+            <span class="md-drawer-item-label line-clamp-2">{{ group.title }}</span>
+            <span v-if="isCurrentChapter(group)" class="md-drawer-item-meta">正在阅读</span>
           </button>
-          <p v-if="groups.length === 0" class="py-8 text-center text-xs text-[var(--md-on-surface-variant)]">暂无章节信息</p>
-        </div>
+          <p v-if="groups.length === 0" class="py-10 text-center text-[13px] text-[var(--md-on-surface-variant)]">暂无章节信息</p>
+        </nav>
       </div>
     </aside>
   </Transition>
@@ -87,6 +85,7 @@ import { useReaderStore } from '../stores/reader.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
+import ReaderDrawerHeader from './ReaderDrawerHeader.vue';
 
 const reader = useReaderStore();
 const ui = useUiStore();
@@ -123,6 +122,12 @@ const groups = computed(() => {
     map.get(key).end = idx;
   });
   return [...map.values()];
+});
+
+const tocSubtitle = computed(() => {
+  const pages = reader.activePages.length;
+  if (isManga.value) return `${pages} 页`;
+  return `${groups.value.length} 章 · ${pages} 页`;
 });
 
 function isCurrentChapter(group) {

@@ -1,40 +1,39 @@
 <template>
-  <!-- 阅读器底部栏：页码 + MD3 胶囊进度滑条 + 上一页/下一页 -->
-  <footer
-    class="shrink-0 min-h-[72px] min-[900px]:min-h-20 px-3 min-[900px]:px-[22px] flex items-center gap-2 min-[900px]:gap-3.5 bg-[var(--md-surface)] border-t-[0.5px] border-[var(--md-outline-variant)]"
-    :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }"
-  >
+  <!-- 阅读器底部栏：M3 floating bottom app bar + 进度滑条 -->
+  <footer class="md-reader-bottombar" aria-label="阅读进度与翻页">
     <button
+      type="button"
       @click="reader.onLeftButtonClick()"
-      class="w-11 h-11 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
-      :class="inverted
-        ? 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'
-        : 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+      class="md-icon-button"
+      :class="{ 'is-filled': inverted }"
       :title="leftText"
       :aria-label="leftText"
       :disabled="reader.openingBook"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
       </svg>
     </button>
 
-    <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0 whitespace-nowrap">{{ reader.pageIndicator }}</span>
-
-    <input
-      type="range"
-      min="0"
-      :max="Math.max(0, reader.activePages.length - 1)"
-      :value="reader.sliderValue"
-      @input="reader.onSliderInput($event.target.value)"
-      class="md-range flex-1 min-w-0"
-      :class="{ 'rtl-slider': inverted }"
-      title="拖动跳转"
-      aria-label="拖动跳转"
-      :disabled="reader.openingBook"
-    />
-
-    <span class="font-mono text-[12px] min-[900px]:text-[12px] text-[var(--md-on-surface-variant)] tabular-nums shrink-0">{{ percentText }}</span>
+    <div class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5">
+      <div class="flex items-baseline justify-between gap-3 px-1 font-mono text-[10.5px] leading-4 text-[var(--md-on-surface-variant)] tabular-nums">
+        <span class="truncate">{{ reader.pageIndicator }}</span>
+        <span class="shrink-0 font-medium text-[var(--md-on-surface)]">{{ percentText }}</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        :max="Math.max(0, reader.activePages.length - 1)"
+        :value="reader.sliderValue"
+        @input="reader.onSliderInput($event.target.value)"
+        class="md-range w-full min-w-0"
+        :class="{ 'rtl-slider': inverted }"
+        title="拖动跳转"
+        aria-label="阅读进度"
+        :aria-valuetext="`${reader.pageIndicator}，${percentText}`"
+        :disabled="reader.openingBook"
+      />
+    </div>
 
     <!-- 桌面快捷：单页 / 双页 -->
     <div v-if="!isVertical" class="hidden min-[900px]:block shrink-0 ml-1.5">
@@ -42,22 +41,21 @@
         :model-value="config.spread"
         :options="spreadOptions"
         aria-label="翻页布局"
-        style="--md-segmented-bg: var(--md-surface-container)"
+        style="--md-segmented-bg: var(--md-surface-high)"
         @update:model-value="value => reader.setSpreadCount(Number(value))"
       />
     </div>
 
     <button
+      type="button"
       @click="reader.onRightButtonClick()"
-      class="w-11 h-11 shrink-0 rounded-full grid place-items-center transition-colors duration-200"
-      :class="inverted
-        ? 'text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'
-        : 'bg-[var(--md-primary)] text-[var(--md-on-primary)]'"
+      class="md-icon-button"
+      :class="{ 'is-filled': !inverted }"
       :title="rightText"
       :aria-label="rightText"
       :disabled="reader.openingBook"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
       </svg>
     </button>

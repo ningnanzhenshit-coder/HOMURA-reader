@@ -22,42 +22,35 @@
     <aside
       v-if="ui.settingsOpen"
       ref="settingsSheetRef"
-      class="absolute z-50 flex flex-col bg-[var(--md-surface-container)] shadow-2xl"
-      :class="isCompact
-        ? 'inset-x-0 bottom-0 w-full max-h-[78dvh] rounded-t-[28px]'
-        : 'inset-y-0 right-0 w-[372px] max-w-[92%] h-full rounded-l-[28px]'"
-      :style="isCompact ? { paddingBottom: 'env(safe-area-inset-bottom)' } : null"
+      id="reader-settings-drawer"
+      class="md-drawer"
+      aria-labelledby="reader-settings-title"
     >
+      <ReaderDrawerHeader
+        :is-compact="isCompact"
+        title="阅读设置"
+        subtitle="排版、外观与自定义封面"
+        title-id="reader-settings-title"
+        close-label="关闭阅读设置"
+        @close="ui.closeSettings()"
+        @drag-start="onSheetDragStart"
+        @drag-move="onSheetDragMove"
+        @drag-end="onSheetDragEnd"
+        @drag-cancel="onSheetDragCancel"
+      />
+
       <div
-        v-if="isCompact"
-        class="mobile-sheet-drag-zone h-9 flex shrink-0 items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
-        @pointerdown="onSheetDragStart"
-        @pointermove="onSheetDragMove"
-        @pointerup="onSheetDragEnd"
-        @pointercancel="onSheetDragCancel"
+        ref="scrollRef"
+        class="md-drawer-body reader-settings-scroll px-5 min-[900px]:px-6"
+        :class="{ 'has-overflow': hasOverflow }"
+        :style="{ overflowY: hasOverflow ? 'auto' : 'hidden' }"
       >
-        <span class="w-8 h-1 rounded-full bg-[var(--md-outline-variant)]"></span>
-      </div>
-
-      <div class="px-[22px] pt-2 pb-1 flex items-center justify-between shrink-0">
-        <h3 class="text-[17px] font-semibold leading-tight">阅读设置</h3>
-        <button
-          @click="ui.closeSettings()"
-          class="md-hit-target w-10 h-10 -mr-1 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-high)] transition-colors"
-          title="关闭"
-          aria-label="关闭阅读设置"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
-      </div>
-
-      <div ref="scrollRef" class="reader-settings-scroll flex-1 min-h-0 overscroll-contain px-[22px]" :class="{ 'has-overflow': hasOverflow }" :style="{ overflowY: hasOverflow ? 'auto' : 'hidden' }">
         <div ref="contentRef" class="pb-2">
         <!-- 阅读方向 -->
-        <section class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
-          <div class="flex items-baseline justify-between mb-3">
-            <span class="text-[12px] font-semibold">阅读方向</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ directionLabel }}</b>
+        <section class="md-drawer-section">
+          <div class="md-drawer-group-head">
+            <span class="md-drawer-group-label">阅读方向</span>
+            <b class="md-drawer-group-value">{{ directionLabel }}</b>
           </div>
           <MdSegmentedControl
             class="w-full"
@@ -74,15 +67,15 @@
             title="反转 RTL 模式下左右翻页按钮的方向"
             @update:model-value="reader.toggleRtlTapInvert()"
           >
-            <span class="text-[12px] font-medium">左右翻页按钮反转</span>
+            <span class="text-[13px] font-medium">左右翻页按钮反转</span>
           </MdSwitch>
         </section>
 
         <!-- 翻页布局 -->
-        <section v-if="!isVertical || isManga" class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
-          <div class="flex items-baseline justify-between mb-3">
-            <span class="text-[12px] font-semibold">{{ isVertical ? '条漫尺寸' : '翻页布局' }}</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ spreadLabel }}</b>
+        <section v-if="!isVertical || isManga" class="md-drawer-section">
+          <div class="md-drawer-group-head">
+            <span class="md-drawer-group-label">{{ isVertical ? '条漫尺寸' : '翻页布局' }}</span>
+            <b class="md-drawer-group-value">{{ spreadLabel }}</b>
           </div>
           <MdSegmentedControl
             v-if="!isVertical && !isPhone"
@@ -93,7 +86,7 @@
             @update:model-value="value => reader.setSpreadCount(Number(value))"
           />
 
-          <p v-if="!isVertical && isPhone" class="mt-3 text-[12px] text-[var(--md-on-surface-variant)] leading-relaxed">
+          <p v-if="!isVertical && isPhone" class="mt-3 text-[13px] leading-relaxed text-[var(--md-on-surface-variant)]">
             当前屏幕按单页显示，窗口变宽后可选择双页。
           </p>
 
@@ -104,7 +97,7 @@
             title="双页模式下首页单独显示，确保后续跨页大图对齐"
             @update:model-value="reader.toggleCoverOffset()"
           >
-            <span class="text-[12px] font-medium">首页单排</span>
+            <span class="text-[13px] font-medium">首页单排</span>
           </MdSwitch>
 
           <MdSegmentedControl
@@ -118,51 +111,55 @@
         </section>
 
         <!-- 排版 -->
-        <section v-if="!isManga" class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
-          <div class="flex items-baseline justify-between mb-3">
-            <span class="text-[12px] font-semibold">字号</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ config.fontSize }} px</b>
+        <section v-if="!isManga" class="md-drawer-section">
+          <div class="md-drawer-group-head">
+            <span class="md-drawer-group-label">字号</span>
+            <b class="md-drawer-group-value">{{ config.fontSize }} px</b>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="grid grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-3">
             <button
+              type="button"
               @click="reader.changeFontSize(-1)"
               :disabled="config.fontSize <= NOVEL_FONT_MIN"
-              class="w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              class="md-icon-button is-outlined"
               title="减小字号"
+              aria-label="减小字号"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
             </button>
             <input class="reader-font-number" type="number" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号数值" @change="onFontNumberChange" />
             <button
+              type="button"
               @click="reader.changeFontSize(1)"
               :disabled="config.fontSize >= NOVEL_FONT_MAX"
-              class="w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-surface-high)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-highest)] transition-colors"
+              class="md-icon-button is-outlined"
               title="增大字号"
+              aria-label="增大字号"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
             </button>
           </div>
-          <input type="range" class="reader-font-range mt-3 w-full" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号滑块" @input="reader.setFontSize($event.target.value)" />
+          <input type="range" class="md-range mt-3 w-full" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号滑块" @input="reader.setFontSize($event.target.value)" />
           <p class="mt-2 text-[11px] leading-relaxed text-[var(--md-on-surface-variant)]">{{ NOVEL_FONT_MIN }}–{{ NOVEL_FONT_MAX }} px · 每页行数随字号和窗口自动调整，按书记忆。</p>
         </section>
 
         <!-- 外观 -->
-        <section class="py-3.5 border-t-[0.5px] border-b-[0.5px] border-[var(--md-outline-variant)]">
-          <div class="flex items-baseline justify-between mb-3">
-            <span class="text-[12px] font-semibold">阅读模式</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ modeLabel }}</b>
+        <section class="md-drawer-section">
+          <div class="md-drawer-group-head">
+            <span class="md-drawer-group-label">阅读模式</span>
+            <b class="md-drawer-group-value">{{ modeLabel }}</b>
           </div>
           <SurfaceModePreview />
 
-          <div class="flex items-baseline justify-between mt-4 mb-3">
-            <span class="text-[12px] font-semibold">主题色</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ themeLabel }}</b>
+          <div class="md-drawer-group-head mt-4">
+            <span class="md-drawer-group-label">主题色</span>
+            <b class="md-drawer-group-value">{{ themeLabel }}</b>
           </div>
           <ThemeSwatchGrid />
 
-          <div class="flex items-baseline justify-between mt-4 mb-3">
-            <span class="text-[12px] font-semibold">翻页过渡</span>
-            <b class="font-mono text-[12px] font-medium text-[var(--md-on-surface-variant)]">{{ TRANSITION_LABELS[theme.transitionStyle] }}</b>
+          <div class="md-drawer-group-head mt-4">
+            <span class="md-drawer-group-label">翻页过渡</span>
+            <b class="md-drawer-group-value">{{ TRANSITION_LABELS[theme.transitionStyle] }}</b>
           </div>
           <MdSegmentedControl
             class="w-full"
@@ -172,17 +169,17 @@
             @update:model-value="theme.setTransitionStyle"
           />
         </section>
-        <section class="py-3.5 border-t-[0.5px] border-[var(--md-outline-variant)]">
-          <h4 class="text-[12px] font-semibold mb-3">自定义封面</h4>
-          <div class="flex gap-3 items-center">
+        <section class="md-drawer-section">
+          <h3 class="md-drawer-group-label mb-3">自定义封面</h3>
+          <div class="flex items-center gap-3">
             <div class="reader-cover-preview">
               <img v-if="currentCover" :src="currentCover" alt="当前书本封面" />
               <span v-else class="text-[11px] text-center px-1">暂无封面</span>
             </div>
             <div class="flex-1 min-w-0">
               <input ref="coverInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.bmp" class="hidden" aria-label="选择自定义封面图片" @change="onCoverSelected" />
-              <button class="md-library-tonal-button w-full" :disabled="coverBusy" @click="coverInput?.click()">{{ coverBusy ? '正在保存…' : '选择封面图片' }}</button>
-              <button v-if="hasCustomCover" class="md-library-text-button w-full mt-1" :disabled="coverBusy" @click="saveCover(null)">恢复原封面</button>
+              <button type="button" class="md-tonal-button w-full" :disabled="coverBusy" @click="coverInput?.click()">{{ coverBusy ? '正在保存…' : '选择封面图片' }}</button>
+              <button v-if="hasCustomCover" type="button" class="md-text-button w-full mt-1" :disabled="coverBusy" @click="saveCover(null)">恢复原封面</button>
               <p class="mt-2 text-[11px] leading-relaxed text-[var(--md-on-surface-variant)]">图片仅保存在本机，不修改原书文件。</p>
             </div>
           </div>
@@ -193,14 +190,16 @@
       </div>
 
       <!-- 底部操作 -->
-      <div class="shrink-0 px-[22px] pt-3 pb-4 flex gap-2.5">
+      <div class="md-drawer-actions">
         <button
+          type="button"
           @click="resetDefaults"
-          class="flex-1 h-11 rounded-full text-[13px] font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors"
+          class="md-text-button"
         >恢复默认</button>
         <button
+          type="button"
           @click="ui.closeSettings()"
-          class="flex-1 h-11 rounded-full text-[13px] font-semibold bg-[var(--md-primary)] text-[var(--md-on-primary)] hover:opacity-90 transition-opacity"
+          class="md-filled-button"
         >完成</button>
       </div>
     </aside>
@@ -221,6 +220,7 @@ import {
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
+import ReaderDrawerHeader from './ReaderDrawerHeader.vue';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
 import SurfaceModePreview from './SurfaceModePreview.vue';
@@ -330,9 +330,46 @@ function resetDefaults() {
 .reader-settings-scroll:not(.has-overflow) { scrollbar-width: none; }
 .reader-settings-scroll:not(.has-overflow)::-webkit-scrollbar { display: none; }
 .reader-settings-scroll::-webkit-scrollbar-thumb { background: var(--md-outline); }
-.reader-font-number { flex: 1; width: 0; min-width: 0; height: 44px; border-radius: 12px; text-align: center; font-size: 13px; background: var(--md-surface-high); color: var(--md-on-surface); }
-.reader-font-range { accent-color: var(--md-primary); min-height: 28px; }
-.reader-cover-preview { width: 60px; aspect-ratio: 3 / 4; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: 8px; background: var(--md-surface-high); color: var(--md-on-surface-variant); }
+.reader-font-number {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  appearance: textfield;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--md-on-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  transition:
+    border-color var(--md-duration-short) var(--md-ease-emphasized),
+    box-shadow var(--md-duration-short) var(--md-ease-emphasized);
+}
+.reader-font-number::-webkit-inner-spin-button,
+.reader-font-number::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .reader-font-number:hover { border-color: var(--md-on-surface-variant); }
+}
+.reader-font-number:focus {
+  border-color: var(--md-primary);
+  box-shadow: inset 0 0 0 1px var(--md-primary);
+}
+.reader-cover-preview {
+  display: grid;
+  width: 60px;
+  aspect-ratio: 3 / 4;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  background: var(--md-surface-high);
+  color: var(--md-on-surface-variant);
+}
 .reader-cover-preview img { width: 100%; height: 100%; object-fit: cover; }
-button:disabled { opacity: 0.45; }
 </style>
