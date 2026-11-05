@@ -206,11 +206,11 @@ export const useShelfStore = defineStore('shelf', () => {
   // 启动初始化：恢复书架 + 进度表；第一次使用时放示例书
   async function optimizeStoredCover(book) {
     const patch = {};
-    if (book.coverBlob?.size > 96 * 1024) {
+    if (book.coverBlob) {
       const thumb = await createCoverThumbnail(book.coverBlob);
       if (thumb && thumb !== book.coverBlob) patch.coverBlob = thumb;
     }
-    if (book.customCoverBlob?.size > 96 * 1024) {
+    if (book.customCoverBlob) {
       const thumb = await createCoverThumbnail(book.customCoverBlob);
       if (thumb && thumb !== book.customCoverBlob) patch.customCoverBlob = thumb;
     }
@@ -227,19 +227,39 @@ export const useShelfStore = defineStore('shelf', () => {
     touchBook(current);
   }
 
-  // 旧版本把原图直接存进书架。启动后利用空闲时间逐本换成长边 720px 的封面，
-  // 避免一次性解码整库封面把启动和滚动拖慢。
+  const COVER_THUMB_VERSION_KEY = 'homura-cover-thumb-version';
+  const COVER_THUMB_VERSION = '2';
+
+  // 旧版本把原图直接存进书架。启动后利用空闲时间逐本换成长边 480px 的封面，
+  // 避免一次性解码整库封面把启动和滚动拖慢；迁移完成后记版本号，后续只处理大图。
   function scheduleCoverOptimization(books) {
     if (coverOptimizationQueued) return;
+    let needsMigration = false;
+    try {
+      needsMigration = localStorage.getItem(COVER_THUMB_VERSION_KEY) !== COVER_THUMB_VERSION;
+    } catch (err) {
+      needsMigration = false;
+    }
+    if (!needsMigration) return;
     const candidates = books.filter(book => book.restored
       && !book.id.startsWith('demo_')
-      && (book.coverBlob?.size > 96 * 1024 || book.customCoverBlob?.size > 96 * 1024));
-    if (!candidates.length) return;
+      && (book.coverBlob || book.customCoverBlob));
+    if (!candidates.length) {
+      if (needsMigration) {
+        try { localStorage.setItem(COVER_THUMB_VERSION_KEY, COVER_THUMB_VERSION); } catch (err) {}
+      }
+      return;
+    }
     coverOptimizationQueued = true;
     let index = 0;
 
     const run = async () => {
-      if (index >= candidates.length) return;
+      if (index >= candidates.length) {
+        if (needsMigration) {
+          try { localStorage.setItem(COVER_THUMB_VERSION_KEY, COVER_THUMB_VERSION); } catch (err) {}
+        }
+        return;
+      }
       if (document.visibilityState === 'hidden' || document.documentElement.classList.contains('reader-active')) {
         setTimeout(scheduleNext, 1800);
         return;

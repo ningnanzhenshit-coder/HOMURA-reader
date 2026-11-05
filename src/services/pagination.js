@@ -7,7 +7,17 @@
 
 import { escapeHtml } from './utils.js';
 import { hasArchiveSource, readArchiveBlobByPath, readArchivePageBlob } from './archiveAccess.js';
+import { ensureNativePageAsset } from './nativeArchive.js';
 
+// asset 协议不可用（旧包 / 配置缺失）时整本书回退 Blob，避免每页都试一次
+let nativeAssetUsable = true;
+let nativeAssetFailureStreak = 0;
+const NATIVE_ASSET_FAILURE_LIMIT = 2;
+
+function canUseNativeAsset() {
+  return typeof window !== 'undefined'
+    && typeof window.__TAURI__?.core?.convertFileSrc === 'function';
+}
 
 // ---- 页面资源：漫画图 / EPUB 内嵌图按需生成 URL 并解码 ----
 
@@ -18,11 +28,43 @@ export async function ensurePageUrlLoaded(pageObj) {
     pageObj.url = URL.createObjectURL(pageObj.file);
     return pageObj.url;
   }
+  // MOBI 漫画页只记录原文件里的记录区间，翻到哪页才切哪页的 Blob，避免整本解压进内存。
+  if (pageObj.mobiFile && pageObj.mobiRange) {
+    const [start, end] = pageObj.mobiRange;
+    pageObj.url = URL.createObjectURL(pageObj.mobiFile.slice(start, end, pageObj.mobiMime || ''));
+    return pageObj.url;
+  }
+  // 安卓原生页优先走 asset:// 直连：Kotlin 已按屏幕尺寸降采样并转码，
+  // WebView 只读一个小文件，不再把整页字节经 IPC 拷进 JS。
+  if (pageObj.nativeArchiveId != null && nativeAssetUsable
+    && !pageObj.nativeAssetUnavailable && canUseNativeAsset()) {
+    if (!pageObj.assetTask) {
+      pageObj.assetTask = ensureNativePageAsset(pageObj.nativeArchiveId, pageObj.nativeIndex)
+        .catch(err => {
+          console.warn('[HOMURA] 原生页资源不可用，回退 Blob', err);
+          return null;
+        });
+    }
+    try {
+      const asset = await pageObj.assetTask;
+      if (asset?.url) {
+        pageObj.url = asset.url;
+        pageObj.urlIsAsset = true;
+        return pageObj.url;
+      }
+    } finally {
+      pageObj.assetTask = null;
+    }
+    // 单次失败可能是刚关书导致会话已释放，不能据此永久禁用 asset
+    pageObj.nativeAssetUnavailable = true;
+  }
   if (pageObj.nativeArchiveId != null || pageObj.zipEntry) {
     if (!pageObj.archiveTask) pageObj.archiveTask = readArchivePageBlob(pageObj);
     try {
       const blob = await pageObj.archiveTask;
       if (blob) pageObj.url = URL.createObjectURL(blob);
+    } catch (err) {
+      console.warn('[HOMURA] 页面读取失败，显示为空页', err);
     } finally {
       pageObj.archiveTask = null;
     }
@@ -41,21 +83,99 @@ export async function ensurePageUrlLoaded(pageObj) {
   return '';
 }
 
-export async function decodeImgIntoElement(imgEl, url) {
-  if (!imgEl) return;
-  if (!url) {
-    imgEl.removeAttribute('src');
-    imgEl.setAttribute('data-current-src', '');
-    return;
+// ---- 页图 URL 生命周期：只保留当前阅读窗口，其余立即回收 ----
+// 一张 4K 漫画页解码后是几十 MB；整本读过的页若一直挂在内存里，
+// 安卓 WebView 会越读越卡。首页与书封共用同一个 URL，不能误回收。
+function releasePageItemUrl(book, item) {
+  if (!item || !item.url) return;
+  // 只有能重新解出来的页才允许回收；示例书这类纯 URL 页没有后备来源，
+  // 清掉就再也拿不回来了。
+  const canReload = !!(
+    item.file
+    || (item.mobiFile && item.mobiRange)
+    || item.zipEntry
+    || item.nativeArchiveId != null
+    || item.render
+  );
+  if (!canReload) return;
+  const url = item.url;
+  if (url === book.cover) return;
+  if (typeof url === 'string' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+  item.url = '';
+  // 单页可能只是撞上原生缓存轮换；回收后允许下次重新走 asset，而不是永久降级 Blob
+  if (item.nativeArchiveId != null) item.nativeAssetUnavailable = false;
+}
+
+export function releaseDistantPageUrls(book, currentIndex, radius = 4) {
+  if (!book || book.type !== 'manga') return;
+  const items = book.pageItems || [];
+  const keepFrom = currentIndex - radius;
+  const keepTo = currentIndex + radius;
+  for (let i = 0; i < items.length; i++) {
+    if (i >= keepFrom && i <= keepTo) continue;
+    releasePageItemUrl(book, items[i]);
   }
-  if (imgEl.getAttribute('data-current-src') === url) return;
+}
+
+export function releaseBookPageUrls(book) {
+  if (!book || book.type !== 'manga') return;
+  (book.pageItems || []).forEach(item => releasePageItemUrl(book, item));
+}
+
+export async function decodeImgIntoElement(imgEl, url, pageObj, options = {}) {
+  if (!imgEl) return false;
+  if (!url) {
+    // 复用的翻页槽位需要清掉旧页；条漫的 img 是每页独占的，
+    // 临时读取失败时保留已解码的图，避免把页面高度一起清掉。
+    if (!options.preserveSrcOnEmpty) {
+      imgEl.removeAttribute('src');
+      imgEl.setAttribute('data-current-src', '');
+    }
+    return false;
+  }
+  if (imgEl.getAttribute('data-current-src') === url) {
+    if (pageObj?.urlIsAsset) nativeAssetFailureStreak = 0;
+    return true;
+  }
   imgEl.src = url;
   imgEl.setAttribute('data-current-src', url);
   if (imgEl.decode) {
     try {
       await imgEl.decode();
-    } catch (e) {}
+    } catch (e) {
+      // 翻页过快会中断上一次 decode，此时 src 已经被替换，不算加载失败
+      if (imgEl.getAttribute('data-current-src') !== url) return true;
+      if (imgEl.naturalWidth > 0) {
+        if (pageObj?.urlIsAsset) nativeAssetFailureStreak = 0;
+        return true;
+      }
+      if (pageObj?.urlIsAsset) {
+        nativeAssetFailureStreak += 1;
+        // 连续两页都失败才认为 asset 通道整体不可用，避免一次缓存竞态整本书退回 Blob
+        if (nativeAssetFailureStreak >= NATIVE_ASSET_FAILURE_LIMIT) nativeAssetUsable = false;
+        pageObj.nativeAssetUnavailable = true;
+        pageObj.url = '';
+        pageObj.urlIsAsset = false;
+      }
+      return false;
+    }
   }
+  if (pageObj && !pageObj.imageWidth && imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+    pageObj.imageWidth = imgEl.naturalWidth;
+    pageObj.imageHeight = imgEl.naturalHeight;
+  }
+  if (pageObj?.urlIsAsset) nativeAssetFailureStreak = 0;
+  return true;
+}
+
+// 统一入口：asset 失败时自动回退到 Blob 通道，调用方不用关心平台差异
+export async function decodePageImage(imgEl, pageObj, options = {}) {
+  const url = await ensurePageUrlLoaded(pageObj);
+  if (!url) return false;
+  if (await decodeImgIntoElement(imgEl, url, pageObj, options)) return true;
+  const fallback = await ensurePageUrlLoaded(pageObj);
+  if (!fallback || fallback === url) return false;
+  return decodeImgIntoElement(imgEl, fallback, pageObj, options);
 }
 
 // 限制并发解码，避免一本书的插图同时展开占满低端机内存。
@@ -383,23 +503,8 @@ export function collectNovelBlocks(html) {
   return blocks;
 }
 
-export function buildActivePages(book, layoutConfig, measurer) {
-  if (book.type === 'manga') {
-    return (book.pageItems || []).map((item, idx) => ({
-      pageNumber: idx + 1,
-      itemRef: item
-    }));
-  }
-
-  if (layoutConfig.direction === 'vertical') {
-    return (book.chapters || []).map((chap, idx) => ({
-      pageNumber: idx + 1,
-      title: chap.title || `第 ${idx + 1} 节`,
-      html: chap.htmlContent,
-      chapterIndex: idx
-    }));
-  }
-
+// 分页尺寸只依赖窗口、字号与单双页；抽出来给同步分页和增量分页共用。
+function computeNovelMetrics(layoutConfig) {
   const vw = window.innerWidth || 1024;
   // 用布局视口高度：移动端 window.innerHeight 含地址栏，滚动时会抖动导致重复分页
   const vh = document.documentElement.clientHeight || window.innerHeight || 768;
@@ -417,88 +522,187 @@ export function buildActivePages(book, layoutConfig, measurer) {
   const chromeHeight = compact ? 236 : 267;
   const availableTextHeight = Math.max(160, vh - chromeHeight);
   const cacheKey = [contentWidth, availableTextHeight, layoutConfig.fontSize, layoutConfig.spread].join('|');
-  const cached = novelPageCache.get(book);
-  if (cached && cached.key === cacheKey && cached.chapters === book.chapters) {
-    return cached.pages;
+  return { contentWidth, availableTextHeight, cacheKey };
+}
+
+export function getNovelPaginationKey(layoutConfig) {
+  return computeNovelMetrics(layoutConfig).cacheKey;
+}
+
+// 单章分页：返回这一章切出来的所有页，不写页面序号（由 paginator 统一编号）。
+function paginateNovelChapter(chap, chapterIndex, measurer, availableTextHeight) {
+  const title = chap.title || `第 ${chapterIndex + 1} 章`;
+  const blocks = collectNovelBlocks(chap.htmlContent);
+  const chapterPages = [];
+
+  if (blocks.length === 0) {
+    chapterPages.push({
+      title,
+      html: '<p>（本章无正文内容）</p>',
+      chapterIndex
+    });
+    return chapterPages;
   }
 
-  measurer.style.width = contentWidth + 'px';
+  let currentPageParts = [];
+  measurer.innerHTML = '';
+
+  const flushCurrentPage = () => {
+    const currentPageHtml = currentPageParts.join('');
+    if (currentPageHtml.trim()) {
+      chapterPages.push({
+        title,
+        html: currentPageHtml,
+        chapterIndex
+      });
+    }
+    currentPageParts = [];
+    measurer.innerHTML = '';
+  };
+
+  for (let bIdx = 0; bIdx < blocks.length; bIdx++) {
+    const blk = blocks[bIdx];
+    const previousChildCount = measurer.childNodes.length;
+    measurer.insertAdjacentHTML('beforeend', blk.html);
+
+    if (measureBlockHeight(measurer) <= availableTextHeight) {
+      currentPageParts.push(blk.html);
+    } else {
+      // 只移除刚测高的块，避免每加一段都重新解析整页 HTML。
+      while (measurer.childNodes.length > previousChildCount && measurer.lastChild) {
+        measurer.lastChild.remove();
+      }
+      if (currentPageParts.length) flushCurrentPage();
+      measurer.innerHTML = blk.html;
+      const parts = measureBlockHeight(measurer) > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
+      for (let index = 0; index < parts.length; index++) {
+        const part = parts[index];
+        measurer.innerHTML = part;
+        if (index < parts.length - 1) {
+          chapterPages.push({
+            title,
+            html: part,
+            chapterIndex
+          });
+        } else {
+          currentPageParts = [part];
+          if (measureBlockHeight(measurer) > availableTextHeight) flushCurrentPage();
+        }
+      }
+    }
+  }
+  flushCurrentPage();
+  return chapterPages;
+}
+
+// 增量分页器：先测当前章节，其余章节在后台按片补齐。
+// 未测章节用「整章一页」占位，保证补页期间目录、页码和阅读位置仍然有效。
+export function createNovelPaginator(book, layoutConfig, measurer) {
+  const chapters = book.chapters || [];
+  const metrics = computeNovelMetrics(layoutConfig);
+  const cached = novelPageCache.get(book);
+  if (cached && cached.key === metrics.cacheKey && cached.chapters === book.chapters) {
+    return {
+      complete: true,
+      cacheKey: metrics.cacheKey,
+      pages: cached.pages,
+      totalChapters: chapters.length,
+      paginateChapter() {},
+      buildPages() { return cached.pages; },
+      isComplete() { return true; },
+      commitCache() { return cached.pages; }
+    };
+  }
+
+  measurer.style.width = metrics.contentWidth + 'px';
   measurer.style.fontSize = layoutConfig.fontSize + 'px';
   measurer.innerHTML = '';
 
-  const paginatedList = [];
-  const chapters = book.chapters || [];
+  const chapterPages = new Array(chapters.length);
+  let completedChapters = 0;
 
-  for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
-    const chap = chapters[cIdx];
-    const blocks = collectNovelBlocks(chap.htmlContent);
-
-    if (blocks.length === 0) {
-      paginatedList.push({
-        title: chap.title || `第 ${cIdx + 1} 章`,
-        html: '<p>（本章无正文内容）</p>',
-        chapterIndex: cIdx
-      });
-      continue;
-    }
-
-    let currentPageParts = [];
-    measurer.innerHTML = '';
-
-    const flushCurrentPage = () => {
-      const currentPageHtml = currentPageParts.join('');
-      if (currentPageHtml.trim()) {
-        paginatedList.push({
-          title: chap.title || `第 ${cIdx + 1} 章`,
-          html: currentPageHtml,
-          chapterIndex: cIdx
-        });
-      }
-      currentPageParts = [];
-      measurer.innerHTML = '';
-    };
-
-    for (let bIdx = 0; bIdx < blocks.length; bIdx++) {
-      const blk = blocks[bIdx];
-      const previousChildCount = measurer.childNodes.length;
-      measurer.insertAdjacentHTML('beforeend', blk.html);
-
-      if (measureBlockHeight(measurer) <= availableTextHeight) {
-        currentPageParts.push(blk.html);
-      } else {
-        // 只移除刚测高的块，避免每加一段都重新解析整页 HTML。
-        while (measurer.childNodes.length > previousChildCount && measurer.lastChild) {
-          measurer.lastChild.remove();
-        }
-        if (currentPageParts.length) flushCurrentPage();
-        measurer.innerHTML = blk.html;
-        const parts = measureBlockHeight(measurer) > availableTextHeight ? splitLongParagraph(blk.html, measurer, availableTextHeight) : [blk.html];
-        for (let index = 0; index < parts.length; index++) {
-          const part = parts[index];
-          measurer.innerHTML = part;
-          if (index < parts.length - 1) {
-            paginatedList.push({
-              title: chap.title || `第 ${cIdx + 1} 章`,
-              html: part,
-              chapterIndex: cIdx
-            });
-          } else {
-            currentPageParts = [part];
-            if (measureBlockHeight(measurer) > availableTextHeight) flushCurrentPage();
-          }
-        }
-      }
-    }
-    flushCurrentPage();
+  function paginateChapter(chapterIndex) {
+    if (chapterPages[chapterIndex]) return chapterPages[chapterIndex];
+    const pages = paginateNovelChapter(chapters[chapterIndex] || {}, chapterIndex, measurer, metrics.availableTextHeight);
+    chapterPages[chapterIndex] = pages;
+    completedChapters++;
+    return pages;
   }
 
+  function buildPages({ provisional = false } = {}) {
+    const list = [];
+    for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
+      const chapterPageList = chapterPages[cIdx];
+      if (chapterPageList) {
+        for (const page of chapterPageList) {
+          list.push({
+            pageNumber: list.length + 1,
+            title: page.title,
+            html: page.html,
+            chapterIndex: page.chapterIndex
+          });
+        }
+      } else if (provisional) {
+        const chap = chapters[cIdx] || {};
+        list.push({
+          pageNumber: list.length + 1,
+          title: chap.title || `第 ${cIdx + 1} 章`,
+          html: chap.htmlContent || '<p>（本章无正文内容）</p>',
+          chapterIndex: cIdx,
+          provisional: true
+        });
+      }
+    }
+    return list;
+  }
+
+  function isComplete() {
+    return completedChapters === chapters.length;
+  }
+
+  function commitCache() {
+    const pages = buildPages();
+    novelPageCache.set(book, { key: metrics.cacheKey, chapters: book.chapters, pages });
+    measurer.innerHTML = '';
+    return pages;
+  }
+
+  return {
+    complete: false,
+    cacheKey: metrics.cacheKey,
+    totalChapters: chapters.length,
+    paginateChapter,
+    buildPages,
+    isComplete,
+    commitCache
+  };
+}
+
+export function buildActivePages(book, layoutConfig, measurer) {
+  if (book.type === 'manga') {
+    return (book.pageItems || []).map((item, idx) => ({
+      pageNumber: idx + 1,
+      itemRef: item,
+      imageWidth: item.imageWidth || 0,
+      imageHeight: item.imageHeight || 0
+    }));
+  }
+
+  if (layoutConfig.direction === 'vertical') {
+    return (book.chapters || []).map((chap, idx) => ({
+      pageNumber: idx + 1,
+      title: chap.title || `第 ${idx + 1} 节`,
+      html: chap.htmlContent,
+      chapterIndex: idx
+    }));
+  }
+
+  const paginator = createNovelPaginator(book, layoutConfig, measurer);
+  if (paginator.complete) return paginator.pages;
+  for (let cIdx = 0; cIdx < paginator.totalChapters; cIdx++) {
+    paginator.paginateChapter(cIdx);
+  }
+  const pages = paginator.commitCache();
   measurer.innerHTML = '';
-  const pages = paginatedList.map((item, idx) => ({
-    pageNumber: idx + 1,
-    title: item.title,
-    html: item.html,
-    chapterIndex: item.chapterIndex
-  }));
-  novelPageCache.set(book, { key: cacheKey, chapters: book.chapters, pages });
   return pages;
 }

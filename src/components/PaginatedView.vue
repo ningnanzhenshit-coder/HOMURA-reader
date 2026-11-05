@@ -89,7 +89,7 @@ import { useThemeStore } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { isAndroid } from '../services/platform.js';
-import { ensurePageUrlLoaded, decodeImgIntoElement } from '../services/pagination.js';
+import { ensurePageUrlLoaded, decodePageImage, releaseDistantPageUrls } from '../services/pagination.js';
 import { classifyReaderGesture } from '../services/readerGestures.js';
 import NovelCard from './NovelCard.vue';
 
@@ -121,6 +121,18 @@ const imgEls = [{ single: null, left: null, right: null }, { single: null, left:
 // 组件按 书 id+type key 重挂载，首次渲染只填槽位 0、无动画
 let initialized = false;
 let preloadGeneration = 0;
+
+// 槽位切换后清掉不再使用的 img.src，释放上一页的位图。
+// 两个槽位共用同一组 img 节点，隐藏模式里的旧图会一直占内存。
+function clearSlotImages(slotIndex, keepKeys) {
+  const refs = imgEls[slotIndex];
+  for (const key of ['single', 'left', 'right']) {
+    const el = refs[key];
+    if (!el || keepKeys.includes(key) || !el.getAttribute('src')) continue;
+    el.removeAttribute('src');
+    el.setAttribute('data-current-src', '');
+  }
+}
 
 function buildSlotVM(pair, total) {
   const rtl = reader.layoutConfig.direction === 'rtl';
@@ -157,14 +169,15 @@ async function populateBufferSlot(slotIndex, pair, total) {
   slotVMs.value = next;
   // 等 Vue 把槽位内容（包装显隐 / 小说 v-html）patch 进 DOM 后再解码或开启动画
   await nextTick();
+  clearSlotImages(slotIndex, vm.mode === 'single' ? ['single'] : ['left', 'right']);
 
   if (isManga.value) {
     if (vm.mode === 'single') {
-      await decodeImgIntoElement(imgEls[slotIndex].single, vm.single.itemRef.url);
+      await decodePageImage(imgEls[slotIndex].single, vm.single.itemRef);
     } else {
       await Promise.all([
-        decodeImgIntoElement(imgEls[slotIndex].left, vm.left.itemRef.url),
-        decodeImgIntoElement(imgEls[slotIndex].right, vm.right.itemRef.url)
+        decodePageImage(imgEls[slotIndex].left, vm.left.itemRef),
+        decodePageImage(imgEls[slotIndex].right, vm.right.itemRef)
       ]);
     }
   }
@@ -288,7 +301,12 @@ function scheduleIdlePreload() {
   const pagesAhead = isAndroid ? 2 : 4;
   const delay = isAndroid ? 420 : 280;
 
+  // 回收必须跟翻页同步执行：预载会被下一次快速翻页取消，
+  // 若把回收放进延时的预载任务，连续翻页时旧 asset URL 会一直不释放。
+  releaseDistantPageUrls(reader.currentBook, startIndex, isAndroid ? 3 : 5);
+
   reader.preloadTimer = setTimeout(async () => {
+    if (generation !== preloadGeneration || reader.currentIndex !== startIndex) return;
     for (let i = 1; i <= pagesAhead; i++) {
       if (generation !== preloadGeneration) return;
       if (document.visibilityState === 'hidden') return;

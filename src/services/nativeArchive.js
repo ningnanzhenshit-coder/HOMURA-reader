@@ -7,27 +7,20 @@
    ========================================================================== */
 
 import { isAndroid } from './platform.js';
+import { canUseNativeBridge, invokeNativeCommand } from './nativeRuntime.js';
 
 const openArchives = new Set();
 const lifecycleQueues = new Map();
 const ensureTasks = new Map();
 
-function nativeCore() {
-  return typeof window !== 'undefined' ? window.__TAURI__?.core : null;
-}
-
 export function canUseNativeArchive() {
-  return isAndroid
-    && !!nativeCore()
-    && typeof nativeCore().invoke === 'function';
+  return isAndroid && canUseNativeBridge();
 }
 
 async function invokeNative(command, args) {
-  const core = nativeCore();
-  if (!core || typeof core.invoke !== 'function') {
-    throw new Error('Android 原生压缩包插件不可用');
-  }
-  return core.invoke(`plugin:android-archive|${command}`, args);
+  return invokeNativeCommand('android-archive', command, args, {
+    feature: 'archive'
+  });
 }
 
 // open / close 必须按压缩包串行，避免快速切书时 close 晚于下一轮 open 执行。
@@ -159,6 +152,22 @@ export function releaseNativeArchiveSession(book) {
 }
 
 // 缓存文件位于 AppCache；读取路径由 plugin-fs 的 appcache 递归读权限覆盖。
+export async function ensureNativePageAsset(archiveId, index) {
+  if (!Number.isInteger(index)) return null;
+  const file = await extractNativePage(archiveId, index);
+  if (!file?.path) return null;
+  const convertFileSrc = typeof window !== 'undefined'
+    ? window.__TAURI__?.core?.convertFileSrc
+    : null;
+  if (typeof convertFileSrc !== 'function') return null;
+  return {
+    url: convertFileSrc(file.path),
+    width: file.width || 0,
+    height: file.height || 0,
+    mime: file.mime || 'image/webp'
+  };
+}
+
 export async function readNativePageBlob(archiveId, index) {
   const file = await extractNativePage(archiveId, index);
   if (!file?.path) throw new Error('原生页面缓存路径为空');

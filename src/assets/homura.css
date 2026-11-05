@@ -829,6 +829,20 @@
       outline: 2px solid var(--md-primary);
       outline-offset: 2px;
     }
+    /* 书架卡默认在屏外跳过布局与绘制；auto 会记住首屏实测高度，避免滚动时抖动 */
+    .md-shelf-card {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 208px;
+    }
+    @media (min-width: 768px) and (max-width: 899px) {
+      .md-shelf-card { contain-intrinsic-size: auto 248px; }
+    }
+    @media (min-width: 900px) {
+      .md-shelf-card { contain-intrinsic-size: auto 272px; }
+    }
+    @media (min-width: 1280px) {
+      .md-shelf-card { contain-intrinsic-size: auto 312px; }
+    }
     .md-shelf-card.is-touch-dragging { opacity: 0.38; transform: scale(0.96); }
 
     .md-library-text-button, .md-library-tonal-button {
@@ -1731,6 +1745,12 @@
       -webkit-user-drag: none;
     }
 
+    /* 安卓 WebView 给整屏大图加 color filter 会多一次离屏合成，
+       暖色 / 夜间模式翻页明显掉帧；移动端直接跳过这层滤镜。 */
+    html[data-platform="android"] .manga-page-img {
+      filter: none;
+    }
+
     /* GPU-Accelerated Double-Buffer Stage Layer */
     .stage-buffer-layer {
       position: absolute;
@@ -1952,6 +1972,26 @@
       border-radius: 0.5rem;
       margin: 0.5rem auto;
       display: block;
+    }
+    /* MOBI 图片记录损坏时保留整页占位，避免分页把这一页悄悄吞掉 */
+    .epub-content .mobi-missing-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 52vh;
+      margin: 0.5rem auto;
+      border-radius: 0.5rem;
+      border: 1px dashed var(--md-outline-variant);
+      background: color-mix(in oklab, var(--md-surface-high) 70%, transparent);
+      color: var(--md-on-surface-variant);
+      font-size: 0.85em;
+      text-indent: 0;
+    }
+    .epub-content .mobi-missing-page figcaption {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      line-height: 1.6;
     }
     .epub-content { overflow-wrap: anywhere; }
     .epub-content p {

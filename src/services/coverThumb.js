@@ -2,11 +2,11 @@
    HOMURA · 书架封面缩略图
    ----------------------------------------------------------------------------
    书架卡片最大只显示到 220px 左右，直接解码整张原图会让安卓 WebView
-   为几十本书各占一份大位图。这里把封面缩到最长边 720px 再落盘。
+   为几十本书各占一份大位图。这里把封面缩到最长边 480px 再落盘。
    ========================================================================== */
 
-const COVER_MAX_EDGE = 720;
-const WEBP_QUALITY = 0.86;
+const COVER_MAX_EDGE = 480;
+const WEBP_QUALITY = 0.84;
 
 function encodeCanvas(canvas) {
   if (typeof canvas.convertToBlob === 'function') {

@@ -116,9 +116,12 @@ export async function createNativeEpubArchive(nativePath, options = {}) {
   if (entries.length === 0) throw new Error('原生 EPUB 没有可读取的条目');
 
   const entryIndexByPath = new Map();
+  const entryByPath = new Map();
   for (const entry of entries) {
     const path = entry?.path || entry?.name;
-    if (path && Number.isInteger(entry.index)) entryIndexByPath.set(path, entry.index);
+    if (!path) continue;
+    entryByPath.set(path, entry);
+    if (Number.isInteger(entry.index)) entryIndexByPath.set(path, entry.index);
   }
 
   const hasPath = path => entryIndexByPath.has(path);
@@ -143,14 +146,20 @@ export async function createNativeEpubArchive(nativePath, options = {}) {
     },
     makePageItem(path, url) {
       const index = entryIndexByPath.get(path);
+      const entry = entryByPath.get(path);
       if (!Number.isInteger(index)) throw new Error('原生 EPUB 图片索引缺失');
-      return {
+      const item = {
         nativeArchiveId: archiveId,
         nativeArchivePath: nativePath,
         nativeArchiveMode: 'document',
         nativeIndex: index,
         url
       };
+      if (entry?.width > 0 && entry?.height > 0) {
+        item.imageWidth = entry.width;
+        item.imageHeight = entry.height;
+      }
+      return item;
     },
     bookFields() {
       return {

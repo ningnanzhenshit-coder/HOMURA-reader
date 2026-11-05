@@ -62,7 +62,8 @@
   <section class="md-shelf-grid" :aria-label="favoritesOnly ? '收藏内容' : currentCollection ? `书库：${currentCollection.title}` : '书架内容'">
     <ContinueReading v-if="!favoritesOnly && !currentCollection && !selecting && featuredBooks.length" :books="featuredBooks" @open="$emit('open', $event)" />
     <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" :touch-over="touchDrag.overId === collection.id" :selecting="selecting" :selected="selectedCollectionIds.includes(collection.id)" @open="openCollection" @toggle="toggleCollection" @move="moveDropped" />
-    <BookCard v-for="book in orderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :dragging="touchDrag.active && touchDrag.ids.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" @open="openBook" @remove="removeBook" @drag="onBookDrag" @touchstart="onBookTouchStart($event, book.id)" />
+    <BookCard v-for="book in renderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :dragging="touchDrag.active && touchDrag.ids.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" @open="openBook" @remove="removeBook" @drag="onBookDrag" @touchstart="onBookTouchStart($event, book.id)" />
+    <div v-if="renderedBooks.length < orderedBooks.length" ref="loadMoreSentinel" class="col-span-full h-8" aria-hidden="true"></div>
     <p v-if="!displayBooks.length && !displayCollections.length" class="col-span-full py-16 text-center text-[13px] text-[var(--md-on-surface-variant)]">{{ emptyShelfHint }}</p>
   </section>
 
@@ -82,7 +83,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { useShelfDialogs } from '../composables/useShelfDialogs.js';
 import { useViewport } from '../composables/useViewport.js';
@@ -109,6 +110,14 @@ const groupedIds = computed(() => new Set(shelf.collections.flatMap(item => item
 const displayBooks = computed(() => props.books.filter(book => props.favoritesOnly ? book.favorite : currentCollection.value ? currentCollection.value.bookIds.includes(book.id) : !groupedIds.value.has(book.id)));
 const featuredBooks = computed(() => currentCollection.value ? displayBooks.value : props.hasFilter ? props.books : shelf.library);
 const orderedBooks = computed(() => currentCollection.value ? displayBooks.value : groupShelfBooks(displayBooks.value).flatMap(section => section.books));
+const INITIAL_RENDER_LIMIT = 96;
+const RENDER_STEP = 96;
+const renderLimit = ref(INITIAL_RENDER_LIMIT);
+const loadMoreSentinel = ref(null);
+const renderedBooks = computed(() => orderedBooks.value.length > renderLimit.value
+  ? orderedBooks.value.slice(0, renderLimit.value)
+  : orderedBooks.value);
+let loadMoreObserver = null;
 const allSelected = computed(() => {
   const total = displayBooks.value.length + displayCollections.value.length;
   return total > 0 &&
@@ -508,9 +517,42 @@ watch(() => shelf.activeCollectionId, () => { selecting.value = false; selectedI
 watch(() => props.homeRequest, () => { selecting.value = false; selectedIds.value = []; });
 watch(displayBooks, list => { const ids = new Set(list.map(book => book.id)); selectedIds.value = selectedIds.value.filter(id => ids.has(id)); });
 
-onMounted(() => document.addEventListener('click', onDocumentClick, true));
+// 超大书架先渲染前几屏；卡片本身用 content-visibility 跳过屏外布局，
+// 这里再限制 DOM 数量，避免几千本书一次性建节点。
+function observeLoadMore() {
+  if (!loadMoreObserver) {
+    loadMoreObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) loadMore();
+    }, { rootMargin: '900px 0px' });
+  }
+  loadMoreObserver.disconnect();
+  if (loadMoreSentinel.value && renderedBooks.value.length < orderedBooks.value.length) {
+    loadMoreObserver.observe(loadMoreSentinel.value);
+  }
+}
+
+function loadMore() {
+  if (renderLimit.value >= orderedBooks.value.length) return;
+  renderLimit.value += RENDER_STEP;
+  nextTick(observeLoadMore);
+}
+
+watch(
+  [() => props.query, () => props.sortKey, () => props.favoritesOnly, () => currentCollection.value?.id],
+  () => {
+    renderLimit.value = INITIAL_RENDER_LIMIT;
+    nextTick(observeLoadMore);
+  }
+);
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick, true);
+  nextTick(observeLoadMore);
+});
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick, true);
+  loadMoreObserver?.disconnect();
+  loadMoreObserver = null;
   if (swallowClickTimer !== null) window.clearTimeout(swallowClickTimer);
   resetTouchDrag();
 });

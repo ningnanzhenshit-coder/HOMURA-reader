@@ -14,7 +14,7 @@ import { ref, shallowRef, reactive, computed, nextTick } from 'vue';
 import { useShelfStore } from './shelf.js';
 import { useSettingsStore } from './settings.js';
 import { hydrateBook } from '../services/restore.js';
-import { buildActivePages, ensureBookImagesResolved } from '../services/pagination.js';
+import { buildActivePages, createNovelPaginator, getNovelPaginationKey, ensureBookImagesResolved, releaseBookPageUrls } from '../services/pagination.js';
 import { applyRestoredProgress, scheduleProgressSave, flushProgress } from '../services/progress.js';
 import { collectionReadingOrder, adjacentCollectionBook, spreadBounds } from '../services/collectionReading.js';
 import { hasArchiveSource } from '../services/archiveAccess.js';
@@ -25,6 +25,9 @@ const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 export const WEBTOON_FIT_LABELS = { screen: '完整单张', medium: '适中宽幅', wide: '超宽满屏' };
 export const NOVEL_FONT_MIN = 12;
 export const NOVEL_FONT_MAX = 28;
+const NOVEL_INCREMENTAL_MIN_CHAPTERS = 6;
+const NOVEL_INCREMENTAL_MIN_CHARS = 60000;
+const NOVEL_PAGINATION_SLICE_MS = 6;
 
 export const useReaderStore = defineStore('reader', () => {
   const settings = useSettingsStore();
@@ -49,6 +52,11 @@ export const useReaderStore = defineStore('reader', () => {
   const preloadTimer = ref(null);
   const resizeTimer = ref(null);
   let fontPaginationTimer = 0;
+  // 长篇小说在后台按章节增量补页；补页期间不把当前页判定成全书末页。
+  const paginationPending = ref(false);
+  let novelPaginationJob = null;
+  // 已测出的分页尺寸；阅读器刚挂载时的 ResizeObserver 不应重复跑同一套分页。
+  let activeNovelPaginationKey = '';
   // App.vue 的 #novelPaginationMeasurer 隐藏 div，供智能分页实测 scrollHeight
   const measurerEl = shallowRef(null);
 
@@ -81,7 +89,12 @@ export const useReaderStore = defineStore('reader', () => {
   const previousCollectionBook = computed(() => adjacentCollectionBook(collectionBooks.value, currentBook.value?.id, -1));
   const nextCollectionBook = computed(() => adjacentCollectionBook(collectionBooks.value, currentBook.value?.id, 1));
   const atFirstPage = computed(() => layoutConfig.direction === 'vertical' ? webtoonBounds.value.atStart : spreadBounds(currentIndex.value, activePages.value.length, effectiveDouble.value, layoutConfig.coverOffset).start === 0);
-  const atLastPage = computed(() => layoutConfig.direction === 'vertical' ? webtoonBounds.value.atEnd : activePages.value.length > 0 && spreadBounds(currentIndex.value, activePages.value.length, effectiveDouble.value, layoutConfig.coverOffset).end === activePages.value.length - 1);
+  const atLastPage = computed(() => {
+    if (paginationPending.value) return false;
+    return layoutConfig.direction === 'vertical'
+      ? webtoonBounds.value.atEnd
+      : activePages.value.length > 0 && spreadBounds(currentIndex.value, activePages.value.length, effectiveDouble.value, layoutConfig.coverOffset).end === activePages.value.length - 1;
+  });
 
   // ---- 纯派生逻辑（原 reader.js 的查询函数） ----
 
@@ -150,6 +163,10 @@ export const useReaderStore = defineStore('reader', () => {
     // PDF 版式固定、字号小，双页并排会挤成一团：首次打开默认单页
     if (!saved) {
       if (book.format === 'pdf') next.spread = 1;
+      // MOBI 漫画的 EXTH 会标出原生翻页方向；不覆盖用户主动选的 RTL / 条漫。
+      if (book.type === 'manga' && book.readingDirection === 'rtl' && next.direction === 'ltr') {
+        next.direction = 'rtl';
+      }
       return next;
     }
 
@@ -158,11 +175,196 @@ export const useReaderStore = defineStore('reader', () => {
     if (typeof saved.coverOffset === 'boolean') next.coverOffset = saved.coverOffset;
     if (Number.isFinite(saved.fontSize)) next.fontSize = Math.min(NOVEL_FONT_MAX, Math.max(NOVEL_FONT_MIN, saved.fontSize));
     if (WEBTOON_FITS.includes(saved.webtoonFit)) next.webtoonFit = saved.webtoonFit;
+    // 旧版把 comic MOBI 当小说读过，ltr 只是当时的默认值；转成漫画后按书里的方向来。
+    if (book.type === 'manga' && book.readingDirection === 'rtl' && next.direction === 'ltr' && rec.type !== 'manga') {
+      next.direction = 'rtl';
+    }
     return next;
   }
 
   function applyReaderDefaults() {
     Object.assign(layoutConfig, settings.readerDefaults);
+  }
+
+  // ---- 长篇小说增量分页 ----
+  // 先同步测出当前章节，首屏马上可读；其余章节用 idle 时间片补齐。
+  // 补页期间用「整章一页」占位，目录、滑条和章节导航始终有效。
+
+  function shouldUseIncrementalNovelPagination(book, layout) {
+    if (book.type === 'manga' || layout.direction === 'vertical') return false;
+    const chapters = book.chapters || [];
+    if (chapters.length >= NOVEL_INCREMENTAL_MIN_CHAPTERS) return true;
+    let chars = 0;
+    for (const chap of chapters) {
+      chars += chap?.htmlContent?.length || 0;
+      if (chars >= NOVEL_INCREMENTAL_MIN_CHARS) return true;
+    }
+    return false;
+  }
+
+  function cancelNovelPagination() {
+    const job = novelPaginationJob;
+    novelPaginationJob = null;
+    paginationPending.value = false;
+    if (job) {
+      if (job.idle != null && typeof cancelIdleCallback === 'function') cancelIdleCallback(job.idle);
+      if (job.timer) clearTimeout(job.timer);
+    }
+    if (measurerEl.value) measurerEl.value.innerHTML = '';
+  }
+
+  function chapterPageRange(pages, index) {
+    const page = pages[index];
+    if (!page || typeof page.chapterIndex !== 'number') return null;
+    let start = index;
+    let end = index;
+    while (start > 0 && pages[start - 1]?.chapterIndex === page.chapterIndex) start--;
+    while (end < pages.length - 1 && pages[end + 1]?.chapterIndex === page.chapterIndex) end++;
+    return { chapterIndex: page.chapterIndex, start, end };
+  }
+
+  function novelAnchorFromPages(pages, index) {
+    const range = chapterPageRange(pages, index);
+    if (!range) return null;
+    return {
+      chapterIndex: range.chapterIndex,
+      ratio: range.end > range.start ? (index - range.start) / (range.end - range.start) : 0
+    };
+  }
+
+  function novelAnchorFromProgress(book) {
+    const rec = shelf.progressMap[book.id];
+    if (!rec) return null;
+    const chapters = book.chapters || [];
+    if (!chapters.length) return null;
+    let chapterIndex = Number.isInteger(rec.chapterIndex) ? rec.chapterIndex : -1;
+    if (chapterIndex < 0 || chapterIndex >= chapters.length) {
+      chapterIndex = Math.min(chapters.length - 1, Math.max(0, Math.floor((rec.ratio || 0) * chapters.length)));
+    }
+    return {
+      chapterIndex,
+      ratio: Number.isFinite(rec.chapterRatio) ? Math.min(1, Math.max(0, rec.chapterRatio)) : 0
+    };
+  }
+
+  function findAnchorIndex(pages, anchor) {
+    if (!anchor) return -1;
+    const indexes = [];
+    for (let i = 0; i < pages.length; i++) {
+      if (pages[i].chapterIndex !== anchor.chapterIndex) continue;
+      if (!pages[i].provisional) indexes.push(i);
+    }
+    if (!indexes.length) {
+      return pages.findIndex(page => page.chapterIndex === anchor.chapterIndex);
+    }
+    const ratio = Math.min(1, Math.max(0, anchor.ratio || 0));
+    return indexes[Math.round(ratio * (indexes.length - 1))];
+  }
+
+  function planNovelPages(book, layout, anchorOverride = undefined) {
+    cancelNovelPagination();
+    const key = getNovelPaginationKey(layout);
+    if (!shouldUseIncrementalNovelPagination(book, layout)) {
+      return { pages: buildActivePages(book, layout, measurerEl.value), incremental: false, job: null, restoredIndex: -1, key };
+    }
+
+    const chapters = book.chapters || [];
+    const anchor = anchorOverride === undefined ? novelAnchorFromProgress(book) : anchorOverride;
+    const paginator = createNovelPaginator(book, layout, measurerEl.value);
+    if (paginator.complete) {
+      return { pages: paginator.pages, incremental: false, job: null, restoredIndex: -1, key };
+    }
+
+    const targetChapter = Math.min(chapters.length - 1, Math.max(0, anchor?.chapterIndex ?? 0));
+    paginator.paginateChapter(targetChapter);
+    const pages = paginator.buildPages({ provisional: true });
+    const restoredIndex = findAnchorIndex(pages, { chapterIndex: targetChapter, ratio: anchor?.ratio ?? 0 });
+    const order = [];
+    for (let distance = 1; distance < chapters.length; distance++) {
+      if (targetChapter + distance < chapters.length) order.push(targetChapter + distance);
+      if (targetChapter - distance >= 0) order.push(targetChapter - distance);
+    }
+
+    return {
+      pages,
+      incremental: true,
+      restoredIndex: Math.max(0, restoredIndex),
+      key,
+      job: { bookId: book.id, paginator, order, cursor: 0, idle: null, timer: null }
+    };
+  }
+
+  function updatePendingPageIndicator(pages) {
+    if (!pages.length || layoutConfig.direction === 'vertical') return;
+    const bounds = spreadBounds(currentIndex.value, pages.length, effectiveDouble.value, layoutConfig.coverOffset);
+    const visible = [];
+    for (let i = bounds.start; i <= bounds.end; i++) {
+      if (pages[i]) visible.push(pages[i].pageNumber);
+    }
+    pageIndicator.value = `${visible.join('-')} / ${pages.length}`;
+  }
+
+  function applyNovelPaginationBatch(pages, done) {
+    const oldPages = activePages.value;
+    const anchor = novelAnchorFromPages(oldPages, currentIndex.value);
+    const wasProvisional = !!oldPages[currentIndex.value]?.provisional;
+    const nextIndex = findAnchorIndex(pages, anchor);
+    activePages.value = pages;
+    if (nextIndex >= 0) currentIndex.value = Math.min(pages.length - 1, nextIndex);
+    else currentIndex.value = Math.min(currentIndex.value, Math.max(0, pages.length - 1));
+    sliderValue.value = currentIndex.value;
+    updatePendingPageIndicator(pages);
+    // 当前章从整章占位换成正式分页时重绘一次；其它切片只改页码，不动 DOM。
+    if (!done && wasProvisional && !pages[currentIndex.value]?.provisional) requestRender('none');
+  }
+
+  function scheduleNovelPagination() {
+    const job = novelPaginationJob;
+    if (!job) return;
+    if (typeof requestIdleCallback === 'function') {
+      job.idle = requestIdleCallback(deadline => {
+        job.idle = null;
+        runNovelPaginationSlice(job, deadline);
+      }, { timeout: 220 });
+    } else {
+      job.timer = setTimeout(() => {
+        job.timer = null;
+        runNovelPaginationSlice(job, null);
+      }, 16);
+    }
+  }
+
+  function runNovelPaginationSlice(job, deadline) {
+    if (novelPaginationJob !== job) return;
+    if (!currentBook.value || currentBook.value.id !== job.bookId) {
+      cancelNovelPagination();
+      return;
+    }
+    const started = performance.now();
+    while (job.cursor < job.order.length) {
+      job.paginator.paginateChapter(job.order[job.cursor++]);
+      if (performance.now() - started >= NOVEL_PAGINATION_SLICE_MS) break;
+      if (deadline && typeof deadline.timeRemaining === 'function' && deadline.timeRemaining() <= 1) break;
+    }
+    const done = job.paginator.isComplete();
+    applyNovelPaginationBatch(job.paginator.buildPages({ provisional: !done }), done);
+    if (!done) {
+      scheduleNovelPagination();
+      return;
+    }
+    job.paginator.commitCache();
+    novelPaginationJob = null;
+    paginationPending.value = false;
+    if (measurerEl.value) measurerEl.value.innerHTML = '';
+    requestRender('none');
+    touchProgress();
+  }
+
+  function beginNovelPagination(job) {
+    if (!job) return;
+    novelPaginationJob = job;
+    paginationPending.value = true;
+    scheduleNovelPagination();
   }
 
   async function openBook(id, options = {}) {
@@ -193,7 +395,13 @@ export const useReaderStore = defineStore('reader', () => {
         nextLayout.direction = 'vertical';
         nextLayout.webtoonFit = layoutConfig.webtoonFit;
       }
-      const pages = buildActivePages(book, nextLayout, measurerEl.value);
+      const explicitAnchor = options.position === 'end'
+        ? { chapterIndex: Math.max(0, (book.chapters?.length || 1) - 1), ratio: 1 }
+        : options.position === 'start'
+          ? { chapterIndex: 0, ratio: 0 }
+          : undefined;
+      const pagePlan = planNovelPages(book, nextLayout, explicitAnchor);
+      const pages = pagePlan.pages;
       if (!pages.length) throw new Error('没有可阅读的页面');
       // 固定进入阅读器时的顺序，防止“最近阅读”时间更新后前后本突然重排。
       const order = options.preserveCollectionOrder && collection?.id === currentCollection.value?.id
@@ -209,12 +417,15 @@ export const useReaderStore = defineStore('reader', () => {
       clearTimeout(resizeTimer.value);
       clearTimeout(fontPaginationTimer);
       fontPaginationTimer = 0;
+      cancelNovelPagination();
       renderToken.value++;
       webtoonObserver.value?.disconnect();
       webtoonObserver.value = null;
       activeTransitionAnims.value.forEach(animation => { try { animation.cancel(); } catch (err) {} });
       activeTransitionAnims.value = [];
-      const restoredIdx = applyRestoredProgress(book, pages, shelf.progressMap);
+      const restoredIdx = pagePlan.incremental
+        ? pagePlan.restoredIndex
+        : applyRestoredProgress(book, pages, shelf.progressMap);
       Object.assign(layoutConfig, nextLayout);
       activePages.value = pages;
       currentIndex.value = options.position === 'end' ? pages.length - 1 : options.position === 'start' ? 0 : Math.max(0, restoredIdx);
@@ -223,12 +434,15 @@ export const useReaderStore = defineStore('reader', () => {
       collectionOrderIds.value = order;
       webtoonBounds.value = { atStart: currentIndex.value === 0, atEnd: false };
       currentBook.value = book;
+      activeNovelPaginationKey = pagePlan.key || '';
+      beginNovelPagination(pagePlan.job);
       if (previousBook && previousBook.id !== id) {
         void releaseNativeArchiveSession(previousBook);
       }
       // 先让旧翻页组件卸载、新组件接管渲染入口，再绘制目标书，避免旧缓冲串页。
       await nextTick();
       if (token !== openRequestToken) return false;
+      if (previousBook && previousBook.id !== id) releaseBookPageUrls(previousBook);
       requestRender('none');
       return true;
     } catch (err) {
@@ -263,6 +477,8 @@ export const useReaderStore = defineStore('reader', () => {
     openError.value = '';
     readingCollectionId.value = null;
     collectionOrderIds.value = [];
+    cancelNovelPagination();
+    activeNovelPaginationKey = '';
     const shelf = useShelfStore();
     // 关闭前把防抖窗口内尚未落盘的位置补写一次，此时 currentBook 仍然有效
     flushProgress(progressSnapshot(), shelf);
@@ -275,6 +491,7 @@ export const useReaderStore = defineStore('reader', () => {
     fontPaginationTimer = 0;
     const closedBook = currentBook.value;
     currentBook.value = null;
+    releaseBookPageUrls(closedBook);
     void releaseNativeArchiveSession(closedBook);
     // 进度已通过 progressMap 响应式流回书架卡片，无需手动重绘书架
   }
@@ -287,11 +504,32 @@ export const useReaderStore = defineStore('reader', () => {
     fontPaginationTimer = 0;
     const book = currentBook.value;
     if (!book || book.type === 'manga' || !measurerEl.value) return;
-    const oldTotal = activePages.value.length;
-    const ratio = oldTotal > 1 ? currentIndex.value / (oldTotal - 1) : 0;
-    activePages.value = buildActivePages(book, layoutConfig, measurerEl.value);
-    const lastIdx = Math.max(0, activePages.value.length - 1);
-    currentIndex.value = Math.min(lastIdx, Math.max(0, Math.round(ratio * lastIdx)));
+
+    const anchor = novelAnchorFromPages(activePages.value, currentIndex.value) || novelAnchorFromProgress(book);
+
+    // 切到纵向长卷不需要测量：一章就是一页，按章节把当前位置带过去。
+    if (layoutConfig.direction === 'vertical') {
+      cancelNovelPagination();
+      activeNovelPaginationKey = '';
+      const chapters = buildActivePages(book, layoutConfig, measurerEl.value);
+      activePages.value = chapters;
+      const next = anchor ? chapters.findIndex(page => page.chapterIndex === anchor.chapterIndex) : 0;
+      currentIndex.value = Math.max(0, next);
+      sliderValue.value = currentIndex.value;
+      requestRender('none');
+      touchProgress();
+      return;
+    }
+
+    // 阅读器首次挂载时 stage 尺寸探测会触发一次 resize；尺寸没变就别把刚测好的分页推翻重来。
+    if (getNovelPaginationKey(layoutConfig) === activeNovelPaginationKey) return;
+    const pagePlan = planNovelPages(book, layoutConfig, anchor);
+    activeNovelPaginationKey = pagePlan.key || '';
+    activePages.value = pagePlan.pages;
+    const nextIndex = findAnchorIndex(pagePlan.pages, anchor);
+    currentIndex.value = Math.max(0, Math.min(pagePlan.pages.length - 1, nextIndex >= 0 ? nextIndex : 0));
+    sliderValue.value = currentIndex.value;
+    beginNovelPagination(pagePlan.job);
     requestRender('none');
     touchProgress();
   }
@@ -474,6 +712,7 @@ export const useReaderStore = defineStore('reader', () => {
     activeTransitionAnims,
     preloadTimer,
     resizeTimer,
+    paginationPending,
     measurerEl,
     renderFn,
     webtoonScrollBy,
