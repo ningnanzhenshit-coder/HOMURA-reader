@@ -59,7 +59,8 @@ import { ensurePageUrlLoaded } from '../services/pagination.js';
 
 const reader = useReaderStore();
 const scrollRoot = ref(null);
-let novelScrollFrame = 0;
+let scrollFrame = 0;
+let pageNodes = [];
 const mountedBookId = reader.currentBook?.id;
 let disposed = false;
 let boundsObserver = null;
@@ -73,25 +74,32 @@ const imgFitClass = computed(() => {
   return 'w-full max-w-[1024px] h-auto object-contain mx-auto';
 });
 
-function syncNovelScrollPosition() {
-  if (disposed || reader.currentBook?.id !== mountedBookId) return;
-  novelScrollFrame = 0;
+function syncScrollPosition() {
+  scrollFrame = 0;
   const root = scrollRoot.value;
-  if (!root || isManga.value) return;
+  if (!root || disposed || reader.currentBook?.id !== mountedBookId || !pageNodes.length) return;
 
-  const sections = Array.from(root.querySelectorAll('section[id^="webtoon-page-"]'));
-  if (sections.length === 0) return;
+  const atStart = root.scrollTop <= 2;
+  const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+  const lastImage = isManga.value ? pageNodes.at(-1).querySelector('img') : null;
+  const atEnd = atBottom && (!lastImage || lastImage.hasAttribute('data-settled'));
+  reader.webtoonBounds = { atStart, atEnd };
 
-  const rootTop = root.getBoundingClientRect().top;
-  const probe = rootTop + root.clientHeight * 0.45;
   let nextIndex = 0;
-  sections.forEach((section, idx) => {
-    if (section.getBoundingClientRect().top <= probe) nextIndex = idx;
-  });
-  // 末章较短时可能始终到不了阅读线，滚到底部仍应记到最后一章。
-  const canScroll = root.scrollHeight > root.clientHeight + 2;
-  if (canScroll && root.scrollTop + root.clientHeight >= root.scrollHeight - 2) {
-    nextIndex = sections.length - 1;
+  if (!atStart) {
+    if (atEnd) nextIndex = pageNodes.length - 1;
+    else {
+      const probe = root.getBoundingClientRect().top + root.clientHeight * 0.45;
+      let low = 0;
+      let high = pageNodes.length - 1;
+      while (low <= high) {
+        const mid = (low + high) >>> 1;
+        if (pageNodes[mid].getBoundingClientRect().top <= probe) {
+          nextIndex = mid;
+          low = mid + 1;
+        } else high = mid - 1;
+      }
+    }
   }
 
   if (nextIndex === reader.currentIndex) return;
@@ -101,29 +109,27 @@ function syncNovelScrollPosition() {
   reader.touchProgress();
 }
 
-function onNovelScroll() {
-  if (novelScrollFrame) return;
-  novelScrollFrame = requestAnimationFrame(syncNovelScrollPosition);
+function scheduleScrollSync() {
+  if (!scrollFrame) scrollFrame = requestAnimationFrame(syncScrollPosition);
 }
 
-function syncScrollBounds() {
-  const root = scrollRoot.value;
-  if (!root || disposed || reader.currentBook?.id !== mountedBookId) return;
-  const lastImage = isManga.value ? root.querySelector(`img[data-lazy-index="${reader.activePages.length - 1}"]`) : null;
-  reader.webtoonBounds = {
-    atStart: root.scrollTop <= 2,
-    atEnd: root.scrollTop + root.clientHeight >= root.scrollHeight - 2 && (!isManga.value || !!(lastImage?.complete && lastImage.naturalHeight))
-  };
+function onImageSettled(event) {
+  if (event.target.matches('img[data-lazy-index]')) event.target.setAttribute('data-settled', '');
+  scheduleScrollSync();
 }
 
 onMounted(() => {
+  const root = scrollRoot.value;
   const total = reader.activePages.length;
-  reader.pageIndicator = `${reader.currentIndex + 1} / ${total}`;
-  reader.sliderValue = reader.currentIndex;
-  scrollRoot.value.addEventListener('scroll', syncScrollBounds, { passive: true });
-  scrollRoot.value.addEventListener('load', syncScrollBounds, true);
-  boundsObserver = new ResizeObserver(syncScrollBounds);
-  boundsObserver.observe(scrollRoot.value);
+  const savedIndex = reader.currentIndex;
+  pageNodes = Array.from(root.querySelectorAll(isManga.value ? '.webtoon-page' : '.webtoon-chapter'));
+  reader.pageIndicator = `${savedIndex + 1} / ${total}`;
+  reader.sliderValue = savedIndex;
+  root.addEventListener('scroll', scheduleScrollSync, { passive: true });
+  root.addEventListener('load', onImageSettled, true);
+  root.addEventListener('error', onImageSettled, true);
+  boundsObserver = new ResizeObserver(scheduleScrollSync);
+  boundsObserver.observe(root);
 
   // 注册滚动入口：store 的翻页 / 滑条动作在条漫模式下转成滚动
   reader.webtoonScrollBy = dir => {
@@ -138,71 +144,61 @@ onMounted(() => {
   };
 
   if (isManga.value) {
-    // 当前页前后各预载几页，避免恢复进度时白屏
-    for (let i = Math.max(0, reader.currentIndex - 1); i <= Math.min(total - 1, reader.currentIndex + 2); i++) {
-      ensurePageUrlLoaded(reader.activePages[i].itemRef).then(url => {
-        if (disposed || reader.currentBook?.id !== mountedBookId) return;
-        const el = scrollRoot.value && scrollRoot.value.querySelector(`img[data-lazy-index="${i}"]`);
-        if (el && url) el.src = url;
-      });
-    }
-
+    // 提前加载附近图片，但实际阅读页由滚动位置决定。
     reader.webtoonObserver = new IntersectionObserver(entries => {
-      entries.forEach(async entry => {
-        if (disposed || reader.currentBook?.id !== mountedBookId) return;
-        if (entry.isIntersecting) {
-          const imgEl = entry.target;
-          const idx = parseInt(imgEl.getAttribute('data-lazy-index'), 10);
-          const pageData = reader.activePages[idx];
-          if (pageData) {
-            const url = await ensurePageUrlLoaded(pageData.itemRef);
-            if (disposed || reader.currentBook?.id !== mountedBookId) return;
-            if (url && imgEl.src !== url) imgEl.src = url;
+      for (const entry of entries) {
+        if (!entry.isIntersecting || disposed || reader.currentBook?.id !== mountedBookId) continue;
+        const img = entry.target;
+        const item = reader.activePages[Number(img.dataset.lazyIndex)]?.itemRef;
+        reader.webtoonObserver.unobserve(img);
+        ensurePageUrlLoaded(item).then(url => {
+          if (disposed || reader.currentBook?.id !== mountedBookId) return;
+          if (url) img.src = url;
+          else {
+            img.setAttribute('data-settled', '');
+            scheduleScrollSync();
           }
-          reader.currentIndex = idx;
-          reader.pageIndicator = `${idx + 1} / ${total}`;
-          reader.sliderValue = idx;
-          reader.touchProgress();
-        }
-      });
-    }, { root: scrollRoot.value, rootMargin: '800px 0px', threshold: 0.1 });
+        }).catch(err => {
+          if (disposed || reader.currentBook?.id !== mountedBookId) return;
+          console.warn('[HOMURA] 条漫图片加载失败', err);
+          img.setAttribute('data-settled', '');
+          scheduleScrollSync();
+        });
+      }
+    }, { root, rootMargin: '800px 0px', threshold: 0.1 });
 
-    scrollRoot.value.querySelectorAll('img[data-lazy-index]').forEach(img => reader.webtoonObserver.observe(img));
-  } else {
-    scrollRoot.value.addEventListener('scroll', onNovelScroll, { passive: true });
+    root.querySelectorAll('img[data-lazy-index]').forEach(img => reader.webtoonObserver.observe(img));
   }
 
-  // 恢复上次阅读位置
-  if (reader.currentIndex > 0) {
-    setTimeout(() => {
-      const root = scrollRoot.value;
-      if (!root) return;
-      const target = root.querySelector('#webtoon-page-' + reader.currentIndex);
-      if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
-      syncNovelScrollPosition();
-      syncScrollBounds();
-    }, 50);
-  } else {
-    syncNovelScrollPosition();
-    syncScrollBounds();
-  }
+  // 在占位尺寸已经生效后恢复，再根据画布上的实际位置同步进度。
+  scrollFrame = requestAnimationFrame(() => {
+    if (savedIndex > 0) pageNodes[savedIndex]?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    syncScrollPosition();
+  });
 });
 
 onBeforeUnmount(() => {
   disposed = true;
   boundsObserver?.disconnect();
   if (scrollRoot.value) {
-    scrollRoot.value.removeEventListener('scroll', syncScrollBounds);
-    scrollRoot.value.removeEventListener('load', syncScrollBounds, true);
+    scrollRoot.value.removeEventListener('scroll', scheduleScrollSync);
+    scrollRoot.value.removeEventListener('load', onImageSettled, true);
+    scrollRoot.value.removeEventListener('error', onImageSettled, true);
   }
-  if (novelScrollFrame) cancelAnimationFrame(novelScrollFrame);
-  novelScrollFrame = 0;
+  if (scrollFrame) cancelAnimationFrame(scrollFrame);
+  scrollFrame = 0;
   if (reader.webtoonObserver) {
     reader.webtoonObserver.disconnect();
     reader.webtoonObserver = null;
   }
-  if (scrollRoot.value) scrollRoot.value.removeEventListener('scroll', onNovelScroll);
   reader.webtoonScrollBy = null;
   reader.webtoonScrollTo = null;
 });
 </script>
+
+<style scoped>
+/* 占位防止未加载的页挤成一行，恢复位置与预加载窗口才有稳定的参照。 */
+.webtoon-page img:not([data-settled]) {
+  min-height: min(65dvh, 480px);
+}
+</style>

@@ -64,6 +64,10 @@ export function applyRestoredProgress(book, activePages, progressMap) {
   const rec = book && progressMap[book.id];
   if (!rec || activePages.length === 0) return -1;
   const lastIdx = Math.max(0, activePages.length - 1);
+  // 旧版纯图 MOBI 可能只记录了一两页，不能把旧的 100% 换算成整本漫画的末页。
+  if (book.format === 'mobi' && book.type === 'manga' && rec.type === 'novel') {
+    return Math.min(lastIdx, Math.max(0, Number.isInteger(rec.index) ? rec.index : 0));
+  }
   const ratio = typeof rec.ratio === 'number' ? rec.ratio : 0;
   return Math.min(lastIdx, Math.max(0, Math.round(ratio * lastIdx)));
 }

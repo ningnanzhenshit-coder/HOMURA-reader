@@ -5,9 +5,11 @@
      · PDB 记录表 → 文本记录
      · PalmDOC LZ77 解压（压缩方式 1/2）
      · MOBI 头 + EXTH 元数据（书名、封面、图片记录）
-     · 按 <mbp:pagebreak> 切章，正文做白名单净化后交给小说渲染管道
+     · 按 <mbp:pagebreak> 切章，净化正文并为纯图片作品提取漫画页
    不支持：DRM 加密文件、Huffman 压缩（方式 17480）、AZW3/KF8 双头格式。
    ========================================================================== */
+
+import { isSafeImageUrl } from './utils.js';
 
 const BLOCKED_TAGS = new Set([
   'script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
@@ -122,13 +124,12 @@ function decodeText(bytes, encoding) {
 // ---- 正文净化 + 图片 recindex 解引用 ----
 
 function sanitizeInto(dom, imageUrlFor) {
-  const walker = dom.createTreeWalker(dom.body || dom.documentElement, NodeFilter.SHOW_ELEMENT);
-  const doomed = [];
-  let node = walker.nextNode();
-  while (node) {
+  // 拆除 filepos 锚点时，继续处理它的子元素和后续图片。
+  for (const node of dom.body.querySelectorAll('*')) {
+    if (!node.isConnected) continue;
     const tag = node.tagName.toLowerCase();
     if (BLOCKED_TAGS.has(tag)) {
-      doomed.push(node);
+      node.remove();
     } else {
       for (const attr of Array.from(node.attributes)) {
         const name = attr.name.toLowerCase();
@@ -145,9 +146,9 @@ function sanitizeInto(dom, imageUrlFor) {
         if (Number.isInteger(recindex) && recindex > 0) {
           const url = imageUrlFor(recindex);
           if (url) node.setAttribute('src', url);
-          else doomed.push(node);
+          else node.remove();
         } else if (!/^(https?:|data:image\/)/i.test(node.getAttribute('src') || '')) {
-          doomed.push(node);
+          node.remove();
         }
       }
       if (tag === 'a' && !node.getAttribute('href')) {
@@ -155,9 +156,7 @@ function sanitizeInto(dom, imageUrlFor) {
         node.replaceWith(...Array.from(node.childNodes));
       }
     }
-    node = walker.nextNode();
   }
-  doomed.forEach(el => el.remove());
 }
 
 // ---- 章节标题：取首个短标题块，否则退化为书号 ----
@@ -258,9 +257,9 @@ export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   }
 
   const title = (exth.title || '').trim() || headerTitle || fallbackTitle;
-  const chapters = splitChapters(rawText, title, imageUrlFor);
+  const { chapters, pageItems } = splitChapters(rawText, title, imageUrlFor);
 
-  return { title, chapters, coverBlob, compression, encoding, resourceUrls: Array.from(imgRecords.values(), image => image.url) };
+  return { title, chapters, pageItems, coverBlob, compression, encoding, resourceUrls: Array.from(imgRecords.values(), image => image.url) };
 }
 
 function mergeChunks(chunks) {
@@ -288,12 +287,28 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
 
   const parser = new DOMParser();
   const chapters = [];
+  const imagePages = [];
+  let imageOnly = true;
   parts.forEach((part, index) => {
     const doc = parser.parseFromString(part, 'text/html');
     if (!doc.body) return;
     sanitizeInto(doc, imageUrlFor);
     const html = (doc.body.innerHTML || '').trim();
-    if (!html || !doc.body.textContent.replace(/\s+/g, '').length) return;
+    const hasText = /[^\s\u200b]/u.test(doc.body.textContent);
+    const images = doc.body.querySelectorAll('img[src]');
+    if (!html || (!hasText && !images.length)) return;
+    if (hasText || doc.body.querySelector('svg, math, table')) imageOnly = false;
+    if (imageOnly) {
+      for (const image of images) {
+        const url = image.getAttribute('src');
+        if (url.startsWith('blob:') || (url.startsWith('data:') && isSafeImageUrl(url))) {
+          imagePages.push({ url });
+        } else {
+          imageOnly = false;
+          break;
+        }
+      }
+    }
     chapters.push({
       title: pickChapterTitle(doc.body, bookTitle, index),
       htmlContent: html
@@ -308,5 +323,5 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
       htmlContent: (doc.body && doc.body.innerHTML) || '<p>（无法解析该 MOBI 的正文）</p>'
     });
   }
-  return chapters;
+  return { chapters, pageItems: imageOnly && imagePages.length ? imagePages : null };
 }

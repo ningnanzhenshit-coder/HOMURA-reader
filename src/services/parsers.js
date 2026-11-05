@@ -300,7 +300,7 @@ export function parseMarkdownFile(mdFile) {
   });
 }
 
-// ---- MOBI：PalmDOC 解压 + 正文净化，输出小说管道可用的章节 ----
+// ---- MOBI：纯图走漫画管道，带正文的作品仍按小说排版 ----
 
 export async function parseMobiFileLazy(file) {
   try {
@@ -310,14 +310,14 @@ export async function parseMobiFileLazy(file) {
 
     return {
       id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      type: 'novel',
+      type: data.pageItems ? 'manga' : 'novel',
       format: 'mobi',
       title: data.title,
       cover: coverUrl,
       coverBlob: data.coverBlob,
-      chapters: data.chapters,
+      ...(data.pageItems ? { pageItems: data.pageItems } : { chapters: data.chapters }),
       resourceUrls: data.resourceUrls,
-      pageCount: data.chapters.length
+      pageCount: (data.pageItems || data.chapters).length
     };
   } catch (err) {
     console.error(err);
