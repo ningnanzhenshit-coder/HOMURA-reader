@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 #[cfg(desktop)]
 use tauri::{Manager, WindowEvent};
 
+mod cover_thumb;
 mod desktop_archive;
+mod metadata_store;
 mod mobi_parser;
 mod text_decoder;
 mod update_downloader;
@@ -89,6 +91,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(update_downloader::UpdateDownloadState::default())
         .manage(desktop_archive::DesktopArchiveState::default())
+        .manage(metadata_store::MetadataState::default())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_android_toast::init())
@@ -102,6 +105,15 @@ pub fn run() {
             update_downloader::open_update_file,
             text_decoder::decode_text_bytes,
             mobi_parser::parse_mobi_container,
+            cover_thumb::create_cover_thumbnail,
+            metadata_store::metadata_load,
+            metadata_store::metadata_replace_all,
+            metadata_store::metadata_upsert_book,
+            metadata_store::metadata_delete_book,
+            metadata_store::metadata_save_collections,
+            metadata_store::metadata_save_progress,
+            metadata_store::metadata_clear_progress,
+            metadata_store::metadata_clear_all,
             desktop_archive::open,
             desktop_archive::open_document,
             desktop_archive::extract,
