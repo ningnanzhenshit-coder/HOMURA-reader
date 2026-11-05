@@ -1,6 +1,10 @@
-import test from 'node:test';
+import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeTxtBytes } from '../src/services/textEncoding.js';
+import { decodeTxtBytes, decodeTxtBytesAsync } from '../src/services/textEncoding.js';
+
+afterEach(() => {
+  delete globalThis.window;
+});
 
 test('UTF-8、ASCII、UTF-8 BOM 和表情符号不回退到旧编码', () => {
   for (const text of ['Hello world', '第一章 你好，世界。𠀀💫', '']) {
@@ -39,4 +43,44 @@ test('识别不修改输入字节，非法尾字节不会使整个导入抛错',
   assert.equal(decodeTxtBytes(bytes), 'AB');
   assert.deepEqual(bytes, before);
   assert.doesNotThrow(() => decodeTxtBytes(Uint8Array.from([0x81])));
+});
+
+test('没有 Tauri 时异步入口直接使用浏览器解码', async () => {
+  const text = '第一章 你好，世界。𠀀💫';
+  const bytes = new TextEncoder().encode(text);
+  assert.equal(await decodeTxtBytesAsync(bytes), text);
+});
+
+test('Tauri 环境优先调用 Rust 文本命令并传递原始字节', async () => {
+  const bytes = Uint8Array.from([181, 218, 210, 187, 213, 194]);
+  let request = null;
+  globalThis.window = {
+    __TAURI__: {
+      core: {
+        invoke: async (command, args) => {
+          request = { command, args };
+          return { text: '来自 Rust', encoding: 'GB18030' };
+        }
+      }
+    }
+  };
+
+  assert.equal(await decodeTxtBytesAsync(bytes), '来自 Rust');
+  assert.equal(request.command, 'decode_text_bytes');
+  assert.deepEqual(Array.from(Buffer.from(request.args.bytesBase64, 'base64')), Array.from(bytes));
+});
+
+test('原生命令失败时回退到浏览器解码', async () => {
+  const bytes = Uint8Array.from([181, 218, 210, 187, 213, 194]);
+  globalThis.window = {
+    __TAURI__: {
+      core: {
+        invoke: async () => {
+          throw new Error('文本编码数据无效');
+        }
+      }
+    }
+  };
+
+  assert.equal(await decodeTxtBytesAsync(bytes), '第一章');
 });

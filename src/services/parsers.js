@@ -7,9 +7,9 @@
 
 import JSZip from 'jszip';
 import { escapeHtml } from './utils.js';
-import { decodeTxtBytes } from './textEncoding.js';
+import { decodeTxtBytesAsync } from './textEncoding.js';
 import { renderMarkdown } from './markdown.js';
-import { parseMobiBuffer } from './mobi.js';
+import { parseMobiFileData } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 import { parseEpubFile } from './epubParser.js';
 import {
@@ -72,6 +72,8 @@ export async function parseCbzNativeArchive(nativePath, options = {}) {
     const pageItems = entries.map((entry, index) => ({
       nativeArchiveId: archiveId,
       nativeIndex: index,
+      imageWidth: entry.width || 0,
+      imageHeight: entry.height || 0,
       url: index === 0 ? coverUrl : null
     }));
 
@@ -185,7 +187,7 @@ export async function parsePdfFileLazy(file) {
 
 export async function parseTxtFile(txtFile) {
   try {
-    const rawText = decodeTxtBytes(await txtFile.arrayBuffer());
+    const rawText = await decodeTxtBytesAsync(await txtFile.arrayBuffer());
     const lines = rawText.split(/\r\n?|\n/).map(l => l.trim()).filter(Boolean);
     const title = txtFile.name.replace(/\.[^.]+$/, '');
     const chapters = [];
@@ -305,8 +307,35 @@ export function parseMarkdownFile(mdFile) {
 export async function parseMobiFileLazy(file) {
   try {
     const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
-    const data = parseMobiBuffer(await file.arrayBuffer(), fallbackTitle);
-    const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
+    const data = await parseMobiFileData(file, fallbackTitle);
+    let coverBlob = data.coverBlob;
+    if (!coverBlob && data.type === 'manga') {
+      const first = data.pages.find(page => page.start != null);
+      if (first) coverBlob = file.slice(first.start, first.end, first.mime || '');
+    }
+    const coverUrl = coverBlob ? URL.createObjectURL(coverBlob) : null;
+
+    if (data.type === 'manga' && data.pages.length > 0) {
+      const pageItems = data.pages.map(page => ({
+        mobiFile: file,
+        mobiRange: page.start == null ? null : [page.start, page.end],
+        mobiMime: page.mime || '',
+        alt: page.alt || '',
+        url: null
+      }));
+      return {
+        id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        type: 'manga',
+        format: 'mobi',
+        title: data.title,
+        cover: coverUrl,
+        coverBlob,
+        pageItems,
+        pageCount: pageItems.length,
+        readingDirection: data.readingDirection,
+        resourceUrls: []
+      };
+    }
 
     return {
       id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -314,7 +343,7 @@ export async function parseMobiFileLazy(file) {
       format: 'mobi',
       title: data.title,
       cover: coverUrl,
-      coverBlob: data.coverBlob,
+      coverBlob,
       chapters: data.chapters,
       resourceUrls: data.resourceUrls,
       pageCount: data.chapters.length

@@ -527,6 +527,7 @@ export async function hydrateBook(book) {
   book.format = parsed.format;
   book.pageCount = parsed.pageCount;
   book.pageItems = parsed.pageItems;
+  book.readingDirection = parsed.readingDirection || null;
   book.zipContent = parsed.zipContent;
   book.pdfDoc = parsed.pdfDoc;
   book.chapters = parsed.chapters;

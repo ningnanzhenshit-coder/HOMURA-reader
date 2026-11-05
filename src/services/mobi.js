@@ -1,7 +1,8 @@
 /* ============================================================================
    HOMURA · MOBI（PalmDOC / PDB）解析
    ----------------------------------------------------------------------------
-   纯前端解析 Kindle MOBI6 容器：
+   容器解析优先交给 Rust（src-tauri/src/mobi_parser.rs），本文件保留完整的
+   JS 解析作为兜底，并继续负责所有 DOM 相关的正文净化与章节切分：
      · PDB 记录表 → 文本记录
      · PalmDOC LZ77 解压（压缩方式 1/2）
      · MOBI 头 + EXTH 元数据（书名、封面、图片记录）
@@ -9,12 +10,35 @@
    不支持：DRM 加密文件、Huffman 压缩（方式 17480）、AZW3/KF8 双头格式。
    ========================================================================== */
 
+import {
+  NativeErrorCode,
+  bytesToBase64,
+  canUseNativeBridge,
+  runNativeWithFallback
+} from './nativeRuntime.js';
+
 const BLOCKED_TAGS = new Set([
   'script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
   'textarea', 'select', 'option', 'link', 'meta', 'base', 'frame', 'frameset', 'applet'
 ]);
 
 const TAG_HEADINGS = 'h1,h2,h3,h4,h5,h6,font,p,div,td,th';
+
+// 漫画判定：与图片型 EPUB 同一套思路，有实质正文的轻小说始终走小说管道。
+const MOBI_TEXT_PAGE_MIN_LENGTH = 60;
+const MOBI_TEXT_PAGE_RATIO_LIMIT = 0.15;
+const MOBI_MIN_MANGA_IMAGES = 6;
+
+// 大文件继续走 JS，避免 base64 与 IPC 先把内存吃掉；失败时始终有同步兜底。
+export const NATIVE_MOBI_MAX_BYTES = 16 * 1024 * 1024;
+
+const MOBI_NATIVE_FALLBACK_CODES = [
+  NativeErrorCode.UNAVAILABLE,
+  NativeErrorCode.UNSUPPORTED,
+  NativeErrorCode.DISABLED,
+  NativeErrorCode.COMMAND_FAILED,
+  NativeErrorCode.INVALID_DATA
+];
 
 class MobiError extends Error {
   constructor(code, message) {
@@ -88,6 +112,15 @@ function imageMime(bytes) {
   return null;
 }
 
+function imageRecordAt(buf, starts, recordIndex) {
+  if (recordIndex < 0 || recordIndex + 1 >= starts.length) return null;
+  const start = starts[recordIndex];
+  const end = starts[recordIndex + 1] ?? buf.length;
+  if (start == null || start >= end) return null;
+  const mime = imageMime(buf.subarray(start, end));
+  return mime ? { start, end, mime } : null;
+}
+
 // ---- EXTH 元数据 ----
 
 function readExth(buf, rec0, mobiLength) {
@@ -105,6 +138,9 @@ function readExth(buf, rec0, mobiLength) {
     const len = readU32(buf, p + 4);
     if (len < 8 || p + len > limit) break;
     if (id === 201) result.coverOffset = readU32(buf, p + 8);
+    if (id === 123) result.cdeType = decodeText(buf.subarray(p + 8, p + len), 'utf-8').toLowerCase();
+    if (id === 525) result.writingMode = decodeText(buf.subarray(p + 8, p + len), 'utf-8').toLowerCase();
+    if (id === 527) result.pageProgression = decodeText(buf.subarray(p + 8, p + len), 'utf-8').toLowerCase();
     if (id === 503) result.title = decodeText(buf.subarray(p + 8, p + len), 'utf-8');
     p += len;
   }
@@ -121,9 +157,25 @@ function decodeText(bytes, encoding) {
 
 // ---- 正文净化 + 图片 recindex 解引用 ----
 
+// 图片记录缺失时不能直接把 <img> 删掉，否则整页会从分页结果里消失。
+// 保留一个等高的占位页，让页码与书里的页序继续对得上。
+function replaceWithMissingPage(dom, node) {
+  const alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
+  const label = alt ? `${alt} · 图片数据缺失` : '图片数据缺失';
+  const figure = dom.createElement('figure');
+  figure.setAttribute('class', 'mobi-missing-page');
+  figure.setAttribute('role', 'img');
+  figure.setAttribute('aria-label', label);
+  const caption = dom.createElement('figcaption');
+  caption.textContent = label;
+  figure.appendChild(caption);
+  node.replaceWith(figure);
+}
+
 function sanitizeInto(dom, imageUrlFor) {
   const walker = dom.createTreeWalker(dom.body || dom.documentElement, NodeFilter.SHOW_ELEMENT);
   const doomed = [];
+  let missingImages = 0;
   let node = walker.nextNode();
   while (node) {
     const tag = node.tagName.toLowerCase();
@@ -145,9 +197,13 @@ function sanitizeInto(dom, imageUrlFor) {
         if (Number.isInteger(recindex) && recindex > 0) {
           const url = imageUrlFor(recindex);
           if (url) node.setAttribute('src', url);
-          else doomed.push(node);
+          else {
+            replaceWithMissingPage(dom, node);
+            missingImages++;
+          }
         } else if (!/^(https?:|data:image\/)/i.test(node.getAttribute('src') || '')) {
-          doomed.push(node);
+          replaceWithMissingPage(dom, node);
+          missingImages++;
         }
       }
       if (tag === 'a' && !node.getAttribute('href')) {
@@ -158,6 +214,7 @@ function sanitizeInto(dom, imageUrlFor) {
     node = walker.nextNode();
   }
   doomed.forEach(el => el.remove());
+  return missingImages;
 }
 
 // ---- 章节标题：取首个短标题块，否则退化为书号 ----
@@ -168,6 +225,8 @@ function pickChapterTitle(body, fallbackTitle, index) {
     const text = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
     if (text && text.length <= 60 && /[\u4e00-\u9fa5a-zA-Z]/.test(text)) return text;
   }
+  const alt = (body.querySelector('img[alt]')?.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
+  if (alt && alt.length <= 60 && /[\u4e00-\u9fa5a-zA-Z0-9]/.test(alt)) return alt;
   return index === 0 ? '开始' : `${fallbackTitle} ${index + 1}`;
 }
 
@@ -227,40 +286,207 @@ export function parseMobiBuffer(arrayBuffer, fallbackTitle = 'MOBI') {
   const rawText = decodeText(mergeChunks(chunks), encoding);
   if (!rawText) throw new MobiError('BAD_FILE', 'MOBI 正文解码失败');
 
-  // 图片记录（惰性解码，只在正文真正引用时才建 blob URL）
-  const imgRecords = new Map();
+  // 统一整理成图片记录表：原生路径直接给出文件区间，JS 路径从 PDB 记录表现扫。
+  const imageRecords = [];
+  for (let recordIndex = firstImage; recordIndex + 1 < starts.length; recordIndex++) {
+    const record = imageRecordAt(buf, starts, recordIndex);
+    if (!record) continue;
+    imageRecords.push({
+      recindex: recordIndex - firstImage + 1,
+      ...record
+    });
+  }
+
+  // 封面：优先 EXTH 201，失效时退回首张图片
+  const coverIndex = Number.isInteger(exth.coverOffset) ? firstImage + exth.coverOffset : firstImage;
+  const coverRecord = imageRecordAt(buf, starts, coverIndex)
+    || imageRecordAt(buf, starts, firstImage);
+  const coverBlob = coverRecord
+    ? new Blob([buf.subarray(coverRecord.start, coverRecord.end)], { type: coverRecord.mime })
+    : null;
+
+  const title = (exth.title || '').trim() || headerTitle || fallbackTitle;
+  return buildMobiBookData({
+    title,
+    rawText,
+    compression,
+    encoding,
+    cdeType: exth.cdeType || '',
+    writingMode: exth.writingMode || '',
+    pageProgression: exth.pageProgression || '',
+    imageRecords,
+    coverBlob,
+    pageRangeBase: buf.byteOffset,
+    createImageBlob: record => new Blob(
+      [buf.subarray(record.start, record.end)],
+      { type: record.mime }
+    )
+  });
+}
+
+// Rust 只负责容器与正文，DOM 解析、漫画判定、章节切分和正文净化仍在这里完成。
+export function buildMobiBookData(container) {
+  const {
+    title,
+    rawText,
+    compression = 0,
+    encoding = '',
+    cdeType = '',
+    writingMode = '',
+    pageProgression = '',
+    imageRecords = [],
+    coverBlob = null,
+    pageRangeBase = 0,
+    createImageBlob
+  } = container || {};
+  if (typeof rawText !== 'string' || !rawText.trim()) {
+    throw new MobiError('BAD_FILE', 'MOBI 正文为空');
+  }
+  if (typeof createImageBlob !== 'function') {
+    throw new TypeError('buildMobiBookData 需要 createImageBlob');
+  }
+
+  const recordsByIndex = new Map();
+  for (const record of imageRecords) {
+    if (!record || !Number.isInteger(record.recindex) || record.recindex <= 0) continue;
+    if (!Number.isInteger(record.start) || !Number.isInteger(record.end) || record.end <= record.start) continue;
+    recordsByIndex.set(record.recindex, record);
+  }
+
+  // 图片记录惰性建 URL，只有正文真正引用时才占内存。
+  const imageUrls = new Map();
   const imageUrlFor = recindex => {
-    const recordIndex = firstImage + recindex - 1;
-    const cached = imgRecords.get(recordIndex);
+    const record = recordsByIndex.get(recindex);
+    if (!record) return null;
+    const cached = imageUrls.get(record.start);
     if (cached) return cached.url;
-    if (recordIndex < 0 || recordIndex + 1 >= starts.length) return null;
-    const from = starts[recordIndex];
-    const to = starts[recordIndex + 1] || buf.length;
-    const bytes = buf.subarray(from, to);
-    const mime = imageMime(bytes);
-    if (!mime) return null;
-    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-    imgRecords.set(recordIndex, { url, mime });
+    const blob = createImageBlob(record);
+    if (!blob) return null;
+    const url = URL.createObjectURL(blob);
+    imageUrls.set(record.start, { url, mime: record.mime });
     return url;
   };
 
-  // 封面
-  let coverBlob = null;
-  const coverIndex = Number.isInteger(exth.coverOffset)
-    ? firstImage + exth.coverOffset
-    : firstImage;
-  if (coverIndex > 0 && coverIndex + 1 <= starts.length) {
-    const from = starts[coverIndex];
-    const to = starts[coverIndex + 1] || buf.length;
-    const bytes = buf.subarray(from, to);
-    const mime = imageMime(bytes);
-    if (mime) coverBlob = new Blob([bytes], { type: mime });
+  const { cleaned, parts } = splitMobiParts(rawText);
+  const docs = parseMobiDocs(parts);
+  const isComic = shouldReadMobiAsManga(docs, cdeType);
+  const comicPages = isComic ? collectMobiPages(docs) : [];
+
+  let chapters = [];
+  let pages = [];
+  if (comicPages.length > 0) {
+    pages = comicPages.map(page => {
+      const record = recordsByIndex.get(page.recindex);
+      return {
+        alt: page.alt,
+        start: record ? pageRangeBase + record.start : null,
+        end: record ? pageRangeBase + record.end : null,
+        mime: record ? record.mime : null
+      };
+    });
+    const missingPages = pages.filter(page => page.start == null).length;
+    if (missingPages > 0) {
+      console.warn(`[HOMURA] MOBI 有 ${missingPages} 页图片记录缺失或损坏，已保留空页以维持页码`);
+    }
+  } else {
+    chapters = splitChapters(docs, cleaned, title, imageUrlFor);
   }
 
-  const title = (exth.title || '').trim() || headerTitle || fallbackTitle;
-  const chapters = splitChapters(rawText, title, imageUrlFor);
+  const isRtl = writingMode === 'rtl' || writingMode.endsWith('-rl')
+    || pageProgression === 'rtl' || pageProgression.endsWith('-rl');
+  const readingDirection = isRtl ? 'rtl' : 'ltr';
 
-  return { title, chapters, coverBlob, compression, encoding, resourceUrls: Array.from(imgRecords.values(), image => image.url) };
+  return {
+    title,
+    type: pages.length > 0 ? 'manga' : 'novel',
+    chapters,
+    pages,
+    readingDirection,
+    coverBlob,
+    compression,
+    encoding,
+    resourceUrls: Array.from(imageUrls.values(), image => image.url)
+  };
+}
+
+function normalizeNativeMobiRecord(record, fileSize, requireRecindex) {
+  const validRecindex = !requireRecindex
+    || (Number.isInteger(record?.recindex) && record.recindex > 0);
+  if (!record
+    || !validRecindex
+    || !Number.isInteger(record.start)
+    || !Number.isInteger(record.end)
+    || record.start < 0
+    || record.end <= record.start
+    || record.end > fileSize
+    || typeof record.mime !== 'string'
+    || !record.mime) {
+    throw new MobiError('BAD_FILE', '原生 MOBI 图片记录无效');
+  }
+  return {
+    recindex: record.recindex,
+    start: record.start,
+    end: record.end,
+    mime: record.mime
+  };
+}
+
+function buildMobiDataFromNative(container, file, fallbackTitle) {
+  if (!container
+    || typeof container.title !== 'string'
+    || typeof container.rawText !== 'string'
+    || !Array.isArray(container.imageRecords)) {
+    throw new MobiError('BAD_FILE', '原生 MOBI 解析结果无效');
+  }
+
+  const imageRecords = container.imageRecords.map(
+    record => normalizeNativeMobiRecord(record, file.size, true)
+  );
+  const cover = container.cover
+    ? normalizeNativeMobiRecord(container.cover, file.size, false)
+    : null;
+
+  return buildMobiBookData({
+    title: container.title.trim() || fallbackTitle,
+    rawText: container.rawText,
+    compression: container.compression,
+    encoding: container.encoding,
+    cdeType: container.cdeType || '',
+    writingMode: container.writingMode || '',
+    pageProgression: container.pageProgression || '',
+    imageRecords,
+    coverBlob: cover ? file.slice(cover.start, cover.end, cover.mime) : null,
+    pageRangeBase: 0,
+    createImageBlob: record => file.slice(record.start, record.end, record.mime)
+  });
+}
+
+// Tauri 环境优先让 Rust 解 PDB / PalmDOC；原生失败或文件过大时仍交给 JS。
+export async function parseMobiFileData(file, fallbackTitle = 'MOBI') {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const fallback = () => parseMobiBuffer(bytes, fallbackTitle);
+  if (bytes.length === 0 || bytes.length > NATIVE_MOBI_MAX_BYTES || !canUseNativeBridge()) {
+    return fallback();
+  }
+
+  const payload = bytesToBase64(bytes);
+  if (payload === null) return fallback();
+
+  const container = await runNativeWithFallback({
+    feature: 'mobi',
+    command: 'parse_mobi_container',
+    args: { bytesBase64: payload, fallbackTitle },
+    fallback: () => null,
+    fallbackOn: MOBI_NATIVE_FALLBACK_CODES
+  });
+  if (!container) return fallback();
+
+  try {
+    return buildMobiDataFromNative(container, file, fallbackTitle);
+  } catch (err) {
+    console.warn('[HOMURA] MOBI 原生解析结果不可用，回退 JS', err);
+    return fallback();
+  }
 }
 
 function mergeChunks(chunks) {
@@ -274,7 +500,7 @@ function mergeChunks(chunks) {
   return merged;
 }
 
-function splitChapters(rawText, bookTitle, imageUrlFor) {
+function splitMobiParts(rawText) {
   // 去掉 <head>/<guide> 引导信息，只留正文
   const cleaned = rawText
     .replace(/<head[\s\S]*?<\/head>/gi, '')
@@ -285,22 +511,69 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
     // 没有分页标记的书：退化为按标题标签切分
     parts = cleaned.split(/(?=<h[1-3][\s>])/i).filter(p => p && p.trim());
   }
+  return { cleaned, parts };
+}
 
+function parseMobiDocs(parts) {
   const parser = new DOMParser();
+  return parts.map(part => parser.parseFromString(part, 'text/html'));
+}
+
+function shouldReadMobiAsManga(docs, cdeType) {
+  if (cdeType === 'comic') return true;
+  if (docs.length === 0) return false;
+
+  let textPages = 0;
+  let imageCount = 0;
+  for (const doc of docs) {
+    if (!doc.body) continue;
+    const text = (doc.body.textContent || '').replace(/\s+/g, '');
+    if (text.length >= MOBI_TEXT_PAGE_MIN_LENGTH) textPages++;
+    imageCount += doc.body.querySelectorAll('img[recindex]').length;
+  }
+  if (imageCount < MOBI_MIN_MANGA_IMAGES) return false;
+  return textPages / docs.length <= MOBI_TEXT_PAGE_RATIO_LIMIT;
+}
+
+function collectMobiPages(docs) {
+  const pages = [];
+  for (const doc of docs) {
+    if (!doc.body) continue;
+    for (const img of doc.body.querySelectorAll('img[recindex]')) {
+      const recindex = parseInt(img.getAttribute('recindex') || '', 10);
+      if (!Number.isInteger(recindex) || recindex <= 0) continue;
+      pages.push({
+        recindex,
+        alt: (img.getAttribute('alt') || '').replace(/\s+/g, ' ').trim()
+      });
+    }
+  }
+  return pages;
+}
+
+function splitChapters(docs, cleaned, bookTitle, imageUrlFor) {
   const chapters = [];
-  parts.forEach((part, index) => {
-    const doc = parser.parseFromString(part, 'text/html');
+  let missingImages = 0;
+  docs.forEach((doc, index) => {
     if (!doc.body) return;
-    sanitizeInto(doc, imageUrlFor);
+    const title = pickChapterTitle(doc.body, bookTitle, index);
+    missingImages += sanitizeInto(doc, imageUrlFor);
     const html = (doc.body.innerHTML || '').trim();
-    if (!html || !doc.body.textContent.replace(/\s+/g, '').length) return;
+    const hasText = !!doc.body.textContent.replace(/\s+/g, '').length;
+    const hasImage = !!doc.body.querySelector('img, svg, image, figure.mobi-missing-page');
+    if (!html || (!hasText && !hasImage)) return;
     chapters.push({
-      title: pickChapterTitle(doc.body, bookTitle, index),
+      title,
       htmlContent: html
     });
   });
 
+  if (missingImages > 0) {
+    console.warn(`[HOMURA] MOBI 有 ${missingImages} 张图片记录缺失或损坏，已保留占位页以维持页码`);
+  }
+
   if (chapters.length === 0) {
+    const parser = new DOMParser();
     const doc = parser.parseFromString(cleaned, 'text/html');
     sanitizeInto(doc, imageUrlFor);
     chapters.push({
