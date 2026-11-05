@@ -321,10 +321,39 @@
     }
 
     /* ==========================================================================
-       3.1 Hover Elevation — 筛选胶囊与侧栏导航项共用的悬浮投影
+       3.1 Elevation — 筛选胶囊的 hover 投影与 MD3 level 1 容器投影
        ========================================================================== */
     :root {
       --md-elevation-hover: 0 6px 16px -10px color-mix(in oklab, var(--md-shadow-color) 52%, transparent);
+      --md-elevation-level1:
+        0 1px 2px 0 color-mix(in oklab, var(--md-shadow-color) 30%, transparent),
+        0 1px 3px 1px color-mix(in oklab, var(--md-shadow-color) 15%, transparent);
+    }
+
+    /* ==========================================================================
+       3.2 MD3 Spacing Tokens — space100 = 8px 主节奏，4px / 2px 用于细化
+       --------------------------------------------------------------------------
+       刻度沿用 Material 的 space25–space900 命名；组件优先取 8 / 12 / 16 / 24 / 32，
+       只在紧凑控件、描边和既有光学修正中下探到 2 / 4 / 6 / 10 / 14。
+       ========================================================================== */
+    :root {
+      --md-space-25: 2px;
+      --md-space-50: 4px;
+      --md-space-75: 6px;
+      --md-space-100: 8px;
+      --md-space-125: 10px;
+      --md-space-150: 12px;
+      --md-space-175: 14px;
+      --md-space-200: 16px;
+      --md-space-250: 20px;
+      --md-space-300: 24px;
+      --md-space-400: 32px;
+      --md-space-450: 36px;
+      --md-space-500: 40px;
+      --md-space-600: 48px;
+      --md-space-700: 56px;
+      --md-space-800: 64px;
+      --md-space-900: 72px;
     }
 
     /* ==========================================================================
@@ -676,8 +705,8 @@
       transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1);
     }
     .md-menu-item > svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       flex: none;
     }
     .md-menu-item > svg:not(.md-menu-check) {
@@ -699,22 +728,22 @@
     .md-shelf-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      padding: 14px 16px 0;
+      gap: var(--md-space-150);
+      padding: var(--md-space-200) var(--md-space-200) 0;
     }
     /* 768–899 仍使用底部导航，但信息密度要接近桌面，避免三列巨卡 */
     @media (min-width: 768px) and (max-width: 899px) {
       .md-shelf-grid {
         grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 14px;
-        padding-inline: 20px;
+        gap: var(--md-space-200);
+        padding-inline: var(--md-space-250);
       }
     }
     @media (min-width: 900px) {
       .md-shelf-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-        padding: 18px 28px 0;
+        gap: var(--md-space-200);
+        padding: var(--md-space-200) 28px 0;
       }
     }
     @media (min-width: 1080px) {
@@ -731,7 +760,7 @@
     @media (min-width: 1600px) {
       .md-shelf-grid {
         grid-template-columns: repeat(8, minmax(0, 1fr));
-        gap: 18px;
+        gap: var(--md-space-300);
         padding-inline: 36px;
       }
     }
@@ -747,17 +776,40 @@
       .md-featured-cell { grid-column: span 3; }
     }
 
-    .md-shelf-card {
+    /* ==========================================================================
+       MD3 Cards — 12px medium shape。Filled 为书架默认卡型，
+       hover / focus / pressed 只叠加状态层，不抬升、不加投影。
+       Featured 是应用内的 tonal 特色卡，沿用同一套几何与交互语言。
+       ========================================================================== */
+    .md-card {
       position: relative;
       isolation: isolate;
-      background-color: var(--md-surface-highest);
-      border-radius: 12px;
       overflow: hidden;
+      border-radius: 12px;
+      background-color: var(--md-surface-highest);
+      color: var(--md-on-surface);
+      box-shadow: none;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
-      box-shadow: none;
-      transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .md-card--filled { background-color: var(--md-surface-highest); }
+    .md-card--outlined {
+      border: 1px solid var(--md-outline-variant);
+      background-color: var(--md-surface);
+    }
+    .md-card--elevated {
+      background-color: var(--md-surface-low);
+      box-shadow: var(--md-elevation-level1);
+    }
+    .md-card--featured {
+      background-color: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+    .md-card:focus-visible,
+    .md-card:has(:focus-visible) {
+      outline: 2px solid var(--md-primary);
+      outline-offset: 2px;
     }
     .md-shelf-card.is-touch-dragging { opacity: 0.38; transform: scale(0.96); }
 
@@ -796,15 +848,8 @@
 
     /* 书库卡与书本卡同构：封面固定 3:4，底部信息栏共用相同的内边距与字号。 */
     .md-collection-card {
-      position: relative;
-      isolation: isolate;
       display: flex;
       min-width: 0;
-      overflow: hidden;
-      border-radius: 12px;
-      background-color: var(--md-surface-highest);
-      box-shadow: none;
-      transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
     }
     .md-collection-open { display: flex; flex: 1; flex-direction: column; width: 100%; padding: 0; text-align: left; color: var(--md-on-surface); }
     .md-collection-art { display: block; position: relative; aspect-ratio: 3 / 4; background: var(--md-surface-high); }
@@ -855,14 +900,14 @@
       .md-collection-tile.is-empty svg { width: 18px; height: 18px; }
       .md-collection-fallback { padding: 6px; font-size: 9px; }
     }
-    .md-collection-info { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; padding: 8px 10px 10px; }
+    .md-collection-info { display: flex; flex: 1; flex-direction: column; gap: var(--md-space-50); min-width: 0; padding: var(--md-space-100); }
     .md-collection-title { overflow: hidden; font-size: 12px; font-weight: 700; line-height: 1.375; text-overflow: ellipsis; white-space: nowrap; }
     .md-collection-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; color: var(--md-on-surface-variant); font-size: 10px; line-height: normal; font-variant-numeric: tabular-nums; }
     .md-collection-count { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .md-collection-action, .md-collection-drop { color: var(--md-primary); font-weight: 600; white-space: nowrap; }
     .md-collection-action { flex: none; }
     @media (min-width: 768px) {
-      .md-collection-info { padding: 10px 12px 12px; }
+      .md-collection-info { padding: var(--md-space-100) var(--md-space-150) var(--md-space-150); }
       .md-collection-title { font-size: 13px; }
       .md-collection-meta { font-size: 11px; }
     }
@@ -941,9 +986,8 @@
     .md-touch-drag-copy b { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .md-touch-drag-copy small { overflow: hidden; color: var(--md-primary); font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* Filled Card 的悬浮反馈：状态层 + level 1 elevation，不做位移 */
-    .md-shelf-card::after,
-    .md-collection-card::after {
+    /* MD3 状态层：hover 8%，focus / pressed 10%，不做位移与悬浮投影。 */
+    .md-card::after {
       content: '';
       position: absolute;
       inset: 0;
@@ -954,26 +998,21 @@
       pointer-events: none;
       transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
     }
+    .md-card--featured::after { background: var(--md-on-primary-container); }
     @media (hover: hover) and (pointer: fine) {
-      .md-shelf-card:hover,
-      .md-collection-card:hover {
-        box-shadow:
-          0 1px 2px 0 color-mix(in oklab, var(--md-shadow-color) 24%, transparent),
-          0 4px 10px -4px color-mix(in oklab, var(--md-shadow-color) 28%, transparent);
-      }
-      .md-shelf-card:hover::after,
-      .md-collection-card:hover::after {
-        opacity: 0.08;
-      }
+      .md-card:hover::after { opacity: 0.08; }
+    }
+    .md-card:focus-visible::after,
+    .md-card:has(:focus-visible)::after,
+    .md-card:active::after {
+      opacity: 0.10;
     }
     @media (prefers-reduced-motion: reduce) {
       .md-filter-chip,
       .md-filter-chip::before,
       .md-menu-item,
-      .md-shelf-card,
-      .md-shelf-card::after,
-      .md-collection-card,
-      .md-collection-card::after {
+      .md-card,
+      .md-card::after {
         transition: none;
       }
     }
@@ -1048,8 +1087,8 @@
       }
     }
     .md-icon-button svg {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
     }
     .md-icon-button.is-outlined {
       box-shadow: inset 0 0 0 1px var(--md-outline-variant);
@@ -1512,52 +1551,95 @@
       }
     }
 
-    /* MD3 进度滑条 */
+    /* MD3 Slider：16px 胶囊轨道 + 4×44px 手柄，48px 触控高度 */
     .md-range {
+      --md-range-progress: 0%;
+      --md-range-direction: to right;
       -webkit-appearance: none;
       appearance: none;
-      height: 20px;
+      display: block;
+      width: 100%;
+      height: 48px;
+      margin: 0;
+      padding: 0;
+      border: 0;
       background: transparent;
       cursor: pointer;
     }
+    .md-range.rtl-slider {
+      --md-range-direction: to left;
+      direction: rtl;
+    }
+    .md-range:focus-visible {
+      outline: none;
+    }
+    /* 8px = 6dp 视觉留白 + 4dp 手柄的半宽，保证活动/未活动轨道不贴住手柄 */
     .md-range::-webkit-slider-runnable-track {
-      height: 4px;
+      height: 16px;
       border-radius: 999px;
-      background: var(--md-outline-variant);
+      background:
+        linear-gradient(
+          var(--md-range-direction),
+          var(--md-primary) 0,
+          var(--md-primary) calc(var(--md-range-progress) - 8px),
+          transparent calc(var(--md-range-progress) - 8px),
+          transparent calc(var(--md-range-progress) + 8px),
+          var(--md-secondary-container) calc(var(--md-range-progress) + 8px),
+          var(--md-secondary-container) 100%
+        );
     }
     .md-range::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      margin-top: -5px;
-      border-radius: 50%;
+      width: 4px;
+      height: 44px;
+      margin-top: -14px;
+      border: 0;
+      border-radius: 2px;
       background: var(--md-primary);
-      box-shadow: 0 0 0 3px var(--md-surface);
+    }
+    .md-range:focus-visible::-webkit-slider-thumb {
+      box-shadow:
+        0 0 0 2px var(--md-range-focus-gap, var(--md-surface)),
+        0 0 0 4px var(--md-primary);
     }
     .md-range::-moz-range-track {
-      height: 4px;
+      height: 16px;
+      border: 0;
       border-radius: 999px;
-      background: var(--md-outline-variant);
+      background:
+        linear-gradient(
+          var(--md-range-direction),
+          var(--md-primary) 0,
+          var(--md-primary) calc(var(--md-range-progress) - 8px),
+          transparent calc(var(--md-range-progress) - 8px),
+          transparent calc(var(--md-range-progress) + 8px),
+          var(--md-secondary-container) calc(var(--md-range-progress) + 8px),
+          var(--md-secondary-container) 100%
+        );
+    }
+    .md-range::-moz-range-progress {
+      height: 16px;
+      background: transparent;
     }
     .md-range::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
+      width: 4px;
+      height: 44px;
       border: 0;
-      border-radius: 50%;
+      border-radius: 2px;
       background: var(--md-primary);
-      box-shadow: 0 0 0 3px var(--md-surface);
     }
-    .md-reader-bottombar .md-range::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px var(--md-surface-container);
+    .md-range:focus-visible::-moz-range-thumb {
+      box-shadow:
+        0 0 0 2px var(--md-range-focus-gap, var(--md-surface)),
+        0 0 0 4px var(--md-primary);
     }
-    .md-reader-bottombar .md-range::-moz-range-thumb {
-      box-shadow: 0 0 0 3px var(--md-surface-container);
+    .md-range:disabled {
+      cursor: default;
+      opacity: 0.38;
     }
-    .md-drawer .md-range::-webkit-slider-thumb {
-      box-shadow: 0 0 0 3px var(--md-surface-container);
-    }
-    .md-drawer .md-range::-moz-range-thumb {
-      box-shadow: 0 0 0 3px var(--md-surface-container);
+    .md-reader-bottombar,
+    .md-drawer {
+      --md-range-focus-gap: var(--md-surface-container);
     }
 
     /* ==========================================================================
@@ -1600,36 +1682,6 @@
     .reader-gesture-layer {
       touch-action: none;
       overscroll-behavior: contain;
-    }
-
-    /* 移动端进度条滑块加大，便于手指拖动 */
-    @media (hover: none) {
-      input[type="range"] {
-        height: 6px;
-      }
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border-radius: 9999px;
-        background: var(--brand-primary);
-        border: 2px solid var(--bg-card);
-      }
-    }
-
-    /* MD3 滑条：触屏上仍保持 20px 命中高度与 18px 拇指 */
-    @media (hover: none) {
-      input[type="range"].md-range {
-        height: 20px;
-      }
-      .md-range::-webkit-slider-thumb {
-        width: 18px;
-        height: 18px;
-        margin-top: -7px;
-        border: 0;
-        background: var(--md-primary);
-        box-shadow: 0 0 0 3px var(--md-surface);
-      }
     }
 
     /* 切换阅读模式时临时禁用过渡，让内容区与原生标题栏在同一帧完成换色 */

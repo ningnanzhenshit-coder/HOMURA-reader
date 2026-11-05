@@ -17,13 +17,11 @@
           @click="$emit('rename')"
         >
           <span class="min-w-0 truncate">{{ title }}</span>
-          <svg class="w-3.5 h-3.5 shrink-0 text-[var(--md-on-surface-variant)] opacity-50 group-hover:opacity-80 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/>
-          </svg>
+          <MdIcon name="edit" class="w-3.5 h-3.5 shrink-0 text-[var(--md-on-surface-variant)] opacity-50 group-hover:opacity-80 transition-opacity duration-200" />
         </button>
         <h1 v-else :key="title" class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight min-w-0 truncate">{{ title }}</h1>
       </Transition>
-      <span ref="countBadgeRef" class="hidden min-[360px]:inline-flex shrink-0 px-[9px] py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
+      <span ref="countBadgeRef" class="hidden min-[360px]:inline-flex shrink-0 px-2.5 py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-0.5 min-[900px]:gap-2 shrink-0">
         <button
@@ -34,18 +32,7 @@
           :aria-label="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
           :aria-pressed="ui.fullscreen"
         >
-          <svg v-if="ui.fullscreen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
-          </svg>
-          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
-          </svg>
+          <MdIcon :name="ui.fullscreen ? 'fullscreen_exit' : 'fullscreen'" class="w-5 h-5" />
         </button>
         <button
           @click="toggleAppearance"
@@ -58,9 +45,7 @@
           aria-haspopup="dialog"
           :aria-expanded="appearanceOpen"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
-          </svg>
+          <MdIcon name="palette" class="w-5 h-5" />
         </button>
 
         <slot name="actions" />
@@ -73,9 +58,7 @@
             aria-haspopup="menu"
             :aria-expanded="menu === 'sort'"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"/>
-            </svg>
+            <MdIcon name="sort" class="w-5 h-5" />
           </button>
           <div v-if="menu === 'sort'" class="fixed inset-0 z-20" @click="menu = null"></div>
           <div
@@ -95,9 +78,7 @@
               class="md-menu-item"
             >
               <span class="flex-1">{{ opt.label }}</span>
-              <svg v-if="sort === opt.value" class="md-menu-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-              </svg>
+              <MdIcon v-if="sort === opt.value" name="check" class="md-menu-check" />
             </button>
           </div>
         </div>
@@ -105,12 +86,9 @@
     </div>
 
     <!-- 搜索栏：手机独立一行；桌面嵌入 Top App Bar 中段，避免被拉成整条跑道 -->
-    <div class="library-search-slot px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-1 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
+    <div class="library-search-slot px-4 pt-2 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-1 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
       <div class="library-search-field h-14 rounded-[28px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-4 pr-2 transition-colors duration-200">
-        <svg class="w-6 h-6 shrink-0 text-[var(--md-on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" stroke-width="2"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20l-4-4"/>
-        </svg>
+        <MdIcon name="search" class="w-6 h-6 shrink-0 text-[var(--md-on-surface-variant)]" />
         <input
           :value="query"
           @input="$emit('update:query', $event.target.value)"
@@ -133,9 +111,7 @@
           title="清空搜索"
           aria-label="清空搜索"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-          </svg>
+          <MdIcon name="close" class="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -152,9 +128,7 @@
           :class="{ 'is-selected': type === t.value }"
           :aria-pressed="type === t.value"
         >
-          <svg v-if="type === t.value" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-          </svg>
+          <MdIcon v-if="type === t.value" name="check" />
           <span>{{ t.label }}</span>
         </button>
       </div>
@@ -168,20 +142,13 @@
         aria-haspopup="menu"
         :aria-expanded="menu === 'format'"
       >
-        <svg v-if="activeFormat" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-        </svg>
+        <MdIcon v-if="activeFormat" name="check" />
         <span>{{ activeFormat ? activeFormat.label : '格式' }}</span>
-        <svg
+        <MdIcon
+          name="expand_more"
           class="library-format-chevron transition-transform duration-200"
           :class="menu === 'format' ? 'rotate-180' : ''"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9l6 6 6-6"/>
-        </svg>
+        />
       </button>
 
       <div v-if="menu === 'format'" class="fixed inset-0 z-20" @click="menu = null"></div>
@@ -202,9 +169,7 @@
           class="md-menu-item"
         >
           <span class="flex-1">{{ opt.label }}</span>
-          <svg v-if="type === opt.value" class="md-menu-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-          </svg>
+          <MdIcon v-if="type === opt.value" name="check" class="md-menu-check" />
         </button>
       </div>
     </div>
@@ -216,6 +181,7 @@ import { ref, computed, watch, shallowRef, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import MdIcon from './MdIcon.vue';
 
 const props = defineProps({
   title: { type: String, default: '书架' },

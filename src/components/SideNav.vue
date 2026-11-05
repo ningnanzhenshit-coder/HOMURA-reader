@@ -14,10 +14,7 @@
         :aria-expanded="!collapsed"
         @click="toggleSidebar"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-          <path v-if="collapsed" d="M4 6h16M4 12h16M4 18h16" />
-          <path v-else d="M4 7h13M4 12h9M4 17h13" />
-        </svg>
+        <MdIcon :name="collapsed ? 'menu' : 'menu_open'" />
       </button>
 
       <button
@@ -48,41 +45,7 @@
         :aria-current="active === item.key ? 'page' : undefined"
         @click="select(item.key)"
       >
-        <svg
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          :class="{ 'is-star': item.key === 'favorite', 'is-gear': item.key === 'settings' }"
-          aria-hidden="true"
-        >
-          <path
-            v-if="item.key === 'shelf'"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.9"
-            d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"
-          />
-          <template v-else-if="item.key === 'recent'">
-            <circle cx="12" cy="12" r="9" stroke-width="1.9" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M12 7v5l3 2" />
-          </template>
-          <path
-            v-else-if="item.key === 'favorite'"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.9"
-            d="M12 17.3l5.4 3.2-1.4-6.1 4.7-4.1-6.2-.5L12 4l-2.5 5.8-6.2.5 4.7 4.1-1.4 6.1z"
-          />
-          <template v-else>
-            <circle cx="12" cy="12" r="3" stroke-width="1.9" />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.9"
-              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"
-            />
-          </template>
-        </svg>
+        <MdIcon :name="item.icon" :filled="active === item.key" />
         <span class="sidenav-label sidenav-label-wide">{{ item.label }}</span>
         <span class="sidenav-label sidenav-label-compact" aria-hidden="true">{{ item.label }}</span>
       </button>
@@ -109,41 +72,7 @@
         :aria-current="active === item.key ? 'page' : undefined"
         @click="select(item.key)"
       >
-        <svg
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          :class="{ 'is-star': item.key === 'favorite', 'is-gear': item.key === 'settings' }"
-          aria-hidden="true"
-        >
-          <path
-            v-if="item.key === 'shelf'"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.9"
-            d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"
-          />
-          <template v-else-if="item.key === 'recent'">
-            <circle cx="12" cy="12" r="9" stroke-width="1.9" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M12 7v5l3 2" />
-          </template>
-          <path
-            v-else-if="item.key === 'favorite'"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.9"
-            d="M12 17.3l5.4 3.2-1.4-6.1 4.7-4.1-6.2-.5L12 4l-2.5 5.8-6.2.5 4.7 4.1-1.4 6.1z"
-          />
-          <template v-else>
-            <circle cx="12" cy="12" r="3" stroke-width="1.9" />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.9"
-              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"
-            />
-          </template>
-        </svg>
+        <MdIcon :name="item.icon" :filled="active === item.key" />
         <span>{{ item.label }}</span>
       </button>
     </nav>
@@ -153,6 +82,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
+import MdIcon from './MdIcon.vue';
 
 const SIDEBAR_STORAGE_KEY = 'homura_sidenav_collapsed';
 
@@ -220,10 +150,10 @@ function toggleSidebar() {
 }
 
 const navItems = [
-  { key: 'shelf', label: '书架' },
-  { key: 'recent', label: '最近' },
-  { key: 'favorite', label: '收藏' },
-  { key: 'settings', label: '设置' }
+  { key: 'shelf', label: '书架', icon: 'local_library' },
+  { key: 'recent', label: '最近', icon: 'history' },
+  { key: 'favorite', label: '收藏', icon: 'star' },
+  { key: 'settings', label: '设置', icon: 'settings' }
 ];
 
 function select(key) {
@@ -326,8 +256,8 @@ onBeforeUnmount(() => {
   }
 
   .sidenav-icon-btn svg {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
 
   .sidenav-icon-btn:hover {
@@ -396,16 +326,6 @@ onBeforeUnmount(() => {
     transition:
       top 280ms cubic-bezier(0.2, 0, 0, 1),
       left 280ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .sidenav-item svg.is-star {
-    transform: scale(1.12);
-    transform-origin: center;
-  }
-
-  .sidenav-item svg.is-gear {
-    transform: scale(0.9);
-    transform-origin: center;
   }
 
   .sidenav-label {
@@ -538,18 +458,8 @@ onBeforeUnmount(() => {
   }
 
   .mobile-nav-item svg {
-    width: 22px;
-    height: 22px;
-  }
-
-  .mobile-nav-item svg.is-star {
-    transform: scale(1.12);
-    transform-origin: center;
-  }
-
-  .mobile-nav-item svg.is-gear {
-    transform: scale(0.9);
-    transform-origin: center;
+    width: 24px;
+    height: 24px;
   }
 
   .mobile-nav-item.is-active {

@@ -41,9 +41,7 @@
               aria-label="关闭更新日志"
               @click="$emit('close')"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-              </svg>
+              <MdIcon name="close" />
             </button>
           </header>
 
@@ -58,10 +56,7 @@
 
             <div v-else-if="status === 'error'" class="changelog-state is-error" role="alert">
               <span class="changelog-error-icon" aria-hidden="true">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
-                  <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
-                </svg>
+                <MdIcon name="error" />
               </span>
               <b>暂时无法读取更新日志</b>
               <p>{{ errorMessage }}</p>
@@ -103,9 +98,7 @@
           <footer class="changelog-foot">
             <button type="button" @click="openReleasesPage">
               在 GitHub 查看全部发布
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 17 17 7M9 7h8v8"/>
-              </svg>
+              <MdIcon name="open_in_new" />
             </button>
             <p v-if="linkError" role="alert">{{ linkError }}</p>
           </footer>
@@ -119,6 +112,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import { openGitHubUrl } from '../services/external.js';
+import MdIcon from './MdIcon.vue';
 import {
   getUpdateErrorMessage,
   RELEASES_PAGE_URL

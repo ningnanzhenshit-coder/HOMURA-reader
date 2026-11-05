@@ -1,5 +1,5 @@
 <template>
-  <div class="md-collection-card" :class="{ 'is-drop-target': highlighted, 'md-collection-selected': selected }" :data-collection-id="collection.id" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
+  <div class="md-card md-card--filled md-collection-card" :class="{ 'is-drop-target': highlighted, 'md-collection-selected': selected }" :data-collection-id="collection.id" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
     <button class="md-collection-open" :aria-label="selecting ? `选择书库：${collection.title}` : `打开书库：${collection.title}，${books.length} 本`" :aria-pressed="selecting ? selected : undefined" @click="$emit(selecting ? 'toggle' : 'open', collection.id)">
       <span class="md-collection-art" aria-hidden="true">
         <span class="md-collection-board">
@@ -8,10 +8,7 @@
               <img v-if="covers[index - 1].cover" :src="covers[index - 1].cover" alt="" loading="lazy" decoding="async" draggable="false" />
               <span v-else class="md-collection-fallback">{{ covers[index - 1].title }}</span>
             </template>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v13H7.5A2.5 2.5 0 0 1 5 17.5v-13Z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 8h7M8 11h5" />
-            </svg>
+            <MdIcon v-else name="auto_stories" />
           </span>
         </span>
         <span v-if="selecting" class="md-collection-check">{{ selected ? '✓' : '○' }}</span>
@@ -34,6 +31,7 @@
 import { computed, ref } from 'vue';
 import { sortShelfBooks } from '../services/bookTitles.js';
 import { useShelfStore } from '../stores/shelf.js';
+import MdIcon from './MdIcon.vue';
 
 const props = defineProps({ collection: { type: Object, required: true }, books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, touchOver: { type: Boolean, default: false }, selecting: { type: Boolean, default: false }, selected: { type: Boolean, default: false } });
 const emit = defineEmits(['open', 'toggle', 'move']);

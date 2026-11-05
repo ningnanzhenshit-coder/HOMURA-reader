@@ -36,23 +36,7 @@
           :aria-current="activeSection === section.key ? 'page' : undefined"
           @click="selectSection(section.key)"
         >
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <template v-if="section.key === 'appearance'">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3a9 9 0 100 18h1.5a2.5 2.5 0 000-5H12a2 2 0 010-4h4a4 4 0 004-4 5 5 0 00-5-5h-3z"/>
-            </template>
-            <template v-else-if="section.key === 'storage'">
-              <ellipse cx="12" cy="5" rx="8" ry="3" stroke-width="1.8"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/>
-            </template>
-            <template v-else-if="section.key === 'debug'">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 3h6M10 3v6l-5 8a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-5-8V3"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16h10"/>
-            </template>
-            <template v-else>
-              <circle cx="12" cy="12" r="9" stroke-width="1.8"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 11v5M12 8h.01"/>
-            </template>
-          </svg>
+          <MdIcon :name="section.icon" />
           <span class="section-link-desktop">{{ section.label }}</span>
           <span class="section-link-mobile">{{ section.shortLabel }}</span>
         </button>
@@ -165,19 +149,16 @@
                   :disabled="readerDefaults.fontSize <= 14"
                   @click="changeDefaultFont(-2)"
                 >
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/>
-                  </svg>
+                  <MdIcon name="remove" />
                 </button>
-                <input
-                  class="md-range settings-range"
-                  type="range"
-                  min="14"
-                  max="28"
-                  step="2"
-                  :value="readerDefaults.fontSize"
+                <MdRange
+                  class="settings-range"
+                  :model-value="readerDefaults.fontSize"
+                  :min="14"
+                  :max="28"
+                  :step="2"
                   aria-label="默认字号"
-                  @input="setFontSize($event.target.value)"
+                  @update:model-value="setFontSize"
                 />
                 <button
                   type="button"
@@ -187,9 +168,7 @@
                   :disabled="readerDefaults.fontSize >= 28"
                   @click="changeDefaultFont(2)"
                 >
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/>
-                  </svg>
+                  <MdIcon name="add" />
                 </button>
               </div>
             </div>
@@ -357,29 +336,11 @@
 
               <div class="about-actions">
                 <button type="button" class="about-update-button" @click="updates.handlePrimaryUpdateAction">
-                  <svg fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                      stroke-linecap="round"
-                    />
-                    <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
-                    <path
-                      d="M12 7.7V12l3.1 1.85"
-                      stroke="currentColor"
-                      stroke-width="2.35"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
+                  <MdIcon name="update" />
                   {{ hasPendingInstall ? '继续安装' : '检查更新' }}
                 </button>
                 <button type="button" class="about-log-button" @click="updates.openChangelog">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 4h10l3 3v13H6z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 11h7M9 15h7M9 7h3"/>
-                  </svg>
+                  <MdIcon name="article" />
                   更新日志
                   <span v-if="hasNewRelease" class="about-log-new" aria-label="有新版本"></span>
                 </button>
@@ -458,9 +419,7 @@
             :aria-busy="actionBusy"
           >
             <div class="settings-dialog-icon" aria-hidden="true">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/>
-              </svg>
+              <MdIcon name="delete" />
             </div>
             <h3 id="settings-dialog-title">{{ dataDialogTitle }}</h3>
             <p id="settings-dialog-copy">{{ dataDialogDescription }}</p>
@@ -510,6 +469,8 @@ import {
 import { WEBTOON_FIT_LABELS } from '../stores/reader.js';
 import { useUpdateStore } from '../stores/updates.js';
 import { useViewport } from '../composables/useViewport.js';
+import MdIcon from './MdIcon.vue';
+import MdRange from './MdRange.vue';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
 import SurfaceModePreview from './SurfaceModePreview.vue';
@@ -544,10 +505,10 @@ const webtoonOptions = [
 ];
 
 const sections = [
-  { key: 'appearance', label: '外观与阅读', shortLabel: '外观' },
-  { key: 'storage', label: '存储与数据', shortLabel: '存储' },
-  { key: 'debug', label: '调试', shortLabel: '调试' },
-  { key: 'about', label: '关于 HOMURA', shortLabel: '关于' }
+  { key: 'appearance', label: '外观与阅读', shortLabel: '外观', icon: 'palette' },
+  { key: 'storage', label: '存储与数据', shortLabel: '存储', icon: 'database' },
+  { key: 'debug', label: '调试', shortLabel: '调试', icon: 'science' },
+  { key: 'about', label: '关于 HOMURA', shortLabel: '关于', icon: 'info' }
 ];
 const activeSection = ref('appearance');
 
@@ -932,9 +893,9 @@ onBeforeUnmount(() => {
 }
 
 .settings-section-link svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   opacity: 0.72;
 }
 
@@ -1102,8 +1063,8 @@ onBeforeUnmount(() => {
 }
 
 .settings-icon-button svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .settings-range {

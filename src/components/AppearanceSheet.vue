@@ -51,7 +51,7 @@
           title="关闭"
           aria-label="关闭外观设置"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/></svg>
+          <MdIcon name="close" class="w-4 h-4" />
         </button>
       </div>
       <AppearancePanel />
@@ -64,6 +64,7 @@ import { computed } from 'vue';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import AppearancePanel from './AppearancePanel.vue';
+import MdIcon from './MdIcon.vue';
 
 const { isCompact } = useViewport();
 const props = defineProps({

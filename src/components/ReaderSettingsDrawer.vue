@@ -125,7 +125,7 @@
               title="减小字号"
               aria-label="减小字号"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.4" d="M6 12h12"/></svg>
+              <MdIcon name="remove" />
             </button>
             <input class="reader-font-number" type="number" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号数值" @change="onFontNumberChange" />
             <button
@@ -136,10 +136,18 @@
               title="增大字号"
               aria-label="增大字号"
             >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.4" d="M12 6v12M6 12h12"/></svg>
+              <MdIcon name="add" />
             </button>
           </div>
-          <input type="range" class="md-range mt-3 w-full" :min="NOVEL_FONT_MIN" :max="NOVEL_FONT_MAX" step="1" :value="config.fontSize" aria-label="小说字号滑块" @input="reader.setFontSize($event.target.value)" />
+          <MdRange
+            class="mt-3 w-full"
+            :model-value="config.fontSize"
+            :min="NOVEL_FONT_MIN"
+            :max="NOVEL_FONT_MAX"
+            :step="1"
+            aria-label="小说字号滑块"
+            @update:model-value="reader.setFontSize"
+          />
           <p class="mt-2 text-[11px] leading-relaxed text-[var(--md-on-surface-variant)]">{{ NOVEL_FONT_MIN }}–{{ NOVEL_FONT_MAX }} px · 每页行数随字号和窗口自动调整，按书记忆。</p>
         </section>
 
@@ -221,6 +229,8 @@ import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { useSheetDrag } from '../composables/useSheetDrag.js';
 import ReaderDrawerHeader from './ReaderDrawerHeader.vue';
+import MdIcon from './MdIcon.vue';
+import MdRange from './MdRange.vue';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 import MdSwitch from './MdSwitch.vue';
 import SurfaceModePreview from './SurfaceModePreview.vue';

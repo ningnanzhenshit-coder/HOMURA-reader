@@ -8,9 +8,7 @@
       title="返回书架 (Esc)"
       aria-label="返回书架"
     >
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
-      </svg>
+      <MdIcon name="arrow_back" />
     </button>
 
     <div class="min-w-0 flex-1 px-1">
@@ -37,18 +35,7 @@
         :aria-label="ui.fullscreen ? '退出全屏 (F)' : '全屏 (F)'"
         :aria-pressed="ui.fullscreen"
       >
-        <svg v-if="ui.fullscreen" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v5H4"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4v5h5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20v-5h5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20v-5H4"/>
-        </svg>
-        <svg v-else fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9V4h5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h5v5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 15v5h-5"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4v-5"/>
-        </svg>
+        <MdIcon :name="ui.fullscreen ? 'fullscreen_exit' : 'fullscreen'" />
       </button>
       <button
         type="button"
@@ -59,9 +46,7 @@
         aria-controls="reader-toc-drawer"
         :aria-expanded="ui.tocOpen"
       >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/>
-        </svg>
+        <MdIcon name="toc" />
       </button>
       <button
         v-if="reader.currentCollection"
@@ -73,11 +58,7 @@
         :aria-expanded="ui.collectionTocOpen"
         @click="ui.openCollectionToc()"
       >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="4" y="5" width="4" height="14" rx="1.2" stroke-width="1.8"/>
-          <rect x="10" y="4" width="4" height="15" rx="1.2" stroke-width="1.8"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.4 5.4l3.4.9-3 12.8-3.4-.9z"/>
-        </svg>
+        <MdIcon name="collections_bookmark" />
       </button>
       <button
         type="button"
@@ -89,9 +70,7 @@
         :disabled="favoriteBusy"
         @click="toggleFavorite"
       >
-        <svg :fill="isFavorite ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3l2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3z" />
-        </svg>
+        <MdIcon name="star" :filled="isFavorite" />
       </button>
       <button
         type="button"
@@ -102,10 +81,7 @@
         aria-controls="reader-settings-drawer"
         :aria-expanded="ui.settingsOpen"
       >
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="3" stroke-width="2"/>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.4 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-        </svg>
+        <MdIcon name="settings" />
       </button>
     </div>
     <Transition
@@ -127,6 +103,7 @@ import { useReaderStore } from '../stores/reader.js';
 import { useShelfStore } from '../stores/shelf.js';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
+import MdIcon from './MdIcon.vue';
 
 const reader = useReaderStore();
 const shelf = useShelfStore();

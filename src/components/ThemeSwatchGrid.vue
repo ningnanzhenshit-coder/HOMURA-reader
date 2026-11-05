@@ -19,9 +19,7 @@
     >
       <span class="theme-swatch-disc" :style="swatchStyle(option)" aria-hidden="true"></span>
       <span v-if="theme.themeColor === option.name" class="theme-swatch-check" aria-hidden="true">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3.2 8.4l3 3 6.6-7" />
-        </svg>
+        <MdIcon name="check" />
       </span>
     </button>
   </div>
@@ -29,6 +27,7 @@
 
 <script setup>
 import { THEME_OPTIONS, useThemeStore } from '../stores/theme.js';
+import MdIcon from './MdIcon.vue';
 
 defineProps({
   columns: { type: Number, default: 5 },

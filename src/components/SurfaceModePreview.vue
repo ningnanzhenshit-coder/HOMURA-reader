@@ -23,39 +23,13 @@
           <span class="surface-mode-footer"><i></i><i></i></span>
         </span>
         <span v-if="theme.surfaceMode === option.value" class="surface-mode-check" aria-hidden="true">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3.2 8.4l3 3 6.6-7" />
-          </svg>
+          <MdIcon name="check" />
         </span>
       </span>
 
       <span class="surface-mode-meta">
         <span class="surface-mode-icon" aria-hidden="true">
-          <svg v-if="option.value === 'light'" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-            <circle cx="10" cy="10" r="3" stroke-width="1.7" />
-            <path
-              stroke-linecap="round"
-              stroke-width="1.7"
-              d="M10 2.3v2.1M10 15.6v2.1M2.3 10h2.1M15.6 10h2.1M4.55 4.55l1.5 1.5M13.95 13.95l1.5 1.5M15.45 4.55l-1.5 1.5M6.05 13.95l-1.5 1.5"
-            />
-          </svg>
-          <svg v-else-if="option.value === 'dark'" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.7"
-              d="M14.8 12.8A6.2 6.2 0 0 1 7.2 5.2a6.3 6.3 0 1 0 7.6 7.6Z"
-            />
-          </svg>
-          <svg v-else viewBox="0 0 20 20" fill="none" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.7"
-              d="M2.4 10s2.6-4.1 7.6-4.1 7.6 4.1 7.6 4.1-2.6 4.1-7.6 4.1S2.4 10 2.4 10Z"
-            />
-            <circle cx="10" cy="10" r="2.2" stroke-width="1.7" />
-          </svg>
+          <MdIcon :name="option.icon" />
         </span>
         <span class="surface-mode-note">{{ option.note }}</span>
       </span>
@@ -65,6 +39,7 @@
 
 <script setup>
 import { SURFACE_MODE_OPTIONS, useThemeStore } from '../stores/theme.js';
+import MdIcon from './MdIcon.vue';
 
 const theme = useThemeStore();
 
@@ -106,7 +81,7 @@ function selectMode(mode, event) {
   padding: 5px;
   overflow: hidden;
   border: 0.5px solid color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
-  border-radius: 16px;
+  border-radius: 12px;
   background: color-mix(in oklab, var(--md-surface-container) 84%, transparent);
   box-shadow: 0 10px 22px -18px color-mix(in oklab, var(--md-shadow-color) 32%, transparent);
   transition:
@@ -122,7 +97,7 @@ function selectMode(mode, event) {
   height: 100%;
   padding: 8px;
   overflow: hidden;
-  border-radius: 11px;
+  border-radius: 7px;
   background: var(--md-surface);
   box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 58%, transparent);
 }

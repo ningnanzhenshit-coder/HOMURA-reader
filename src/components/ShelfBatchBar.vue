@@ -15,14 +15,14 @@
       aria-label="取消多选"
       @click="$emit('cancel')"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-      </svg>
+      <MdIcon name="close" class="w-5 h-5" />
     </button>
   </div>
 </template>
 
 <script setup>
+import MdIcon from './MdIcon.vue';
+
 defineProps({
   label: { type: String, required: true },
   compactLabel: { type: String, required: true },

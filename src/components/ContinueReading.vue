@@ -3,7 +3,7 @@
   <button
     v-if="featured"
     type="button"
-    class="continue-card md-featured-cell"
+    class="md-card md-card--featured continue-card md-featured-cell"
     :title="`${started ? '继续阅读' : '开始阅读'}：${featured.book.title}`"
     :aria-label="`${started ? '继续阅读' : '开始阅读'}：${featured.book.title}`"
     @click="$emit('open', featured.book.id)"
@@ -60,9 +60,7 @@
           </span>
         </span>
         <span class="play" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>
-          </svg>
+          <MdIcon name="play_arrow" filled />
         </span>
       </span>
     </span>
@@ -73,6 +71,7 @@
 import { computed } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { resolveBookFormat } from '../services/utils.js';
+import MdIcon from './MdIcon.vue';
 
 defineEmits(['open']);
 const props = defineProps({ books: { type: Array, default: null } });
@@ -158,8 +157,6 @@ const progressPercent = computed(() => {
 
 <style scoped>
   .continue-card {
-    position: relative;
-    isolation: isolate;
     width: 100%;
     height: 100%;
     min-width: 0;
@@ -169,29 +166,7 @@ const progressPercent = computed(() => {
     display: flex;
     gap: 0;
     border: 0;
-    border-radius: 12px;
-    color: var(--md-on-primary-container);
     text-align: left;
-    background: var(--md-primary-container);
-    box-shadow: none;
-    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .continue-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 6;
-    border-radius: inherit;
-    background: var(--md-on-primary-container);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .continue-card:focus-visible {
-    outline: 2px solid var(--md-primary);
-    outline-offset: 2px;
   }
 
   .cover-shell {
@@ -402,7 +377,7 @@ const progressPercent = computed(() => {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 7px;
+    margin-bottom: 8px;
     color: color-mix(in oklab, var(--md-on-primary-container) 60%, transparent);
     font-size: 10px;
     font-weight: 600;
@@ -448,16 +423,6 @@ const progressPercent = computed(() => {
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .continue-card:hover {
-      box-shadow:
-        0 1px 2px 0 color-mix(in oklab, var(--md-shadow-color) 24%, transparent),
-        0 4px 10px -4px color-mix(in oklab, var(--md-shadow-color) 28%, transparent);
-    }
-
-    .continue-card:hover::after {
-      opacity: 0.06;
-    }
-
     .continue-card:hover .play {
       background: color-mix(in oklab, var(--md-primary) 92%, var(--md-on-primary));
     }
@@ -469,7 +434,7 @@ const progressPercent = computed(() => {
     }
 
     .content {
-      padding: 13px 12px 12px 14px;
+      padding: 12px;
     }
 
     .last-read {
@@ -489,13 +454,11 @@ const progressPercent = computed(() => {
     }
 
     .content {
-      padding: 13px 12px 12px 14px;
+      padding: 12px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .continue-card,
-    .continue-card::after,
     .play {
       transition: none;
     }

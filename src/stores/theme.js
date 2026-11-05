@@ -23,9 +23,9 @@ export const THEME_OPTIONS = Object.freeze([
   { name: 'olive', title: '橄榄青', tones: ['#F1E580', '#D4C967', '#9C9338'] }
 ]);
 export const SURFACE_MODE_OPTIONS = Object.freeze([
-  { value: 'light', label: '白昼', note: '清透纸白', title: '白昼清爽模式' },
-  { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式' },
-  { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式' }
+  { value: 'light', label: '白昼', note: '清透纸白', title: '白昼清爽模式', icon: 'light_mode' },
+  { value: 'warm', label: '护眼', note: '暖纸降蓝', title: '暖色护眼模式', icon: 'visibility' },
+  { value: 'dark', label: '夜间', note: '深褐低光', title: '夜间深邃模式', icon: 'dark_mode' }
 ]);
 const SURFACE_REVEAL_DURATION = 720;
 const TRANSITION_ORDER = ['slide', 'fade', 'none'];

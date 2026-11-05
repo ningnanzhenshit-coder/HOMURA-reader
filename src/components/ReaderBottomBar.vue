@@ -10,9 +10,7 @@
       :aria-label="leftText"
       :disabled="reader.openingBook"
     >
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
-      </svg>
+      <MdIcon name="chevron_left" />
     </button>
 
     <div class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5">
@@ -20,18 +18,17 @@
         <span class="truncate">{{ reader.pageIndicator }}</span>
         <span class="shrink-0 font-medium text-[var(--md-on-surface)]">{{ percentText }}</span>
       </div>
-      <input
-        type="range"
-        min="0"
+      <MdRange
+        :model-value="reader.sliderValue"
+        :min="0"
         :max="Math.max(0, reader.activePages.length - 1)"
-        :value="reader.sliderValue"
-        @input="reader.onSliderInput($event.target.value)"
-        class="md-range w-full min-w-0"
-        :class="{ 'rtl-slider': inverted }"
+        :rtl="inverted"
         title="拖动跳转"
         aria-label="阅读进度"
         :aria-valuetext="`${reader.pageIndicator}，${percentText}`"
         :disabled="reader.openingBook"
+        class="w-full min-w-0"
+        @update:model-value="reader.onSliderInput"
       />
     </div>
 
@@ -55,9 +52,7 @@
       :aria-label="rightText"
       :disabled="reader.openingBook"
     >
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/>
-      </svg>
+      <MdIcon name="chevron_right" />
     </button>
   </footer>
 </template>
@@ -65,6 +60,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useReaderStore } from '../stores/reader.js';
+import MdIcon from './MdIcon.vue';
+import MdRange from './MdRange.vue';
 import MdSegmentedControl from './MdSegmentedControl.vue';
 
 const reader = useReaderStore();

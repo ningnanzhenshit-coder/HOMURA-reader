@@ -1,5 +1,5 @@
 <template>
-  <article class="md-shelf-card relative flex flex-col min-w-0" :class="{ 'md-book-selected': selected, 'is-touch-dragging': dragging }" draggable="true" @dragstart="$emit('drag', $event, book.id)" @contextmenu.prevent>
+  <article class="md-card md-card--filled md-shelf-card relative flex flex-col min-w-0" :class="{ 'md-book-selected': selected, 'is-touch-dragging': dragging }" draggable="true" @dragstart="$emit('drag', $event, book.id)" @contextmenu.prevent>
     <button class="absolute inset-0 z-10 rounded-[12px]" :aria-label="selecting ? `选择书本：${book.title}` : `阅读：${book.title}`" :aria-pressed="selecting ? selected : undefined" @click="$emit('open', book.id)"></button>
     <div class="aspect-[3/4] w-full relative overflow-hidden bg-[var(--md-surface-high)]">
       <img
@@ -34,7 +34,7 @@
         :title="removeLabel"
         :aria-label="removeLabel"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>
+        <MdIcon name="close" class="w-3.5 h-3.5" />
       </button>
       <span v-else class="absolute z-20 top-2 right-2 w-7 h-7 grid place-items-center rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] pointer-events-none" aria-hidden="true">{{ selected ? '✓' : '○' }}</span>
 
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <div class="px-2.5 pt-2 pb-2.5 min-[768px]:px-3 min-[768px]:pt-2.5 min-[768px]:pb-3 flex flex-col gap-1 min-w-0">
+    <div class="px-2 pt-2 pb-2 min-[768px]:px-3 min-[768px]:pb-3 flex flex-col gap-1 min-w-0">
       <h4 class="font-semibold text-[12px] min-[768px]:text-[13px] leading-snug truncate">{{ book.title }}</h4>
       <div class="flex items-baseline justify-between gap-1.5 min-w-0">
         <span class="font-mono text-[10px] min-[768px]:text-[11px] text-[var(--md-on-surface-variant)] truncate">{{ subInfo }}</span>
@@ -59,6 +59,7 @@
 <script setup>
 import { computed } from 'vue';
 import { resolveBookFormat } from '../services/utils.js';
+import MdIcon from './MdIcon.vue';
 
 const props = defineProps({
   book: { type: Object, required: true },

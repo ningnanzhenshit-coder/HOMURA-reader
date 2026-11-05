@@ -5,7 +5,7 @@
       <button type="button" class="md-library-text-button ml-auto" :disabled="!displayBooks.length && !displayCollections.length" @click="toggleSelection">选择</button>
     </div>
   </Transition>
-  <div v-if="currentCollection" class="relative mx-4 min-[900px]:mx-7 mt-2 flex items-center gap-1.5 min-[430px]:gap-2">
+  <div v-if="currentCollection" class="relative mx-4 min-[900px]:mx-7 mt-2 flex items-center gap-2">
     <button
       class="shelf-back-button w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] transition-colors duration-200"
       :class="{ 'is-drop-target': touchDrag.home }"
@@ -16,9 +16,7 @@
       @dragover="onRootDragOver"
       @drop="onRootDrop"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/>
-      </svg>
+      <MdIcon name="chevron_left" class="w-5 h-5" />
     </button>
     <div class="relative flex-1 min-w-0 h-11">
       <Transition name="shelf-select">
@@ -93,6 +91,7 @@ import { groupShelfBooks } from '../services/shelfSections.js';
 import BookCard from './BookCard.vue';
 import ContinueReading from './ContinueReading.vue';
 import CollectionCard from './CollectionCard.vue';
+import MdIcon from './MdIcon.vue';
 import ShelfBatchBar from './ShelfBatchBar.vue';
 
 const props = defineProps({ books: { type: Array, default: () => [] }, sortKey: { type: String, default: 'title' }, query: { type: String, default: '' }, hasFilter: { type: Boolean, default: false }, homeRequest: { type: Number, default: 0 }, favoritesOnly: { type: Boolean, default: false } });

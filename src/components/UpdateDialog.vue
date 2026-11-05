@@ -56,9 +56,7 @@
 
             <div class="update-download-complete-status">
               <span class="update-download-check" aria-hidden="true">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="m5 12.5 4.2 4.2L19 7"/>
-                </svg>
+                <MdIcon name="check" />
               </span>
               <span class="update-download-complete-copy">
                 <b>新版本 v{{ download.version }} 已下载完成</b>
@@ -87,22 +85,7 @@
           <template v-else>
             <header class="update-dialog-head">
               <span class="update-dialog-icon" aria-hidden="true">
-                <svg fill="none" viewBox="0 0 24 24">
-                  <path
-                    d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                  />
-                  <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
-                  <path
-                    d="M12 7.7V12l3.1 1.85"
-                    stroke="currentColor"
-                    stroke-width="2.35"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
+                <MdIcon name="update" />
               </span>
 
               <div class="update-dialog-copy">
@@ -119,9 +102,7 @@
                 aria-label="关闭更新提示"
                 @click="$emit('close')"
               >
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18"/>
-                </svg>
+                <MdIcon name="close" />
               </button>
             </header>
 
@@ -153,16 +134,12 @@
                   :title="`下载 ${packageInfo.label}`"
                   @click="$emit('download')"
                 >
-                  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 20h14v-2H5v2ZM19 9h-4V3H9v6H5l7 7 7-7Z"/>
-                  </svg>
+                  <MdIcon name="download" filled />
                   <span class="update-install-copy">
                     <b>{{ packageInfo.label }}</b>
                     <span>{{ packageInfo.note }}</span>
                   </span>
-                  <svg class="update-install-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
-                  </svg>
+                  <MdIcon name="chevron_right" class="update-install-chevron" />
                 </button>
               </div>
 
@@ -179,9 +156,7 @@
             <template v-else-if="status === 'latest'">
               <div class="update-dialog-state is-success">
                 <span class="update-state-symbol" aria-hidden="true">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m5.5 12.5 4.2 4.2L18.5 8"/>
-                  </svg>
+                  <MdIcon name="check" />
                 </span>
                 <div>
                   <b>已经是最新稳定版</b>
@@ -200,10 +175,7 @@
             <template v-else-if="status === 'download-error'">
               <div class="update-dialog-state is-error" role="alert">
                 <span class="update-state-symbol" aria-hidden="true">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
-                    <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
-                  </svg>
+                  <MdIcon name="error" />
                 </span>
                 <div>
                   <b>下载没有完成</b>
@@ -222,10 +194,7 @@
             <template v-else>
               <div class="update-dialog-state is-error" role="alert">
                 <span class="update-state-symbol" aria-hidden="true">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="8.5" stroke-width="1.8"/>
-                    <path stroke-linecap="round" stroke-width="1.8" d="M12 7.8v4.8M12 16.3h.01"/>
-                  </svg>
+                  <MdIcon name="error" />
                 </span>
                 <div>
                   <b>暂时无法检查更新</b>
@@ -252,6 +221,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { openGitHubUrl } from '../services/external.js';
 import { getUpdateErrorMessage } from '../services/updates.js';
 import { getDownloadErrorMessage } from '../services/updateDownload.js';
+import MdIcon from './MdIcon.vue';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -636,8 +606,8 @@ onBeforeUnmount(() => {
 }
 
 .update-dialog-icon svg {
-  width: 21px;
-  height: 21px;
+  width: 24px;
+  height: 24px;
 }
 
 .update-dialog-copy {
@@ -742,8 +712,8 @@ onBeforeUnmount(() => {
 }
 
 .update-state-symbol svg {
-  width: 21px;
-  height: 21px;
+  width: 20px;
+  height: 20px;
 }
 
 .update-dialog-state.is-error .update-state-symbol {
@@ -846,9 +816,9 @@ onBeforeUnmount(() => {
 }
 
 .update-install-row > svg:first-child {
-  width: 19px;
-  height: 19px;
-  flex: 0 0 19px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
   color: var(--md-primary);
 }
 

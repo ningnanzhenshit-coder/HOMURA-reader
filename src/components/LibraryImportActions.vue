@@ -18,21 +18,15 @@
       >
         <p role="presentation" class="md-menu-label">导入作品</p>
         <button type="button" role="menuitem" class="md-menu-item" @click="choose('pick-files')">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v11M8 10l4 4 4-4M4 17v3h16v-3"/>
-          </svg>
+          <MdIcon name="upload_file" />
           <span class="flex-1">导入文件</span>
         </button>
         <button v-if="canPickFolder" type="button" role="menuitem" class="md-menu-item" @click="choose('pick-folder')">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-          </svg>
+          <MdIcon name="folder_open" />
           <span class="flex-1">导入文件夹</span>
         </button>
         <button type="button" role="menuitem" class="md-menu-item" @click="choose('create-collection')">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v11h18V8h-6l-2-2H3v1m9 4v6m-3-3h6"/>
-          </svg>
+          <MdIcon name="create_new_folder" />
           <span class="flex-1">新建书库</span>
         </button>
       </div>
@@ -48,9 +42,7 @@
       :aria-expanded="open"
       @click="$emit('update:open', !open)"
     >
-      <svg :class="compact ? 'w-5 h-5' : 'w-6 h-6'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 3v11M8 10l4 4 4-4M4 17v3h16v-3"/>
-      </svg>
+      <MdIcon name="upload_file" filled :class="compact ? 'w-5 h-5' : 'w-6 h-6'" />
       <span v-if="!compact">导入</span>
     </button>
   </div>
@@ -58,6 +50,7 @@
 
 <script setup>
 import { canPickFolder } from '../services/platform.js';
+import MdIcon from './MdIcon.vue';
 
 defineProps({
   compact: Boolean,
