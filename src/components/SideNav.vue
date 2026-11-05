@@ -198,7 +198,7 @@ function measureIndicators() {
 
   const mobileActive = mobileNavRef.value?.querySelector('.mobile-nav-item.is-active');
   if (mobileActive) {
-    mobileIndicator.value = { x: mobileActive.offsetLeft, y: mobileActive.offsetTop };
+    mobileIndicator.value = { x: mobileActive.offsetLeft, y: mobileActive.offsetTop + 4 };
     if (!mobileReady.value) {
       requestAnimationFrame(() => {
         mobileReady.value = true;
@@ -260,9 +260,9 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     border-radius: 28px;
-    background: color-mix(in oklab, var(--md-primary-container) 18%, var(--md-surface-low));
+    background: var(--md-surface-low);
     box-shadow:
-      0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 56%, transparent),
       0 14px 34px -20px color-mix(in oklab, var(--md-shadow-color) 55%, transparent);
     transition:
       flex-basis 280ms cubic-bezier(0.2, 0, 0, 1),
@@ -307,6 +307,7 @@ onBeforeUnmount(() => {
 
   .sidenav-icon-btn {
     left: 6px;
+    border-radius: 999px;
   }
 
   .sidenav-avatar {
@@ -360,7 +361,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 56px;
     border-radius: 30px;
-    background: var(--md-primary-container);
+    background: var(--md-secondary-container);
     opacity: 0;
     pointer-events: none;
   }
@@ -417,7 +418,7 @@ onBeforeUnmount(() => {
     top: 50%;
     left: 54px;
     transform: translateY(-50%);
-    font-size: 15px;
+    font-size: 13px;
     opacity: 1;
     transition: opacity 100ms cubic-bezier(0.2, 0, 0, 1) 40ms;
   }
@@ -449,7 +450,7 @@ onBeforeUnmount(() => {
 
   .sidenav-item.is-active {
     background: transparent;
-    color: var(--md-on-primary-container);
+    color: var(--md-on-secondary-container);
   }
 
   .sidenav.is-collapsed .sidenav-item {
@@ -490,9 +491,9 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: space-around;
     border-radius: 38px;
-    background: color-mix(in oklab, var(--md-primary-container) 22%, var(--md-surface-container));
+    background: var(--md-surface-container);
     box-shadow:
-      0 0 0 0.5px color-mix(in oklab, var(--md-primary) 12%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 56%, transparent),
       0 18px 36px -16px color-mix(in oklab, var(--md-shadow-color) 55%, transparent);
   }
 
@@ -502,9 +503,9 @@ onBeforeUnmount(() => {
     left: 0;
     z-index: 0;
     width: 60px;
-    height: 56px;
-    border-radius: 18px;
-    background: var(--md-primary);
+    height: 32px;
+    border-radius: 16px;
+    background: var(--md-secondary-container);
     opacity: 0;
     pointer-events: none;
   }
@@ -553,7 +554,7 @@ onBeforeUnmount(() => {
 
   .mobile-nav-item.is-active {
     background: transparent;
-    color: var(--md-on-primary);
+    color: var(--md-on-secondary-container);
   }
 
   @media (prefers-reduced-motion: reduce) {

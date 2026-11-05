@@ -1,13 +1,13 @@
 <template>
   <Transition name="shelf-header">
-    <div v-if="showShelfHeaderRow" class="px-4 min-[900px]:px-7 pt-3 flex flex-wrap items-center gap-1">
-      <span v-if="favoritesOnly || !shelf.collections.length" class="text-[11px] text-[var(--md-on-surface-variant)] flex-1">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : '我的书架' }}</span>
-      <button v-if="!selecting" class="md-library-text-button ml-auto bg-[var(--md-secondary-container)]" :disabled="!displayBooks.length && !displayCollections.length" @click="toggleSelection">选择</button>
+    <div v-if="showShelfHeaderRow" class="min-h-11 px-4 min-[900px]:px-7 pt-3 flex items-center gap-2">
+      <span class="text-[11px] font-medium text-[var(--md-on-surface-variant)] flex-1">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : '我的书架' }}</span>
+      <button type="button" class="md-library-text-button ml-auto" :disabled="!displayBooks.length && !displayCollections.length" @click="toggleSelection">选择</button>
     </div>
   </Transition>
   <div v-if="currentCollection" class="relative mx-4 min-[900px]:mx-7 mt-2 flex items-center gap-1.5 min-[430px]:gap-2">
     <button
-      class="shelf-back-button w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-primary)] transition-colors duration-200"
+      class="shelf-back-button w-11 h-11 shrink-0 rounded-full grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] transition-colors duration-200"
       :class="{ 'is-drop-target': touchDrag.home }"
       data-shelf-home
       title="返回书架"
@@ -22,7 +22,7 @@
     </button>
     <div class="relative flex-1 min-w-0 h-11">
       <Transition name="shelf-select">
-        <button v-if="!selecting" key="select" class="absolute right-0 top-0 md-library-text-button bg-[var(--md-secondary-container)]" :disabled="!displayBooks.length" @click="toggleSelection">选择</button>
+        <button v-if="!selecting" key="select" type="button" class="absolute right-0 top-0 md-library-text-button" :disabled="!displayBooks.length" @click="toggleSelection">选择</button>
         <ShelfBatchBar
           v-else
           key="batch"
@@ -105,7 +105,7 @@ const selectedIds = ref([]);
 const selectedCollectionIds = ref([]);
 const busy = ref(false);
 const currentCollection = computed(() => props.favoritesOnly ? null : shelf.collections.find(item => item.id === shelf.activeCollectionId) || null);
-const showShelfHeaderRow = computed(() => !currentCollection.value && (!selecting.value || props.favoritesOnly || !shelf.collections.length));
+const showShelfHeaderRow = computed(() => !currentCollection.value && !selecting.value);
 const groupedIds = computed(() => new Set(shelf.collections.flatMap(item => item.bookIds)));
 const displayBooks = computed(() => props.books.filter(book => props.favoritesOnly ? book.favorite : currentCollection.value ? currentCollection.value.bookIds.includes(book.id) : !groupedIds.value.has(book.id)));
 const featuredBooks = computed(() => currentCollection.value ? displayBooks.value : props.hasFilter ? props.books : shelf.library);

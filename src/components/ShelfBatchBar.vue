@@ -10,7 +10,7 @@
       <button class="md-library-text-button batch-action-button" :class="{ 'batch-delete-button': dangerDelete }" :disabled="deleteDisabled" @click="$emit('delete')">{{ deleteLabel }}</button>
     </div>
     <button
-      class="w-11 h-11 shrink-0 rounded-[22px] grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-primary)]"
+      class="w-11 h-11 shrink-0 rounded-[22px] grid place-items-center bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)]"
       title="取消多选"
       aria-label="取消多选"
       @click="$emit('cancel')"
@@ -38,10 +38,11 @@ defineEmits(['select-all', 'move', 'delete', 'cancel']);
 </script>
 
 <style scoped>
-.batch-delete-button { color: var(--md-error); }
+.batch-action-button.batch-delete-button { color: var(--md-error); }
 .batch-action-button {
   min-width: 44px;
   padding-inline: 8px;
+  color: var(--md-on-secondary-container);
   white-space: nowrap;
 }
 </style>

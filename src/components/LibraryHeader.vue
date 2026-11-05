@@ -80,22 +80,22 @@
           <div v-if="menu === 'sort'" class="fixed inset-0 z-20" @click="menu = null"></div>
           <div
             v-if="menu === 'sort'"
-            class="absolute right-0 top-full mt-1 w-56 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
+            class="absolute right-0 top-full mt-2 w-60 z-30 md-menu"
             role="menu"
             aria-label="排序方式"
           >
-            <p role="presentation" class="px-3 pt-1.5 pb-1 text-[11px] font-semibold text-[var(--md-on-surface-variant)]">排序方式</p>
+            <p role="presentation" class="md-menu-label">排序方式</p>
             <button
               v-for="opt in sortOptions"
               :key="opt.value"
+              type="button"
               role="menuitemradio"
               :aria-checked="sort === opt.value"
               @click="pickSort(opt.value)"
-              class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold text-left transition-colors"
-              :class="sort === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
+              class="md-menu-item"
             >
               <span class="flex-1">{{ opt.label }}</span>
-              <svg v-if="sort === opt.value" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-if="sort === opt.value" class="md-menu-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
               </svg>
             </button>
@@ -105,9 +105,9 @@
     </div>
 
     <!-- 搜索栏：手机独立一行；桌面嵌入 Top App Bar 中段，避免被拉成整条跑道 -->
-    <div class="library-search-slot px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-3 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
-      <div class="library-search-field h-[52px] min-[900px]:h-10 rounded-[26px] min-[900px]:rounded-[20px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-[18px] min-[900px]:pl-4 pr-4 min-[900px]:pr-2.5 transition-colors duration-200">
-        <svg class="w-5 h-5 shrink-0 text-[var(--md-on-surface-variant)] opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="library-search-slot px-4 pt-1.5 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-1 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
+      <div class="library-search-field h-14 rounded-[28px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-4 pr-2 transition-colors duration-200">
+        <svg class="w-6 h-6 shrink-0 text-[var(--md-on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="7" stroke-width="2"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 20l-4-4"/>
         </svg>
@@ -127,8 +127,9 @@
         />
         <button
           v-if="query"
+          type="button"
           @click="$emit('update:query', '')"
-          class="md-hit-target w-9 h-9 -mr-1.5 shrink-0 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container)] transition-colors"
+          class="md-hit-target w-10 h-10 shrink-0 rounded-full grid place-items-center text-[var(--md-on-surface-variant)] hover:bg-[var(--md-surface-container)] transition-colors"
           title="清空搜索"
           aria-label="清空搜索"
         >
@@ -140,56 +141,44 @@
     </div>
 
     <!-- 筛选 chips：类型直接切换，文件格式收进一个下拉菜单 -->
-    <div class="relative px-4 min-[900px]:px-7 pt-3.5 min-[900px]:pt-3 pb-1 flex items-center gap-2">
+    <div class="relative px-4 min-[900px]:px-7 pt-1 pb-0 flex items-center gap-2">
       <div class="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto no-scrollbar">
         <button
           v-for="t in types"
           :key="t.value"
+          type="button"
           @click="$emit('update:type', t.value)"
-          class="library-filter-chip h-11 min-[900px]:h-8 shrink-0 px-[13px] rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center"
-          :class="[
-            type === t.value
-              ? 'is-selected text-[var(--md-on-secondary-container)]'
-              : 'text-[var(--md-on-surface)]',
-            { 'is-pushed': isPushedFilter(t.value) }
-          ]"
+          class="md-filter-chip shrink-0"
+          :class="{ 'is-selected': type === t.value }"
           :aria-pressed="type === t.value"
         >
-          <span class="library-filter-surface" aria-hidden="true"></span>
-          <span class="library-filter-fill" aria-hidden="true"></span>
-          <span
-            class="library-filter-check"
-            :class="{ 'is-visible': type === t.value }"
-            aria-hidden="true"
-          >
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
-            </svg>
-          </span>
-          <span class="library-filter-label">{{ t.label }}</span>
+          <svg v-if="type === t.value" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
+          </svg>
+          <span>{{ t.label }}</span>
         </button>
       </div>
 
       <button
+        type="button"
         @click="toggleMenu('format')"
-        class="h-11 min-[900px]:h-8 shrink-0 pl-[13px] pr-2.5 rounded-lg text-[11.5px] min-[900px]:text-[12px] font-medium inline-flex items-center gap-1.5 border-[0.5px] border-[var(--md-outline-variant)] transition-colors duration-200"
-        :class="activeFormat
-          ? 'bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] border-transparent'
-          : 'border-[var(--md-outline-variant)] text-[var(--md-on-surface)] hover:bg-[var(--md-surface-container)]'"
+        class="md-filter-chip shrink-0"
+        :class="{ 'is-selected': !!activeFormat }"
         :title="activeFormat ? `文件格式：${activeFormat.label}` : '按文件格式筛选'"
         aria-haspopup="menu"
         :aria-expanded="menu === 'format'"
       >
-        <svg v-if="activeFormat" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg v-if="activeFormat" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
         </svg>
-        {{ activeFormat ? activeFormat.label : '格式' }}
+        <span>{{ activeFormat ? activeFormat.label : '格式' }}</span>
         <svg
-          class="w-3.5 h-3.5 transition-transform duration-200"
+          class="library-format-chevron transition-transform duration-200"
           :class="menu === 'format' ? 'rotate-180' : ''"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9l6 6 6-6"/>
         </svg>
@@ -198,21 +187,22 @@
       <div v-if="menu === 'format'" class="fixed inset-0 z-20" @click="menu = null"></div>
       <div
         v-if="menu === 'format'"
-        class="absolute right-4 min-[900px]:right-7 top-full mt-1 w-44 z-30 rounded-2xl bg-[var(--md-surface-container)] shadow-xl p-1.5 flex flex-col gap-0.5"
+        class="absolute right-4 min-[900px]:right-7 top-full mt-2 w-48 z-30 md-menu"
         role="menu"
         aria-label="文件格式"
       >
+        <p role="presentation" class="md-menu-label">文件格式</p>
         <button
           v-for="opt in formatOptions"
           :key="opt.value"
+          type="button"
           role="menuitemradio"
           :aria-checked="type === opt.value"
           @click="pickType(opt.value)"
-          class="md-mobile-menu-item w-full flex items-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold text-left transition-colors"
-          :class="type === opt.value ? 'bg-[var(--md-primary-container)] text-[var(--md-on-primary-container)]' : 'hover:bg-[var(--md-surface-high)]'"
+          class="md-menu-item"
         >
           <span class="flex-1">{{ opt.label }}</span>
-          <svg v-if="type === opt.value" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg v-if="type === opt.value" class="md-menu-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 12l5 5L20 7"/>
           </svg>
         </button>
@@ -311,12 +301,6 @@ const types = [
   { value: 'other', label: '其他' }
 ];
 
-function isPushedFilter(value) {
-  const selectedIndex = types.findIndex(type => type.value === props.type);
-  const chipIndex = types.findIndex(type => type.value === value);
-  return selectedIndex >= 0 && chipIndex > selectedIndex;
-}
-
 const formatOptions = [
   { value: 'all', label: '不限格式' },
   { value: 'epub', label: 'EPUB' },
@@ -370,109 +354,9 @@ function pickSort(value) {
   }
 }
 
-.library-filter-chip {
-  --filter-check-space: 20px;
-  position: relative;
-  isolation: isolate;
-  border: 0;
-  background: transparent;
-  transition:
-    color var(--md-duration-short) var(--md-ease-emphasized),
-    transform var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.library-filter-chip.is-pushed {
-  transform: translate3d(var(--filter-check-space), 0, 0);
-}
-
-.library-filter-chip:focus-visible {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 2px;
-}
-
-.library-filter-surface {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  background-color: transparent;
-  box-shadow: inset 0 0 0 0.5px var(--md-outline-variant);
-  pointer-events: none;
-  transition:
-    background-color var(--md-duration-short) var(--md-ease-emphasized),
-    box-shadow var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.library-filter-chip.is-selected .library-filter-surface {
-  box-shadow: inset 0 0 0 0.5px transparent;
-}
-
-.library-filter-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  z-index: 0;
-  width: calc(100% + var(--filter-check-space));
-  border-radius: inherit;
-  background-color: var(--md-secondary-container);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.library-filter-chip.is-selected .library-filter-fill {
-  opacity: 1;
-}
-
-.library-filter-check {
-  position: absolute;
-  top: 50%;
-  left: 13px;
-  z-index: 1;
-  display: block;
-  width: 14px;
-  height: 14px;
-  overflow: hidden;
-  opacity: 0;
-  transform: translate3d(-4px, -50%, 0) scale(0.8);
-  transition:
-    opacity var(--md-duration-short) var(--md-ease-emphasized),
-    transform var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.library-filter-check.is-visible {
-  opacity: 1;
-  transform: translate3d(0, -50%, 0) scale(1);
-}
-
-.library-filter-check svg {
-  display: block;
-  width: 14px;
-  height: 14px;
-}
-
-.library-filter-label {
-  position: relative;
-  z-index: 1;
-  transition: transform var(--md-duration-short) var(--md-ease-emphasized);
-}
-
-.library-filter-chip.is-selected .library-filter-label {
-  transform: translate3d(var(--filter-check-space), 0, 0);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .library-filter-chip:not(.is-selected):hover .library-filter-surface {
-    background-color: var(--md-surface-container);
-    box-shadow:
-      inset 0 0 0 0.5px var(--md-outline-variant),
-      var(--md-elevation-hover);
-  }
-
-  .library-filter-chip.is-selected:hover .library-filter-surface {
-    box-shadow:
-      inset 0 0 0 0.5px transparent,
-      var(--md-elevation-hover);
-  }
+.library-format-chevron {
+  width: 16px;
+  height: 16px;
 }
 
 .library-title-enter-active {
@@ -495,11 +379,6 @@ function pickSort(value) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .library-filter-chip,
-  .library-filter-surface,
-  .library-filter-fill,
-  .library-filter-check,
-  .library-filter-label,
   .library-title-enter-active,
   .library-title-leave-active {
     transition: none;
