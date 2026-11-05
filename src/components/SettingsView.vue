@@ -335,60 +335,64 @@
             <span>版本、更新与开源信息</span>
           </div>
           <div class="about-hero">
-            <div class="about-brand">
-              <img class="about-logo" :src="logoUrl" alt="HOMURA 应用图标" />
-              <div class="about-brand-copy">
-                <div class="about-eyebrow">LOCAL-FIRST ACGN READER</div>
-                <h3 class="about-wordmark">HOMURA</h3>
-                <div class="about-version-line">
-                  <span class="about-version-badge">v{{ appVersion }}</span>
-                  <span>稳定版</span>
-                  <span>·</span>
-                  <span>本机数据</span>
+            <div class="about-cover">
+              <div class="about-cover-top">
+                <img class="about-logo" :src="logoUrl" alt="HOMURA 应用图标" />
+                <div class="about-brand-copy">
+                  <div class="about-eyebrow">LOCAL-FIRST ACGN READER</div>
+                  <h3 class="about-wordmark">HOMURA</h3>
                 </div>
               </div>
+              <div class="about-cover-meta">
+                <span class="about-version-badge">v{{ appVersion }}</span>
+                <span>稳定版</span>
+                <span class="about-local-label"><i aria-hidden="true"></i>本机数据</span>
+              </div>
+              <p class="about-cover-note">PRIVATE LIBRARY<br />NO CLOUD REQUIRED</p>
             </div>
 
-            <p class="about-tagline">把故事留在本机，<br /><em>把阅读留给自己。</em></p>
-            <p class="about-description">漫画、轻小说与图集的解析、分页和阅读记录都在设备内完成，不上传任何服务器。</p>
+            <div class="about-story">
+              <p class="about-tagline">把故事留在本机，<br /><em>把阅读留给自己。</em></p>
+              <p class="about-description">漫画、轻小说与图集的解析、分页和阅读记录都在设备内完成，不上传任何服务器。</p>
 
-            <div class="about-actions">
-              <button type="button" class="about-update-button" @click="updates.handlePrimaryUpdateAction">
-                <svg fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                  />
-                  <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
-                  <path
-                    d="M12 7.7V12l3.1 1.85"
-                    stroke="currentColor"
-                    stroke-width="2.35"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                {{ hasPendingInstall ? '继续安装' : '检查更新' }}
-              </button>
-              <button type="button" class="about-log-button" @click="updates.openChangelog">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 4h10l3 3v13H6z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 11h7M9 15h7M9 7h3"/>
-                </svg>
-                更新日志
-                <span v-if="hasNewRelease" class="about-log-new" aria-label="有新版本"></span>
-              </button>
-            </div>
+              <div class="about-actions">
+                <button type="button" class="about-update-button" @click="updates.handlePrimaryUpdateAction">
+                  <svg fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M20.2 12A8.2 8.2 0 1 1 17.49 5.91"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    />
+                    <path d="m16.5 2.85 5.5 3.1-5.5 3.1V2.85Z" fill="currentColor"/>
+                    <path
+                      d="M12 7.7V12l3.1 1.85"
+                      stroke="currentColor"
+                      stroke-width="2.35"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  {{ hasPendingInstall ? '继续安装' : '检查更新' }}
+                </button>
+                <button type="button" class="about-log-button" @click="updates.openChangelog">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 4h10l3 3v13H6z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 11h7M9 15h7M9 7h3"/>
+                  </svg>
+                  更新日志
+                  <span v-if="hasNewRelease" class="about-log-new" aria-label="有新版本"></span>
+                </button>
+              </div>
 
-            <div class="about-foot">
-              <span>本地优先</span><i></i>
-              <span>无云端依赖</span><i></i>
-              <span>Tauri 2 + Vue 3</span>
-              <button type="button" @click="openRepository">开源仓库 ↗</button>
+              <div class="about-foot">
+                <span>本地优先</span><i></i>
+                <span>无云端依赖</span><i></i>
+                <span>Tauri 2 + Vue 3</span>
+                <button type="button" @click="openRepository">开源仓库 ↗</button>
+              </div>
+              <p v-if="aboutLinkError" class="about-link-error" role="alert">{{ aboutLinkError }}</p>
             </div>
-            <p v-if="aboutLinkError" class="about-link-error" role="alert">{{ aboutLinkError }}</p>
           </div>
         </section>
       </main>
@@ -1219,66 +1223,79 @@ onBeforeUnmount(() => {
 .about-hero {
   position: relative;
   isolation: isolate;
-  min-height: 360px;
-  padding: 30px 32px 24px;
+  padding: 14px;
   overflow: hidden;
-  border-radius: 26px;
-  background:
-    radial-gradient(
-      115% 140% at 100% 0%,
-      color-mix(in oklab, var(--md-primary-container) 70%, transparent),
-      transparent 56%
-    ),
-    linear-gradient(
-      145deg,
-      var(--md-surface-low),
-      color-mix(in oklab, var(--md-surface) 84%, var(--md-primary-container))
-    );
-  box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--md-outline-variant) 84%, transparent);
+  border-radius: 28px;
+  background: var(--md-surface-container);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
 }
 
-.about-hero::before {
+.about-cover {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  padding: 24px 24px 22px 28px;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      120% 110% at 100% 0%,
+      color-mix(in oklab, var(--md-secondary-container) 82%, transparent),
+      transparent 61%
+    ),
+    linear-gradient(
+      150deg,
+      var(--md-primary-container),
+      color-mix(in oklab, var(--md-primary-container) 86%, var(--md-tertiary-container))
+    );
+  color: var(--md-on-primary-container);
+}
+
+.about-cover::before {
   content: "";
   position: absolute;
   z-index: -1;
-  width: 260px;
-  height: 260px;
-  right: -104px;
-  bottom: -154px;
-  border: 0.5px solid color-mix(in oklab, var(--md-primary) 22%, transparent);
+  width: 230px;
+  height: 230px;
+  right: -116px;
+  bottom: -124px;
+  border: 1px solid color-mix(in oklab, var(--md-on-primary-container) 18%, transparent);
   border-radius: 50%;
   box-shadow:
-    0 0 0 24px color-mix(in oklab, var(--md-primary) 4%, transparent),
-    0 0 0 58px color-mix(in oklab, var(--md-primary) 3%, transparent);
+    0 0 0 24px color-mix(in oklab, var(--md-secondary-container) 26%, transparent),
+    0 0 0 58px color-mix(in oklab, var(--md-secondary-container) 14%, transparent);
 }
 
-.about-hero::after {
-  content: "H";
+.about-cover::after {
+  content: "";
   position: absolute;
   z-index: -1;
-  top: -54px;
-  right: 9px;
-  color: color-mix(in oklab, var(--md-primary) 7%, transparent);
-  font-family: "Iowan Old Style", "Baskerville", "Songti SC", serif;
-  font-size: 238px;
-  font-style: italic;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.08em;
-  user-select: none;
+  top: 22px;
+  bottom: 22px;
+  left: 11px;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--md-primary),
+    color-mix(in oklab, var(--md-tertiary) 62%, var(--md-primary))
+  );
+  opacity: 0.74;
 }
 
-.about-brand {
+.about-cover-top {
   display: flex;
   align-items: flex-start;
-  gap: 18px;
+  gap: 14px;
 }
 
 .about-logo {
-  width: 60px;
-  height: 60px;
-  flex: 0 0 60px;
-  border-radius: 17px;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 16px;
   object-fit: cover;
   box-shadow:
     0 1px 2px color-mix(in oklab, var(--md-shadow-color) 18%, transparent),
@@ -1291,46 +1308,78 @@ onBeforeUnmount(() => {
 }
 
 .about-eyebrow {
-  color: var(--md-primary);
+  color: inherit;
   font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
 }
 
 .about-wordmark {
-  margin: 6px 0 0;
+  margin: 5px 0 0;
   font-size: 40px;
   font-weight: 700;
   line-height: 0.98;
   letter-spacing: -0.065em;
 }
 
-.about-version-line {
-  margin-top: 11px;
+.about-cover-meta {
+  margin-top: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  color: var(--md-on-surface-variant);
   font-size: 11px;
 }
 
 .about-version-badge {
   padding: 4px 8px;
   border-radius: 999px;
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
   font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 650;
 }
 
+.about-local-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.about-local-label i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.about-cover-note {
+  margin: 15px 0 0;
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: 0.12em;
+  opacity: 0.56;
+}
+
+.about-story {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 20px 10px;
+}
+
 .about-tagline {
-  max-width: 21ch;
-  margin: 28px 0 0;
+  max-width: 22ch;
+  margin: 0;
   font-size: 22px;
-  font-weight: 640;
+  font-weight: 650;
   line-height: 1.42;
   letter-spacing: -0.025em;
 }
@@ -1342,10 +1391,10 @@ onBeforeUnmount(() => {
 
 .about-description {
   max-width: 50ch;
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   color: var(--md-on-surface-variant);
-  font-size: 12px;
-  line-height: 1.75;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .about-actions {
@@ -1358,34 +1407,29 @@ onBeforeUnmount(() => {
 
 .about-update-button,
 .about-log-button {
-  min-height: 46px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border-radius: 23px;
+  border-radius: 24px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   transition:
     background-color var(--md-duration-short) var(--md-ease-emphasized),
-    color var(--md-duration-short) var(--md-ease-emphasized),
-    transform var(--md-duration-short) var(--md-ease-emphasized),
-    box-shadow var(--md-duration-short) var(--md-ease-emphasized);
+    color var(--md-duration-short) var(--md-ease-emphasized);
 }
 
 .about-update-button {
-  padding: 0 21px;
+  padding: 0 22px;
   border: 0;
   background: var(--md-primary);
   color: var(--md-on-primary);
-  box-shadow: 0 8px 20px -14px color-mix(in oklab, var(--md-primary) 76%, transparent);
 }
 
 .about-update-button:hover {
-  background: color-mix(in oklab, var(--md-primary) 90%, var(--md-on-primary));
-  box-shadow: 0 10px 24px -14px color-mix(in oklab, var(--md-primary) 82%, transparent);
-  transform: translateY(-1px);
+  background: color-mix(in oklab, var(--md-primary) 92%, var(--md-on-primary));
 }
 
 .about-update-button svg,
@@ -1396,14 +1440,14 @@ onBeforeUnmount(() => {
 }
 
 .about-log-button {
-  padding: 0 15px;
+  padding: 0 14px;
   border: 0;
   background: transparent;
   color: var(--md-primary);
 }
 
 .about-log-button:hover {
-  background: var(--md-surface-container);
+  background: color-mix(in oklab, var(--md-primary) 8%, transparent);
 }
 
 .about-log-new {
@@ -1415,9 +1459,9 @@ onBeforeUnmount(() => {
 }
 
 .about-foot {
-  margin-top: 28px;
-  padding-top: 15px;
-  border-top: 0.5px solid color-mix(in oklab, var(--md-outline-variant) 78%, transparent);
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--md-outline-variant) 72%, transparent);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1436,21 +1480,21 @@ onBeforeUnmount(() => {
 }
 
 .about-foot button {
-  min-height: 32px;
+  min-height: 44px;
   margin-left: auto;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 22px;
   background: transparent;
   color: var(--md-primary);
   font-family: var(--font-sans, system-ui), -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
   font-size: 11px;
-  font-weight: 620;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .about-foot button:hover {
-  background: var(--md-surface-container);
+  background: color-mix(in oklab, var(--md-primary) 8%, transparent);
 }
 
 .about-link-error {
@@ -1824,6 +1868,21 @@ onBeforeUnmount(() => {
   }
 }
 
+@media (min-width: 1200px) {
+  .about-hero {
+    display: grid;
+    grid-template-columns: minmax(218px, 0.82fr) minmax(0, 1.18fr);
+  }
+
+  .about-cover {
+    min-height: 332px;
+  }
+
+  .about-story {
+    padding: 22px 22px 12px 26px;
+  }
+}
+
 @media (max-width: 899px) {
   .settings-topbar-inner {
     height: 56px;
@@ -1916,47 +1975,60 @@ onBeforeUnmount(() => {
   }
 
   .about-hero {
-    min-height: 0;
-    padding: 22px 20px 19px;
-    border-radius: 22px;
+    display: block;
+    padding: 10px;
+    border-radius: 24px;
   }
 
-  .about-hero::before {
-    width: 210px;
-    height: 210px;
-    right: -96px;
-    bottom: -128px;
+  .about-cover {
+    min-height: 196px;
+    padding: 18px 18px 16px 22px;
+    border-radius: 18px;
   }
 
-  .about-hero::after {
-    top: -34px;
-    right: 4px;
-    font-size: 176px;
+  .about-cover::before {
+    width: 184px;
+    height: 184px;
+    right: -82px;
+    bottom: -104px;
   }
 
-  .about-brand {
-    gap: 14px;
+  .about-cover::after {
+    top: 16px;
+    bottom: 16px;
+    left: 9px;
+  }
+
+  .about-cover-top {
+    gap: 12px;
   }
 
   .about-logo {
-    width: 52px;
-    height: 52px;
-    flex-basis: 52px;
-    border-radius: 15px;
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 14px;
   }
 
   .about-wordmark {
-    margin-top: 5px;
+    margin-top: 4px;
     font-size: 34px;
   }
 
+  .about-cover-note {
+    margin-top: 12px;
+  }
+
+  .about-story {
+    padding: 20px 10px 8px;
+  }
+
   .about-tagline {
-    margin-top: 24px;
     font-size: 21px;
   }
 
   .about-actions {
-    margin-top: 24px;
+    margin-top: 22px;
     gap: 7px;
   }
 
@@ -1971,15 +2043,15 @@ onBeforeUnmount(() => {
   }
 
   .about-foot {
-    margin-top: 24px;
-    padding-top: 14px;
+    margin-top: 20px;
+    padding-top: 12px;
     gap: 7px 9px;
   }
 
   .about-foot button {
     width: auto;
-    min-height: 40px;
-    margin: 4px 0 0 -8px;
+    min-height: 44px;
+    margin: 2px 0 0 -10px;
   }
 
   .settings-dialog-layer {
@@ -1990,6 +2062,16 @@ onBeforeUnmount(() => {
   .settings-dialog {
     padding: 22px;
     border-radius: 28px 28px 20px 20px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+  .about-update-button {
+    flex: none;
+  }
+
+  .about-foot button {
+    margin-left: auto;
   }
 }
 
