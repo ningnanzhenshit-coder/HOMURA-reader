@@ -53,6 +53,19 @@
 | token | 值 | 用途 |
 |---|---|---|
 | `--md-elevation-hover` | `0 6px 16px -10px color-mix(in oklab, var(--md-shadow-color) 52%, transparent)` | 筛选胶囊与侧栏导航项的鼠标悬浮投影 |
+| `--md-elevation-level1` | 双层 `--md-shadow-color` 低透明度投影 | 仅 elevated 卡型与需要 level 1 的容器 |
+
+## 3.2 Spacing（`:root`）
+
+刻度沿用 Material spacing 命名，`space100 = 8px`。组件以 8px 为主节奏，4px 用于紧凑排布，
+2px / 6px 只用于描边、焦点环与光学校正。
+
+| token 组 | 值 |
+| --- | --- |
+| `--md-space-25` / `50` / `75` | 2px / 4px / 6px |
+| `--md-space-100` / `125` / `150` / `175` / `200` | 8px / 10px / 12px / 14px / 16px |
+| `--md-space-250` / `300` / `400` / `450` / `500` | 20px / 24px / 32px / 36px / 40px |
+| `--md-space-600` / `700` / `800` / `900` | 48px / 56px / 64px / 72px |
 
 ## 4. 遗留别名（`:root`，只做映射，新代码别用）
 
@@ -66,9 +79,11 @@
 
 | 类名 | 作用 / 关键值 |
 |---|---|
-| `.md-shelf-grid` | 书架网格：手机 3 列 gap12 pad14/16；768–899 5 列 gap14；≥900 4 列 gap16 pad18/28；≥1080 5 列；≥1280 6 列；≥1600 8 列 gap18 pad36 |
+| `.md-shelf-grid` | 书架网格：手机 3 列 gap12 pad16/16；768–899 5 列 gap16；≥900 4 列 gap16 pad16/28；≥1080 5 列；≥1280 6 列；≥1600 8 列 gap24 pad36 |
 | `.md-featured-cell` | 继续阅读特色卡跨列：手机 span3；768–899 span2；≥900 span3 |
-| `.md-shelf-card` | 12px 圆角 + surface-highest；默认无重阴影，鼠标 hover 叠加轻 elevation 与 8% 状态层 |
+| `.md-card` / `.md-card--filled` | 12px 圆角 + surface-highest；默认无边框无阴影；hover 8% / focus-pressed 10% 状态层，不抬升 |
+| `.md-card--outlined` / `.md-card--elevated` | outlined = surface + 1px outline-variant；elevated = surface-low + level 1 投影 |
+| `.md-shelf-card` / `.md-collection-card` | 书架与书库内容卡，继承 `.md-card--filled` 的几何与状态层 |
 | `.md-fab-pos` | FAB 定位：桌面 right28/bottom26；手机 right18/bottom `calc(6.5rem + env(safe-area-inset-bottom))` |
 | `.md-bottom-nav-space` | 手机底部导航留白 `calc(6.5rem + env(safe-area-inset-bottom))` |
 | `.md-scrim` / `.md-scrim-soft` | 遮罩：shadow-color 32% / 30% |

@@ -28,8 +28,8 @@
 | 漫画页码 | `.md-toc-grid` + `.md-toc-page` | 五颜六色的页码按钮 |
 | 右侧设置 / 目录面板 | `.md-drawer` + `ReaderDrawerHeader.vue` | 新写一套 sheet 外壳 |
 | 遮罩 | `.md-scrim` | 新建半透明黑色 |
-| 进度 / 字号滑条 | `.md-range` | 原生蓝轨道、没有触控拇指 |
-| 书架内容卡 | `.md-shelf-card` / `.md-collection-card` | 私有圆角、私有阴影 |
+| 进度 / 字号滑条 | `MdRange.vue` + `.md-range` | 原生蓝轨道、圆形小拇指、手写活动轨道 |
+| 书架内容卡 | `.md-card` + `.md-shelf-card` / `.md-collection-card` | 私有圆角、私有阴影 |
 | 书架网格 | `.md-shelf-grid` | 组件内另写 `grid-cols-*` |
 | 筛选 chip | `.md-filter-chip` | 实心彩色胶囊 |
 | 菜单 | `.md-menu` + `.md-menu-item` | 系统右键菜单或无边界浮层 |
@@ -82,7 +82,21 @@
 
 新组件不要随手插入 14 / 15 / 16px。数字类信息必须使用等宽字体和 `font-variant-numeric: tabular-nums`，避免更新时抖动。
 
-### 2.4 圆角与触控
+### 2.4 间距节奏
+
+共享间距刻度定义在 `src/assets/homura.css` 的 `--md-space-25` 到 `--md-space-900`，
+命名沿用 Material spacing：`space100 = 8px`。
+
+- **8px 是主节奏**：表单行、按钮组、列表条目与卡片内部优先取 8 / 12 / 16 / 24 / 32px。
+- **4px 用于紧凑排布**：小图标与文字、徽标、分段控件内部可以取 4px。
+- **2px / 6px 只做细化**：描边、焦点环避让、文字基线与既有光学修正。
+- 页面 gutter 保持手机 16px、平板 20px、桌面 28px、超宽屏 36px；书架网格 gap 使用
+  手机 12px、平板与桌面 16px、1600px 以上 24px。
+- 卡片信息区手机用 8px 内边距，平板与桌面用 `8px 12px 12px`；同一组卡片的封面
+  与信息栏必须共用这套内边距，不要分别微调 1–2px。
+- 组内纵向间距用 8–16px，组间用 20–24px；不要靠一串相邻的 13 / 14 / 18px 拼出层级。
+
+### 2.5 圆角与触控
 
 | 元素 | 规范 |
 | --- | --- |
@@ -122,13 +136,13 @@
   title="关闭目录"
   aria-label="关闭目录"
 >
-  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18" />
-  </svg>
+  <MdIcon name="close" />
 </button>
 ```
 
 - 基础态透明底；`is-outlined` 加 1px `outline-variant`；`is-filled` 用于当前方向、主行动或明确选中态。
+- 图标统一走 `MdIcon.vue`（Material Symbols，24dp 网格）；按钮内 24px，菜单 20px，chip 18px。
+- 选中态改用 `filled`，不要自制实心/描边两套几何。
 - 同一个工具栏保持 48px 等宽，不按图标视觉大小改容器。
 - 只用图标时，`title` 与 `aria-label` 至少有一个；两者同时存在时文案一致。
 - 触发抽屉的按钮必须同时设置 `aria-controls` 和 `aria-expanded`。
@@ -163,8 +177,10 @@
 ```
 
 - 开关本身使用原生 `button` + `role="switch"` + `aria-checked`，不要再套 checkbox。
-- 行高至少 48px；说明文字放 slot，不能挤进轨道。
-- 开关的 280ms 弹簧只用于滑块，不要复制到整个面板。
+- 行高至少 48px；说明文字放 slot，不能挤进 52×32 的轨道。
+- 关闭态使用 `surface-highest` 轨道、2px `outline` 描边和 16px `outline` 滑块；开启态切换到 `primary` 轨道与 24px `on-primary` 滑块。
+- 40px 状态层仅在 hover / 聚焦 / 按下时出现；键盘焦点画在轨道外圈，不能依赖整行外框。
+- 滑块按下时 28px；280ms 弹簧只用于滑块位移与尺寸，不要复制到整个面板。
 
 ### 3.5 设置分组
 
@@ -280,7 +296,8 @@
 
 - 书架网格只用 `.md-shelf-grid`；跨列只用 `.md-featured-cell`。
 - 单本内容卡使用 `.md-shelf-card`；书库拼贴卡使用 `.md-collection-card`。
-- 卡片圆角 12px，默认无重阴影；hover 只叠加轻 elevation 和 8% 状态层，不做抬升位移。
+- 卡片圆角 12px。filled 用 `surface-container-highest`，默认无边框、无阴影；hover 只叠加 8% 状态层，focus / pressed 为 10%，不做抬升位移。
+- 三种 M3 卡型：filled（`surface-container-highest`）、outlined（`surface` + 1px `outline-variant`）、elevated（`surface-container-low` + level 1）。HOMURA 书架默认 filled。
 - 触屏上的移除、多选等操作必须常显；hover 只服务鼠标设备。
 - 卡片本身只能有一个主点击目标；不要在整卡按钮内部再嵌按钮。
 
@@ -362,7 +379,7 @@
 | 常规颜色、透明度、浮层进出 | 200ms / `--md-ease-emphasized` |
 | 分段控件滑块 | 280ms / `--md-ease-expressive` |
 | 开关滑块 | 280ms / `--md-ease-spring` |
-| 卡片 hover | 最多 280ms，只改阴影与状态层 |
+| 卡片 hover | 200ms，只改状态层透明度 |
 
 规则：
 
@@ -377,7 +394,7 @@
 - 新增可复用基础控件放 `src/components/`；手势放 `src/composables/`；解析/存储/平台能力放 `src/services/`。
 - 视觉状态由 props / store 派生；不要手动到处加 `is-active`。
 - 复杂交互组件优先复用 `MdSegmentedControl`、`MdSwitch`、`ReaderDrawerHeader` 和 `useSheetDrag`。
-- 图标全部内联 SVG；不引入图标库、组件库或远程字体。
+- 图标统一走 `MdIcon.vue` 的 Material Symbols 内联 SVG；不引入图标库、组件库或远程字体。
 - 重对象、文件句柄、Zip 内容、Animation 和 DOM 引用不要使用深层 `ref`。
 - `settings-*` 这类页面级 scoped class 不要跨文件复制；重复后再提炼到 `homura.css`。
 
@@ -412,6 +429,7 @@
 | 本目录顺序列表 | `src/components/ReaderCollectionDrawer.vue` |
 | 分段选择 | `src/components/MdSegmentedControl.vue` |
 | 开关 | `src/components/MdSwitch.vue` |
+| 进度 / 字号滑条 | `src/components/MdRange.vue` |
 | 设置分组与响应式布局 | `src/components/SettingsView.vue` |
 | 品牌 Hero / 封面容器 | `SettingsView.vue` 的 `.about-hero`、`.about-cover` |
 | 共享组件类与 token | `src/assets/homura.css` |

@@ -96,7 +96,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - **重对象必须 `shallowRef`**：`zipContent`、`File`、`Animation`、timer、DOM 引用一律不要被 Vue 深度代理，否则会拖慢动画，甚至让 `Animation.cancel()` 异常。
 - 翻页引擎 `PaginatedView.vue` / `WebtoonView.vue` **直接操作 ref DOM + Web Animations API**，不走响应式重渲染。不要为了“优雅”改写成 `v-for` + 响应式布局。
 - Tauri 通过 `window.__TAURI__` 全局对象与 `@tauri-apps/plugin-*` 调用，项目不直接依赖 `@tauri-apps/api`。新增原生能力时必须同步 Rust 插件注册与 `src-tauri/capabilities/default.json` 的 permissions。
-- 图标全部内联 SVG，不引入图标库 / 组件库。新增依赖需要明确理由。
+- 图标统一走 `src/components/MdIcon.vue`（Material Symbols 24dp 内联路径），选中态用 `filled`；不引入图标库 / 组件库。新增依赖需要明确理由。
 - 注释用中文；复杂模块顶部保留现有的 banner 注释风格。只在逻辑不直观处写注释，不要给没改动的代码补注释。
 - 全局 Toast 已移除：不要重新引入 toast / alert；可恢复错误记录到 console，Android 原生返回提示除外。
   

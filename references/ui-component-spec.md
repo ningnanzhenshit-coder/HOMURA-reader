@@ -62,7 +62,7 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 - 一屏只保留一个 `primary` 实心主行动。书架页唯一主行动是「导入」FAB。
 - 布局主断点只有 **900px**。`<900` 使用悬浮胶囊底栏与 bottom sheet，`>=900` 使用
   浮动侧栏与 side sheet。
-- 图标全部内联 SVG；禁止引入图标库、组件库或远程字体来补 UI。
+- 图标统一走 `MdIcon.vue` 的 Material Symbols 内联 SVG；禁止引入图标库、组件库或远程字体来补 UI。
 - 图标按钮必须有 `title` 或 `aria-label`；交互元素必须是原生 `button` / `a` / 表单控件。
 - 禁止用 `<div @click>` 冒充按钮，禁止把可交互控件嵌套在另一个可交互控件里。
 - 重对象必须使用 `shallowRef` 或普通非响应式变量，尤其是 `File`、Zip 内容、动画对象、
@@ -168,13 +168,15 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 
 ### 3.5 间距、尺寸与圆角
 
-间距以 4px 为主节奏，允许 2px 用于描边与视觉校正，允许 10 / 22 / 28px 作为既有组件的光学校正值。
+间距以 M3 的 **8px（space100）为主节奏**，4px 用于紧凑排布，2px 只用于描边与视觉校正。
+共享刻度定义在 `src/assets/homura.css` 的 `--md-space-*`；既有组件中的 6 / 10 / 14 / 20 / 22 / 28px
+属于光学修正或既有触控尺寸，可以保留，但不要继续新增新的中间档。
 新组件应优先复用以下尺寸：
 
 | 项目 | 规范值 |
 | --- | --- |
 | 最小触控命中区 | `44px × 44px` |
-| 常规图标 | 20px；小图标 14–16px |
+| 常规图标 | 24px（Material Symbols 24dp 画布，视觉 live area 20px）；紧凑 20px；行内 16–18px |
 | 常规图标按钮 | 44px 正方形或圆形 |
 | 紧凑关闭按钮 | 视觉 40px，命中区至少 44px |
 | 手机顶栏 | 56px 高 |
@@ -188,12 +190,24 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 | 手机 bottom sheet | 最大 `78dvh` |
 | Bottom sheet 拖拽条 | `32px × 4px` |
 
+书架与页面的横向节奏：
+
+| 场景 | 规范值 |
+| --- | --- |
+| 手机页面 gutter | 16px |
+| 平板页面 gutter | 20px |
+| 桌面页面 gutter | 28px |
+| 1600px 以上页面 gutter | 36px |
+| 卡片网格 gap | 手机 12px / 平板与桌面 16px / 1600px 以上 24px |
+| 卡片信息区内边距 | 手机 8px / 平板与桌面 8px 12px 12px |
+| 抽屉分组纵向间距 | 20px；首个分组顶部 8px |
+
 | 圆角 | 使用范围 |
 | --- | --- |
 | 8px | 紧凑按钮、分段 chip、小型页码格 |
 | 10px | 菜单条目 |
-| 12px | 编辑式卡片、特殊插画卡 |
-| 16px | 书架卡、特色卡、sheet 内卡片 |
+| 12px | 书架卡、书库卡、特色卡、编辑式卡片、特殊插画卡 |
+| 16px | sheet 内卡片 |
 | 20px | 分段控件、桌面外观浮层 |
 | 28px | 桌面 side sheet 与手机 bottom sheet |
 | `999px` | 胶囊、圆形图标按钮、滑条拇指 |
@@ -296,10 +310,10 @@ HOMURA 是一个本地优先、内容优先的 ACGN 阅读器。界面首先服�
 
 | 视口 | 列数 | Gap | Padding |
 | --- | --- | --- | --- |
-| `< 768px` | 3 | 12px | 14px / 16px |
-| `768–899px` | 5 | 14px | 横向 20px |
-| `900–1599px` | 6 | 16px | 18px / 28px |
-| `>= 1600px` | 8 | 18px | 横向 36px |
+| `< 768px` | 3 | 12px | 顶部 16px / 横向 16px |
+| `768–899px` | 5 | 16px | 横向 20px |
+| `900–1599px` | 4 / 5 / 6 | 16px | 顶部 16px / 横向 28px |
+| `>= 1600px` | 8 | 24px | 横向 36px |
 
 「继续阅读」用 `.md-featured-cell` 跨列。禁止在书架组件里另写 `grid-cols-*` 或局部列数覆盖。
 
@@ -334,7 +348,7 @@ Hover 规则：
 | 尺寸 | 高 56px，扩展宽度由内容决定 |
 | 内边距 | 横向 20px |
 | 圆角 | 16px |
-| 图标 | 24px 内联 SVG |
+| 图标 | 24px `MdIcon`（Material Symbols） |
 | 文字 | 13px / 700 |
 | 颜色 | `primary` + `on-primary` |
 | 反馈 | `active:scale-95`，200ms |
@@ -354,17 +368,17 @@ Hover 规则：
   title="关闭目录"
   aria-label="关闭目录"
 >
-  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6L6 18" />
-  </svg>
+  <MdIcon name="close" />
 </button>
 ```
 
 - 常规图标按钮 44px；视觉可以 40px，但必须用 `.md-hit-target` 补到 44px。
-- 图标 20px；线宽通常 2，勾选可用 2.4。
+- 统一使用 `MdIcon.vue` 的 Material Symbols 路径；24dp 网格、20dp live area，不再手绘线框 SVG。
+- 图标按钮内 24px，菜单 20px，筛选 chip 18px，行内状态 16px；不要再写 1.6 / 1.8 / 2.2 / 2.4 等混合线宽。
+- 导航与收藏用 `filled` 表示选中/已收藏；未选中用描边形态，状态切换不改变图标几何。
 - 同一工具栏里的按钮保持同一尺寸与间距。
 - 只显示图标时，`title` 与 `aria-label` 至少提供一个；二者都存在时文案应一致。
-- SVG 本身设 `aria-hidden="true"`，避免屏幕阅读器重复朗读。
+- `MdIcon` 已设 `aria-hidden="true"`；不要给装饰图标补可访问名称，避免屏幕阅读器重复朗读。
 
 ### 6.3 菜单与下拉
 
@@ -445,11 +459,12 @@ Hover 规则：
 
 组件：`src/components/MdSwitch.vue`
 
-- 整个 44px 行可点击，右侧为 36px × 20px 轨道与 16px 滑块。
-- 开启：`primary` 轨道 + `on-primary` 滑块。
-- 关闭：`outline-variant` 轨道 + `on-surface` 滑块。
+- 整个至少 48px 高的行可点击，右侧为 52px × 32px 轨道。
+- 开启：`primary` 轨道 + `on-primary` 滑块，滑块视觉尺寸 24px。
+- 关闭：`surface-highest` 轨道 + 2px `outline` 描边，滑块视觉尺寸 16px、颜色为 `outline`。
+- 滑块按下时视觉尺寸为 28px；40px 状态层在 hover 时 8%、聚焦/按下时 10%。
 - 必须使用 `button type="button"`、`role="switch"`、`:aria-checked`。
-- 滑块使用 `--md-ease-spring`，按下时可轻微横向拉伸；减少动态效果时全部关闭。
+- 滑块位移与尺寸使用 `--md-ease-spring`；只过渡颜色、透明度和 transform，减少动态效果时全部关闭。
 - 不要只给一行裸开关而没有关联标签；标签必须是点击目标的一部分。
 
 公开 API：
@@ -458,22 +473,29 @@ Hover 规则：
 | --- | --- | --- |
 | `modelValue` | `Boolean` | 当前开关状态 |
 | `title` | `String` | 可选原生提示 |
+| `disabled` | `Boolean` | 禁用状态，默认 `false` |
 | `update:modelValue` | `(value: Boolean) => void` | 状态变化 |
 | 默认 slot | — | 开关行标签 |
 
-### 6.8 进度滑条
+### 6.8 进度 / 字号滑条
 
-组件样式：`.md-range`
+组件：`src/components/MdRange.vue` + `.md-range`
 
-| 项目 | 桌面 | 触屏 |
-| --- | --- | --- |
-| 命中高度 | 20px | 20px |
-| 轨道 | 4px | 4px |
-| 拇指 | 14px | 18px |
-| 拇指光环 | 3px `surface` | 3px `surface` |
+| 项目 | 规范 |
+| --- | --- |
+| 触控高度 | 48px |
+| 轨道 | 16px 胶囊 |
+| 活动轨道 | `primary` |
+| 未活动轨道 | `secondary-container` |
+| 手柄 | 4 × 44px 胶囊，`primary`，2px 圆角 |
+| 手柄留白 | 视觉 6px；CSS 用 8px 偏移补偿 4px 手柄的半宽 |
+| 焦点 | 2px `primary` 外环 + 2px surface 间隔 |
+| 禁用 | 整体透明度 0.38 |
 
-- 必须提供 `aria-label` 和可见页码辅助。
-- RTL 翻页需要给滑条加 `.rtl-slider`，不要通过反转整个底栏实现。
+- 所有滑条统一使用 `MdRange`，保留原生 `input[type="range"]` 的键盘、触控和读屏行为。
+- 必须提供 `aria-label`；阅读进度还要提供当前页与百分比的 `aria-valuetext`。
+- 活动轨道宽度由组件按 `min/max` 自动计算，不要在调用处手写渐变或进度宽度。
+- RTL 翻页传入 `:rtl="inverted"`，活动轨道会从右往左填充，不要反转整个底栏。
 - 拖动时持续更新视觉进度，持久化仍由现有节流机制负责。
 
 ## 7. 卡片与内容展示
@@ -486,11 +508,12 @@ Hover 规则：
 | 部位 | 规范 |
 | --- | --- |
 | 封面比例 | 3:4 |
-| 卡片圆角 | 16px |
-| 卡片底色 | `surface-container` |
-| 外环 | 0.5–1px，`outline-variant` 至少 42% |
-| 阴影 | 低对比软阴影，不能形成悬浮大圆角按钮 |
-| Hover | 仅 fine pointer 上浮 2px；图片可轻微缩放 |
+| 卡片圆角 | 12px |
+| 卡片底色 | `surface-container-highest`（filled 变体） |
+| 外环 | 无；outlined 变体才使用 1px `outline-variant` |
+| 阴影 | 无默认阴影；hover 不抬升、不新增投影 |
+| Hover | 仅 fine pointer 叠加 8% 状态层；focus / pressed 为 10% |
+| Focus | 2px `primary` 外环 + 2px offset |
 | 类型徽标 | 左上角胶囊，`surface` 半透明 + 模糊背景 |
 | 移除按钮 | 右上角 32px 视觉，44px 命中区；触屏常显 |
 | 进度条 | 底部 3px；轨道与填充都必须使用 token |
@@ -498,6 +521,7 @@ Hover 规则：
 
 鼠标 hover 与触屏策略：
 
+- 卡片统一使用 `.md-card` + `.md-card--filled`，不要复制圆角、底色与状态层。
 - 鼠标端移除按钮可通过卡片 hover 显形。
 - 触屏端移除按钮必须常显，不能依赖悬停。
 - 卡片 hover 不能改变网格尺寸或推动相邻卡片。
@@ -515,6 +539,7 @@ Hover 规则：
 - 手机整行显示，桌面跨两列；900–1179px 使用紧凑排版。
 - 只在书架首页与收藏页出现；进入具体书库后隐藏，避免书库内容被大卡挤占。
 - 卡片本身是完整 button，不再嵌套按钮。
+- 与内容卡共享 `.md-card` 的 12px 圆角、状态层与焦点环；hover 不抬升。
 - 竖排书名只在桌面使用，手机退化为左下角横排短标题。
 - 进度条、百分比与“继续阅读 / 开始阅读”必须同时可读，不能只靠颜色。
 
@@ -523,13 +548,13 @@ Hover 规则：
 组件：`src/components/CollectionCard.vue`
 外层类：`.md-collection-card`
 
-- 与书本卡同构：使用相同的 `surface-container` 卡片底、16px 圆角、软阴影与 `3:4` 封面区。
+- 与书本卡同构：使用相同的 `surface-container-highest` 卡片底、12px 圆角与 `3:4` 封面区；默认无投影。
 - 封面外框与单本书卡严格同宽同高；2×2 迷你封面拼贴只排列在框内，不使用外露堆叠或额外偏移。
 - 拼贴最多显示 4 张真实封面；不足 4 本时保留低对比空槽，不重复或伪造封面。
 - 底部信息栏固定两行：第一行标题单行截断；第二行左侧为「N 本作品」，右侧为 `primary` 色的「打开 →」。
 - 数量只在信息栏出现一次，不再放在标题行或封面浮条中。
 - 拖拽书本移入时，第二行整体替换为 `primary` 色的「松开移入书库」，不改变信息栏高度。
-- 鼠标悬浮时与单本书卡一致：仅在 fine pointer 上上浮 2px，并使用相同的软阴影与 280ms 过渡。
+- 鼠标悬浮时与单本书卡一致：仅在 fine pointer 叠加 8% 状态层，不位移、不加投影。
 - 信息栏的 padding 与字号必须和 `BookCard.vue` 保持联动，使书库卡与普通书本卡自然同高。
 
 ### 7.4 空态
@@ -686,7 +711,7 @@ Hover 规则：
 组件：`src/components/SurfaceModePreview.vue`
 
 - 三列固定顺序：白昼 / 夜间 / 护眼；顺序来自 `SURFACE_MODE_OPTIONS`。
-- 最大宽度 280px，卡片比例约 0.72，16px 圆角。
+- 最大宽度 280px，卡片比例约 0.72，12px 圆角。
 - 卡片内的色块只做预览，不是用户自定义颜色入口。
 - 选中态使用 `primary` 外环与勾选。
 - 点击必须把按钮中心坐标传给 `theme.setSurfaceMode()`。
