@@ -174,7 +174,9 @@ homura-reader/
 │   │   ├── pdf.js              # PDF 懒加载、页面位图与 LRU 缓存
 │   │   ├── mobi.js             # PalmDOC / MOBI 解析
 │   │   ├── markdown.js         # marked + 安全渲染
-│   │   ├── storage.js          # IndexedDB homura_shelf
+│   │   ├── storage.js          # IndexedDB 完整存档 + SQLite 元数据镜像
+│   │   ├── nativeMetadata.js   # SQLite 书目 / 书库 / 进度桥接
+│   │   ├── coverThumb.js       # Rust 封面缩略图与 Canvas / WebP 兜底
 │   │   ├── opfs.js             # Origin Private File System 原文件存储
 │   │   ├── restore.js          # 原生 AppData / OPFS / 句柄 / Blob 存档恢复
 │   │   ├── nativeStorage.js    # Android / 桌面共用的 AppData 原文件存储
@@ -195,11 +197,13 @@ PDF、Markdown 安全渲染和分页测量需要 DOM / Canvas，因此 `services
 ## 本地存储与隐私
 
 - IndexedDB 数据库名为 `homura_shelf`，包含 `books`、`sources`、`progress`、`collections` 四个对象仓库，分别保存书籍元数据/封面、原始文件来源、阅读进度以及书库与书本归属；旧书架会自动升级。
+- Tauri 包会把书目、封面缩略图、书库归属与阅读进度镜像到 `$APPDATA/homura-metadata/homura.sqlite3`（WAL）。启动优先读 SQLite；首次启用或发现 `homura-native-metadata-dirty` 时，会从 IndexedDB 完整重建镜像。IndexedDB 仍是数据存在性与原始文件来源的最终兜底，SQLite 清理失败不会让已删除的书复活。
+- 书架封面优先由 Rust `image` 解码并缩到最长边 480px；AVIF 等原生不支持的格式、旧安装缺少命令或非 Tauri 环境会回退 Canvas / OffscreenCanvas。原生安全上限与像素上限不会继续交给 JS 重试。
 - Android Tauri 包优先把原文件写入应用私有 AppData，失败再保留 IndexedDB Blob；桌面普通文件优先保存 `FileSystemFileHandle`，无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。桌面 EPUB/CBZ 会在解析前 staging 到 AppData，让 Rust 直接随机读取 ZIP 条目；原生失败时仍按 AppData、OPFS、句柄、Blob 逐层恢复或回退 JSZip。
 - 桌面原生 ZIP 通道只接受 `homura-native-sources` 下的路径，漫画页按需解到 AppCache，并按最近访问时间保留 24 个文件 / 192MB；安全限制与资源超限错误不会回退到 JSZip。
 - 导入后会检查存储配额；已用空间达到 85% 或剩余不足 200 MB 时会提示。
 - 阅读进度写入做了 350 ms 防抖，并在关闭阅读器、页面卸载或切到后台时补写。
-- `localStorage` 只保存 `homura_theme_color`、`homura_surface_mode` 两个主题偏好，以及桌面侧栏的 `homura_sidenav_collapsed` 折叠状态；翻页过渡样式不持久化。
+- `localStorage` 保存主题偏好、桌面侧栏折叠状态、封面缩略图迁移版本与 SQLite 镜像 dirty 标记；翻页过渡样式不持久化。
 - 每本书会记住阅读方向、单双页、首页单排、字号和条漫尺寸；目录状态不会持久化，书签功能尚未实现。
 - 应用不上传书籍内容，也没有云同步。清除应用本地数据会一起清掉书架记录，重要文件请保留原始副本。
 - Google Fonts 需要联网，完全断网时会回退到系统字体；Tailwind 运行时已随应用分发，PDF 资源也随包构建。
