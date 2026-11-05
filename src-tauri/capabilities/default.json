@@ -9,6 +9,7 @@
     "android-predictive-back:default",
     "android-installer:default",
     "android-archive:default",
+    "android-system-bars:default",
     "fs:default",
     "fs:allow-appcache-read-recursive",
     "fs:allow-appdata-meta-recursive",

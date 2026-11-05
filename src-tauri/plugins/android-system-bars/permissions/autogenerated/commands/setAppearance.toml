@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-setAppearance"
+description = "Enables the setAppearance command without any pre-configured scope."
+commands.allow = ["setAppearance"]
+
+[[permission]]
+identifier = "deny-setAppearance"
+description = "Denies the setAppearance command without any pre-configured scope."
+commands.deny = ["setAppearance"]

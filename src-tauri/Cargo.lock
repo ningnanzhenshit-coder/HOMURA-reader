@@ -1568,6 +1568,7 @@ dependencies = [
  "tauri-plugin-android-archive",
  "tauri-plugin-android-installer",
  "tauri-plugin-android-predictive-back",
+ "tauri-plugin-android-system-bars",
  "tauri-plugin-android-toast",
  "tauri-plugin-fs",
  "tauri-plugin-opener",
@@ -3977,6 +3978,14 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-android-predictive-back"
+version = "0.1.0"
+dependencies = [
+ "tauri",
+ "tauri-plugin",
+]
+
+[[package]]
+name = "tauri-plugin-android-system-bars"
 version = "0.1.0"
 dependencies = [
  "tauri",

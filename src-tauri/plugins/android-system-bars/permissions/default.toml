@@ -1,0 +1,3 @@
+[default]
+description = "Allows HOMURA to match Android system bar icons with the reading surface."
+permissions = ["allow-setAppearance"]

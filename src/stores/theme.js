@@ -7,6 +7,7 @@
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { applyAndroidSystemBars } from '../services/androidSystemBars.js';
 
 // 原生窗口 / 浏览器地址栏底色，与 homura.css 的 --md-surface 保持一致
 const SURFACE_CANVAS = { light: '#F8FAFC', warm: '#FAF6EE', dark: '#0F1115' };
@@ -47,8 +48,10 @@ function readTransitionStyle() {
   }
 }
 
-// 同步原生窗口外观（macOS 标题栏与窗口底色），避免夜间模式下启动闪白
+// 同步原生窗口与系统栏外观，避免夜间模式下标题栏、状态栏与内容底色不同步
 function applyNativeWindowChrome(modeName) {
+  applyAndroidSystemBars(modeName === 'dark');
+
   const tauriWindow = window.__TAURI__ && window.__TAURI__.window;
   if (!tauriWindow || typeof tauriWindow.getCurrentWindow !== 'function') return;
   const win = tauriWindow.getCurrentWindow();

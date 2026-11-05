@@ -1,0 +1,13 @@
+[package]
+name = "tauri-plugin-android-system-bars"
+version = "0.1.0"
+description = "Android system bar icon appearance bridge for HOMURA"
+authors = ["HOMURA"]
+edition = "2021"
+links = "tauri-plugin-android-system-bars"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
