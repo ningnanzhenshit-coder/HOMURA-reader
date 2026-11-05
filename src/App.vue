@@ -40,6 +40,7 @@
         </LibraryHeader>
 
         <main
+          ref="libraryScrollRef"
           class="library-scroll relative isolate flex-1 w-full flex flex-col min-[900px]:pb-40"
           :class="{ 'md-bottom-nav-space': isCompact }"
           data-app-scroll
@@ -101,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useThemeStore } from './stores/theme.js';
 import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
@@ -118,6 +119,7 @@ import { useShelfDialogs } from './composables/useShelfDialogs.js';
 import { collectionNameError, availableCollectionName } from './services/collections.js';
 import { useViewport } from './composables/useViewport.js';
 import { useAndroidBackExit } from './composables/useAndroidBackExit.js';
+import { useScrollBounce } from './composables/useScrollBounce.js';
 import SideNav from './components/SideNav.vue';
 import LibraryHeader from './components/LibraryHeader.vue';
 import LibraryImportActions from './components/LibraryImportActions.vue';
@@ -143,11 +145,14 @@ const { pendingShelfDialog, askShelfDialog, resolveShelfDialog } = useShelfDialo
 const { isCompact } = useViewport();
 
 const measurerRef = ref(null);
+const libraryScrollRef = shallowRef(null);
 const fileInput = ref(null);
 const folderInput = ref(null);
 const importMenuOpen = ref(false);
 const appearanceOpen = ref(false);
 const activeNav = ref('shelf');
+
+useScrollBounce(libraryScrollRef);
 
 // 书架视图状态
 const query = ref('');
