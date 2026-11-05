@@ -2,16 +2,18 @@
   <!-- 一级设置页：外观与阅读、存储、关于各自独立成页 -->
   <div class="settings-page">
     <header
-      class="settings-topbar"
+      class="settings-topbar z-20 bg-[var(--md-surface)]"
       :style="isCompact ? { paddingTop: 'env(safe-area-inset-top)' } : null"
     >
       <div class="settings-topbar-inner">
-        <h1>设置</h1>
-        <div class="settings-save-state">
+        <Transition name="settings-title" appear>
+          <h1>设置</h1>
+        </Transition>
+        <span class="settings-save-state">
           <i aria-hidden="true"></i>
           <span class="save-state-long">更改会自动保存</span>
           <span class="save-state-short">已自动保存</span>
-        </div>
+        </span>
       </div>
     </header>
 
@@ -775,42 +777,58 @@ onBeforeUnmount(() => {
 .settings-topbar {
   position: sticky;
   top: 0;
-  z-index: 20;
-  background: var(--md-surface);
 }
 
 .settings-topbar-inner {
+  padding: 0 16px;
   height: 64px;
-  padding: 0 36px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .settings-topbar h1 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 560;
-  letter-spacing: -0.015em;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-title-enter-active {
+  transition:
+    opacity 180ms var(--md-ease-emphasized),
+    transform 180ms var(--md-ease-emphasized);
+}
+
+.settings-title-enter-from {
+  opacity: 0;
+  transform: translate3d(-12px, 0, 0);
 }
 
 .settings-save-state {
-  margin-left: auto;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--md-on-surface-variant);
-  font-size: 12px;
-  font-weight: 520;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-family: var(--font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .settings-save-state i {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--md-primary);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--md-primary) 12%, transparent);
 }
 
 .save-state-short {
@@ -1824,6 +1842,19 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 900px) {
+  .settings-topbar-inner {
+    padding: 0 28px;
+    gap: 12px;
+  }
+
+  .settings-topbar h1 {
+    font-size: 22px;
+  }
+
+  .settings-save-state {
+    font-size: 12px;
+  }
+
   .settings-layout:not(.has-preview) .settings-main {
     max-width: 760px;
   }
@@ -1847,11 +1878,6 @@ onBeforeUnmount(() => {
 @media (max-width: 899px) {
   .settings-topbar-inner {
     height: 56px;
-    padding: 0 18px;
-  }
-
-  .settings-topbar h1 {
-    font-size: 21px;
   }
 
   .save-state-long {
@@ -2045,12 +2071,17 @@ onBeforeUnmount(() => {
   .settings-open-book,
   .about-update-button,
   .about-log-button,
+  .settings-title-enter-active,
   .settings-dialog-enter-active,
   .settings-dialog-leave-active,
   .settings-dialog-enter-active .settings-dialog,
   .settings-dialog-leave-active .settings-dialog {
     transition: none !important;
     animation: none !important;
+  }
+
+  .settings-title-enter-from {
+    transform: none;
   }
 }
 </style>

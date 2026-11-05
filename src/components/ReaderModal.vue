@@ -210,28 +210,28 @@ function measureScrollbarWidth() {
 }
 
 function setReaderScrollLock(locked) {
-  const body = document.body;
-  const bodyLocked = body.classList.contains('overflow-hidden');
-  if (locked === bodyLocked) return;
+  const html = document.documentElement;
+  const isLocked = html.classList.contains('reader-scroll-locked');
+  if (locked === isLocked) return;
 
   if (locked) {
     if (pageScrollsVertically()) {
       const scrollbarWidth = measureScrollbarWidth();
       if (scrollbarWidth > 0) {
-        document.documentElement.style.setProperty(
+        html.style.setProperty(
           '--homura-reader-scrollbar-width',
           `${scrollbarWidth}px`
         );
-        document.documentElement.classList.add('reader-scroll-reserved');
+        html.classList.add('reader-scroll-reserved');
       }
     }
-    body.classList.add('overflow-hidden');
+    html.classList.add('reader-scroll-locked');
     return;
   }
 
-  body.classList.remove('overflow-hidden');
-  document.documentElement.classList.remove('reader-scroll-reserved');
-  document.documentElement.style.removeProperty('--homura-reader-scrollbar-width');
+  html.classList.remove('reader-scroll-locked');
+  html.classList.remove('reader-scroll-reserved');
+  html.style.removeProperty('--homura-reader-scrollbar-width');
 }
 
 // 阅读器是全屏遮罩，锁住底层书架页的滚动，避免右侧多出无用的长滚动条

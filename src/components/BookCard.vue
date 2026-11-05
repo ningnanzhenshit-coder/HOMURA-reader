@@ -36,7 +36,9 @@
       >
         <MdIcon name="close" class="w-3.5 h-3.5" />
       </button>
-      <span v-else class="absolute z-20 top-2 right-2 w-7 h-7 grid place-items-center rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] pointer-events-none" aria-hidden="true">{{ selected ? '✓' : '○' }}</span>
+      <span v-else class="md-select-badge" aria-hidden="true">
+        <MdIcon :name="selected ? 'check' : 'radio_button_unchecked'" :size="16" />
+      </span>
 
       <!-- 3px 进度条 -->
       <div v-if="progress" class="book-progress-track absolute bottom-0 inset-x-0 h-[3px]" aria-hidden="true">

@@ -11,7 +11,9 @@
             <MdIcon v-else name="auto_stories" />
           </span>
         </span>
-        <span v-if="selecting" class="md-collection-check">{{ selected ? '✓' : '○' }}</span>
+        <span v-if="selecting" class="md-select-badge" aria-hidden="true">
+          <MdIcon :name="selected ? 'check' : 'radio_button_unchecked'" :size="16" />
+        </span>
       </span>
       <span class="md-collection-info">
         <span class="md-collection-title">{{ collection.title }}</span>

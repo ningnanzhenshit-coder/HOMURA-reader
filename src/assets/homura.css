@@ -383,15 +383,16 @@
       overflow-x: clip;
     }
 
+    /* 阅读器打开时只锁根节点滚动。不要给 body 加 overflow:hidden：
+       body 一旦成为滚动容器，书架里的 position:sticky 侧栏/顶栏会失去吸顶，
+       退场动画期间先滚出视口再跳回来，看起来像组件闪没。 */
+    html.reader-scroll-locked {
+      overflow-y: hidden;
+    }
+
     /* 阅读器隐藏真实滚动条，但保留原来的可用宽度，避免退出时书架回流 */
     html.reader-scroll-reserved body {
       width: calc(100vw - var(--homura-reader-scrollbar-width, 0px));
-    }
-
-    /* html 设了 overflow-x: clip，body 的 overflow: hidden 不会传播到视口，
-       阅读器打开时根节点仍会露出第二条纵向滚动条，这里一并锁住 */
-    html.reader-scroll-reserved {
-      overflow-y: hidden;
     }
 
     /* fixed 元素不受 body 宽度补偿影响，需同步补上滚动条偏移 */
@@ -493,6 +494,23 @@
     html.reader-back-settling .library-back-layer.is-under-reader,
     html.reader-back-entering .library-back-layer.is-under-reader {
       will-change: transform;
+    }
+
+    /* 桌面书架跟随窗口滚动，整页平移会让 sticky 侧栏/顶栏跟着左右晃；
+       桌面只让阅读器自己滑出，书架保持原位。手机仍保留跟手平移。 */
+    @media (min-width: 900px) {
+      .library-back-layer.is-under-reader {
+        transform: none;
+      }
+
+      html.reader-back-entering .library-back-layer.is-under-reader {
+        animation: none;
+      }
+
+      html.reader-back-settling .library-back-layer.is-under-reader,
+      html.reader-back-entering .library-back-layer.is-under-reader {
+        will-change: auto;
+      }
     }
 
     .reader-back-scrim {
@@ -913,7 +931,7 @@
     }
     .md-collection-card.is-drop-target .md-collection-board { outline: 3px solid var(--md-primary); outline-offset: 2px; }
     .md-library-text-button.is-drop-target { background: var(--md-primary-container); color: var(--md-on-primary-container); }
-    .md-collection-check {
+    .md-select-badge {
       position: absolute;
       z-index: 2;
       top: 8px;
@@ -1664,7 +1682,7 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* 触屏上没有 hover：书架卡片的移除按钮改为常显 */
+    /* 触屏上没有 hover：书本卡片的移除按钮隐藏，删除走选择模式 */
     .card-remove-btn {
       opacity: 0;
       transition: opacity 0.15s ease;
@@ -1674,7 +1692,7 @@
     }
     @media (hover: none) {
       .card-remove-btn {
-        opacity: 1;
+        display: none;
       }
     }
 

@@ -6,7 +6,7 @@
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
     <div class="h-14 min-[900px]:h-16 flex items-center gap-2 min-[900px]:gap-3 px-4 min-[900px]:px-7">
-      <Transition name="library-title" mode="out-in" @enter="onTitleEnter">
+      <Transition name="library-title" mode="out-in" appear @enter="onTitleEnter">
         <button
           v-if="renamable"
           :key="title"
