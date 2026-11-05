@@ -74,7 +74,8 @@ src/
     useViewport.js         宽度、触屏、断点
   components/              Vue 组件（见下方 UI 说明）
 src-tauri/                 Tauri 2 壳：lib.rs、tauri.conf.json、capabilities
-public/vendor/             运行时 Tailwind（断网可用），不要换成构建版
+public/vendor/             运行时 Tailwind，仅开发环境使用；生产构建转为静态 CSS
+tailwind.config.js         构建期 Tailwind 配置（开发环境仍读 vendor/tailwind-config.js）
 public/pdfjs/              pdf.js 运行时资源，由 vite 插件生成，已 gitignore
 scripts/release-notes.mjs  Conventional Commits → Release 说明
 scripts/check-dark-glow.mjs 夜间投影/遮罩泛光检查（build:vite 自动执行）
@@ -96,6 +97,8 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - **重对象必须 `shallowRef`**：`zipContent`、`File`、`Animation`、timer、DOM 引用一律不要被 Vue 深度代理，否则会拖慢动画，甚至让 `Animation.cancel()` 异常。
 - 翻页引擎 `PaginatedView.vue` / `WebtoonView.vue` **直接操作 ref DOM + Web Animations API**，不走响应式重渲染。不要为了“优雅”改写成 `v-for` + 响应式布局。
 - Tauri 通过 `window.__TAURI__` 全局对象与 `@tauri-apps/plugin-*` 调用，项目不直接依赖 `@tauri-apps/api`。新增原生能力时必须同步 Rust 插件注册与 `src-tauri/capabilities/default.json` 的 permissions。
+- Android 漫画页由 Kotlin 按屏幕长边降采样并转成 WebP，再由 asset 协议直接喂给 `<img>`。`src-tauri/Cargo.toml` 的 `protocol-asset` feature 与 `tauri.conf.json` 的 `$APPCACHE/**` scope 必须保留，删掉会退回 Blob 通道并明显变慢。
+- 原生页缓存按最近访问时间 LRU 淘汰（24 个文件 / 192MB）。EPUB 的条目索引和阅读页序无关，禁止按 index 前后窗口删缓存或预取；前端页图 URL 回收也必须跟翻页同步执行，不能依赖延时的预载任务。
 - 图标统一走 `src/components/MdIcon.vue`（Material Symbols 24dp 内联路径），选中态用 `filled`；不引入图标库 / 组件库。新增依赖需要明确理由。
 - 注释用中文；复杂模块顶部保留现有的 banner 注释风格。只在逻辑不直观处写注释，不要给没改动的代码补注释。
 - 全局 Toast 已移除：不要重新引入 toast / alert；可恢复错误记录到 console，Android 原生返回提示除外。
@@ -169,6 +172,7 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - 依赖没装就 `npm run dev` 会提示找不到 tauri 命令：先 `npm install`。
 - `dist/index.html` 用 `file://` 打开会因相对路径 / IndexedDB 限制而异常，必须走 `http://localhost`。
 - PDF 白屏优先查 `public/pdfjs/` 是否生成、控制台是否有 cmaps / standard_fonts 404。
+- 安卓漫画页白屏先确认 `protocol-asset` feature 与 assetProtocol scope 是否还在；`ensurePageUrlLoaded` 在 asset 失败时会自动回退 Blob，回退仍白屏才是解码/缓存问题。
 - Tailwind 对 CSS 变量加透明度修饰会失效，改用 `color-mix`。
 - 夜间出现白色泛光时，优先检查 `--md-on-surface` / `--md-on-surface-variant` 是否被当作阴影或遮罩色；投影统一改用 `--md-shadow-color`，并运行 `npm run check:dark-glow`。
 - 触屏上不要依赖 `:hover` 显示操作按钮；触屏常显，鼠标设备才 hover。
