@@ -4,6 +4,9 @@
 > 适用范围：`src/` 内所有生产界面，包括书架、阅读器、设置面板、菜单、弹层与全局反馈。  
 > 不适用：`design-preview/` 原型、README 配图与一次性演示页。
 
+> **新增或重做组件时，先读 [md3-component-guide.md](./md3-component-guide.md)。**
+> 本文保留系统级布局、行为与历史约束；若与当前 `src/` 或该手册冲突，以当前代码和手册为准。
+
 本文定义 HOMURA 新增、修改和审查 UI 组件时的最低要求。颜色全表见
 [tokens.md](./tokens.md)，项目协作约束见 [AGENTS.md](../AGENTS.md)。
 

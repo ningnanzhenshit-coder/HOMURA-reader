@@ -142,7 +142,9 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 
 ### 5.5 参考
 
-如果本地还保留 `.trae/skills/homura-md3-ui/SKILL.md` 和 `references/tokens.md`，先读它们。注意 `.trae/` 被 gitignore，克隆仓库后可能不存在；此时以本节为最小规则集。
+- 新增或重做组件前，先读 [references/md3-component-guide.md](references/md3-component-guide.md)；里面有按钮、开关、分段控件、列表和抽屉的直接写法。
+- Token 全表见 [references/tokens.md](references/tokens.md)，系统级布局说明见 [references/ui-component-spec.md](references/ui-component-spec.md)。
+- 旧笔记 `.trae/skills/homura-md3-ui/SKILL.md` 只作补充；`.trae/` 被 gitignore，克隆仓库后可能不存在。与上述文档或当前 `src/` 冲突时，以当前代码和 `references/md3-component-guide.md` 为准。
 
 ## 6. 不能破坏的行为
 

@@ -45,13 +45,14 @@
 | on-surface-variant | #475569 | #57503F | #B9C2CE |
 | outline | #6B7280 | #8A7F68 | #8B95A3 |
 | outline-variant | #CBD5E1 | #D8CDB6 | #3A424C |
+| shadow-color | `on-surface` | `on-surface` | `surface` |
 | manga-filter | none | sepia(.18) brightness(.97) contrast(.98) | brightness(.92) |
 
 ## 3.1 Elevation（`:root`）
 
 | token | 值 | 用途 |
 |---|---|---|
-| `--md-elevation-hover` | `0 6px 16px -10px`，颜色 `on-surface` 52% | 筛选胶囊的鼠标悬浮投影 |
+| `--md-elevation-hover` | `0 6px 16px -10px color-mix(in oklab, var(--md-shadow-color) 52%, transparent)` | 筛选胶囊与侧栏导航项的鼠标悬浮投影 |
 
 ## 4. 遗留别名（`:root`，只做映射，新代码别用）
 
@@ -65,14 +66,22 @@
 
 | 类名 | 作用 / 关键值 |
 |---|---|
-| `.md-shelf-grid` | 书架网格：手机 3 列 gap12 pad 14/16；≥900 6 列 gap16 pad 18/28 |
-| `.md-featured-cell` | 继续阅读特色卡跨列：手机 span3 / 桌面 span2 |
-| `.md-shelf-card` | 16px 圆角 + surface-container + 1px 42% outline-variant 环 + 软阴影；鼠标 hover 上浮 2px |
-| `.md-fab-pos` | FAB 定位：桌面 right28/bottom26；手机 right18/bottom `calc(5rem + safe + 14px)` |
-| `.md-bottom-nav-space` | 手机底部导航留白 `calc(5rem + env(safe-area-inset-bottom))` |
-| `.md-scrim` / `.md-scrim-soft` | 遮罩：on-surface 32% / 30% |
+| `.md-shelf-grid` | 书架网格：手机 3 列 gap12 pad14/16；768–899 5 列 gap14；≥900 4 列 gap16 pad18/28；≥1080 5 列；≥1280 6 列；≥1600 8 列 gap18 pad36 |
+| `.md-featured-cell` | 继续阅读特色卡跨列：手机 span3；768–899 span2；≥900 span3 |
+| `.md-shelf-card` | 12px 圆角 + surface-highest；默认无重阴影，鼠标 hover 叠加轻 elevation 与 8% 状态层 |
+| `.md-fab-pos` | FAB 定位：桌面 right28/bottom26；手机 right18/bottom `calc(6.5rem + env(safe-area-inset-bottom))` |
+| `.md-bottom-nav-space` | 手机底部导航留白 `calc(6.5rem + env(safe-area-inset-bottom))` |
+| `.md-scrim` / `.md-scrim-soft` | 遮罩：shadow-color 32% / 30% |
 | `.md-sheet-enter-active` 等 | sheet/浮层动效：0.2s cubic-bezier(.2,0,0,1)，含 fade 版 `.md-fade-*` |
 | `.md-range` | 滑条：4px 轨道、14px 拇指（触屏 18px）、3px 表面色光环 |
+| `.md-icon-button` | 48px 圆形图标按钮；支持 `is-outlined` / `is-filled` / `is-desktop-only` / `is-favorite` |
+| `.md-text-button` / `.md-filled-button` / `.md-tonal-button` | 48px 胶囊按钮三档：低强调 / 主行动 / 次要行动 |
+| `.md-filter-chip` | 筛选 chip：32px 视觉高度、48px 命中区，选中态 secondary-container |
+| `.md-menu` / `.md-menu-item` | 菜单容器与 48px 条目，surface-container + shadow-color |
+| `.md-drawer` | 统一抽屉外壳：桌面右侧 372px / 手机底部 78dvh、28px 圆角 |
+| `.md-drawer-section` / `.md-drawer-group-head` | 抽屉分组与 label/value 行 |
+| `.md-drawer-list-item` / `.md-toc-page` | 目录列表与页码格；当前项使用 secondary-container 对 |
+| `.md-hit-target` | 把视觉更小的控件命中区补到至少 44px |
 | `.theme-swatch-grid` / `.theme-swatch-tile` | 10 套主题固定 5 列 × 2 行；约 44px 触控块，三阶切面圆点，选中态使用 primary 环与勾选 |
 | `.app-dvh` / `.safe-top` / `.safe-bottom` / `.mobile-tabbar` | 视口与安全区 |
 | `.card-remove-btn` | 卡片移除按钮：hover 显形，触屏常显 |
