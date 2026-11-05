@@ -18,7 +18,7 @@ import {
 import { parseEpubFileLazy, parseCbzFileLazy, parseCbzNativeArchive, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks } from './parsers.js';
 import { parseEpubNativeArchive } from './epubParser.js';
 import { createCoverThumbnail } from './coverThumb.js';
-import { canUseNativeArchive } from './nativeArchive.js';
+import { canUseNativeArchive, shouldFallbackNativeArchive } from './nativeArchive.js';
 
 export function makeFileSource(file) {
   const source = {
@@ -32,7 +32,8 @@ export function makeFileSource(file) {
   return source;
 }
 
-// Android 压缩包 / EPUB 在解析前先流式落到 AppData，原生插件随后直接按路径随机读取。
+// 原生压缩包 / EPUB 在解析前先流式落到 AppData，Android 插件或桌面 Rust
+// 随后直接按路径随机读取。
 // source.preStaged 让 persistBook 复用这份已写好的文件，避免导入后再整本复制一次。
 export async function stageNativeFileSource(bookId, file) {
   if (!canUseNativeStorage()) throw new Error('原生存档不可用');
@@ -40,7 +41,7 @@ export async function stageNativeFileSource(bookId, file) {
     nativeFilePath(bookId, `source/${file.name || 'source'}`),
     file
   );
-  return {
+  const source = {
     kind: 'file',
     name: file.name,
     size: file.size,
@@ -48,6 +49,9 @@ export async function stageNativeFileSource(bookId, file) {
     nativePath,
     preStaged: true
   };
+  // 桌面句柄是零拷贝兜底；原生文件丢失时仍能尝试原路径。
+  if (file.customHandle) source.handle = file.customHandle;
+  return source;
 }
 
 export function makeFolderSource(folderName, files) {
@@ -108,16 +112,17 @@ async function stageBlob(path, blob) {
   }
 }
 
-// 没有原文件句柄时优先落原生 AppData（Android）或 OPFS（桌面），失败则保留 Blob。
+// Android 优先落原生 AppData；桌面普通文件继续走句柄 / OPFS。
+// EPUB / CBZ 已在导入前预存到 AppData，上面会直接复用，不重复复制。
 async function stageSource(bookId, source) {
   // 桌面端句柄是零拷贝引用，跨重启可用；Android 的 content:// 句柄不可靠。
-  if (source.handle && !isAndroid) return withoutBlob(source);
   if (source.preStaged && source.nativePath) {
     const { preStaged, ...staged } = source;
     return staged;
   }
+  if (source.handle && !isAndroid) return withoutBlob(source);
 
-  if (canUseNativeStorage()) {
+  if (isAndroid && canUseNativeStorage()) {
     try {
       if (source.kind === 'folder') {
         const entries = [];
@@ -170,7 +175,7 @@ async function stageSource(bookId, source) {
         };
       }
     } catch (err) {
-      console.warn('[HOMURA] Android 原生存档写入失败，回落 IndexedDB Blob', err);
+      console.warn('[HOMURA] 原生文件存档写入失败，回落其他存档方式', err);
       await removeNativeBookDir(bookId);
     }
   }
@@ -472,7 +477,7 @@ export async function hydrateBook(book) {
     const groups = buildImageFolderBooks(files);
     parsed = groups.length > 0 ? groups[0].book : null;
   } else {
-    // 安卓原生压缩包 / EPUB 不需要把整个原文件读回 JS；失败时才回退到 Blob 解析。
+    // 原生压缩包 / EPUB 不需要把整个原文件读回 JS；允许恢复的失败才回退 Blob 解析。
     if (source.nativePath && canUseNativeArchive()) {
       if (/\.epub$/i.test(source.name || '')) {
         try {
@@ -481,6 +486,10 @@ export async function hydrateBook(book) {
             name: source.name
           });
         } catch (err) {
+          if (!shouldFallbackNativeArchive(err)) {
+            console.warn('[HOMURA] 原生 EPUB 被安全或限额规则拒绝，不再回退', err);
+            return false;
+          }
           console.warn('[HOMURA] 原生 EPUB 恢复失败，回退完整存档读取', err);
         }
       } else if (/\.(cbz|zip)$/i.test(source.name || '')) {
@@ -490,6 +499,10 @@ export async function hydrateBook(book) {
             name: source.name
           });
         } catch (err) {
+          if (!shouldFallbackNativeArchive(err)) {
+            console.warn('[HOMURA] 原生压缩包被安全或限额规则拒绝，不再回退', err);
+            return false;
+          }
           console.warn('[HOMURA] 原生压缩包恢复失败，回退完整存档读取', err);
         }
       }

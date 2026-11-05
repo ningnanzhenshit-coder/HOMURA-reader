@@ -1567,7 +1567,9 @@ name = "homura-reader"
 version = "2.2.1"
 dependencies = [
  "base64 0.22.1",
+ "crc32fast",
  "encoding_rs",
+ "flate2",
  "reqwest",
  "serde",
  "serde_json",

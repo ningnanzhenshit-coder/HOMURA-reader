@@ -1,26 +1,47 @@
 /* ============================================================================
-   HOMURA · Android 原生压缩包通道
+   HOMURA · 原生压缩包通道
    ----------------------------------------------------------------------------
    处理 Android WebView 上最费内存的 CBZ/ZIP 与 EPUB 文档：Kotlin 通过
-   ZipFile 随机读取条目，图片写入有上限的页面缓存，文本批量返回给 JS。
-   原生通道不可用或失败时，调用方必须继续使用 JSZip 回退。
+   ZipFile 随机读取条目；桌面端由 Rust 从 AppData 读取 ZIP 中央目录。
+   图片写入有上限的页面缓存，文本批量返回给 JS。原生通道不可用或允许恢复
+   的普通失败可以回退 JSZip，安全限制与超限错误必须原样抛出。
    ========================================================================== */
 
 import { isAndroid } from './platform.js';
-import { canUseNativeBridge, invokeNativeCommand } from './nativeRuntime.js';
+import {
+  NativeErrorCode,
+  canUseNativeBridge,
+  invokeNativeCommand,
+  normalizeNativeError
+} from './nativeRuntime.js';
 
 const openArchives = new Set();
 const lifecycleQueues = new Map();
 const ensureTasks = new Map();
 
 export function canUseNativeArchive() {
-  return isAndroid && canUseNativeBridge();
+  return canUseNativeBridge();
 }
 
 async function invokeNative(command, args) {
-  return invokeNativeCommand('android-archive', command, args, {
+  return invokeNativeCommand(isAndroid ? 'android-archive' : null, command, args, {
     feature: 'archive'
   });
+}
+
+// 只有普通后端失败和“能力不存在 / 格式暂不支持”允许改走 JSZip。
+// 路径越界、条目过多、解压过大等限制必须由原生后端终止本次解析。
+const ARCHIVE_FALLBACK_CODES = new Set([
+  NativeErrorCode.UNAVAILABLE,
+  NativeErrorCode.UNSUPPORTED,
+  NativeErrorCode.DISABLED,
+  NativeErrorCode.COMMAND_FAILED,
+  NativeErrorCode.INVALID_DATA
+]);
+
+export function shouldFallbackNativeArchive(error) {
+  const normalized = normalizeNativeError(error, { feature: 'archive' });
+  return ARCHIVE_FALLBACK_CODES.has(normalized.code);
 }
 
 // open / close 必须按压缩包串行，避免快速切书时 close 晚于下一轮 open 执行。

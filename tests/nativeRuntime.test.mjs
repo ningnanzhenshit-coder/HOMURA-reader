@@ -172,3 +172,12 @@ test('显式错误码优先于文本猜测', () => {
   assert.equal(error.code, NativeErrorCode.SECURITY_LIMIT);
   assert.equal(error.message, '看起来只是一次普通失败');
 });
+
+test('Rust 的 NATIVE_* 文本前缀会保留为精确错误码', () => {
+  const error = normalizeNativeError(
+    'NATIVE_LIMIT_EXCEEDED: 压缩包条目数量过多'
+  );
+
+  assert.equal(error.code, NativeErrorCode.LIMIT_EXCEEDED);
+  assert.equal(error.message, 'NATIVE_LIMIT_EXCEEDED: 压缩包条目数量过多');
+});

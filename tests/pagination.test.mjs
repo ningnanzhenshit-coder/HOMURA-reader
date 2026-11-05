@@ -311,7 +311,7 @@ test('没有后备来源的纯 URL 页不会被回收', () => {
   assert.equal(pages[1].url, 'data:image/svg+xml;utf8,page-2');
 });
 
-test('安卓原生页优先返回 asset URL，不走字节拷贝', async () => {
+test('原生页优先返回 asset URL，不走字节拷贝', async () => {
   const calls = [];
   window.__TAURI__ = {
     core: {
@@ -329,7 +329,7 @@ test('安卓原生页优先返回 asset URL，不走字节拷贝', async () => {
     assert.equal(url, 'http://asset.localhost/%2Fdata%2Fcache%2F00001.webp');
     assert.equal(page.urlIsAsset, true);
     assert.equal(calls.length, 1);
-    assert.equal(calls[0][0], 'plugin:android-archive|extract');
+    assert.equal(calls[0][0], 'extract');
   } finally {
     delete window.__TAURI__;
   }

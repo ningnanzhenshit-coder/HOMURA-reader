@@ -61,6 +61,11 @@ function classifyMessage(message) {
   const text = String(message || '');
   if (!text) return NativeErrorCode.COMMAND_FAILED;
 
+  // Rust 命令统一用 NATIVE_* 前缀返回错误；显式代码优先于中文关键字，
+  // 避免“过大 / 过多”之类文案把安全限制误判成普通解析失败。
+  const explicitCode = text.match(/^(NATIVE_[A-Z_]+)\b/)?.[1]?.toUpperCase();
+  if (explicitCode && KNOWN_CODES.has(explicitCode)) return explicitCode;
+
   // 原生插件在路径越界、压缩包炸弹或条目超限时通常只返回字符串，
   // 这里先把安全类错误识别出来，确保它们永远不会被 JS 回退掩盖。
   if (/SecurityException|路径不在|目录之外|路径穿越|path traversal|outside .*root|security/i.test(text)) {

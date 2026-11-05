@@ -16,7 +16,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["protocol-asset"] }
 base64 = "0.22"
+crc32fast = "1"
 encoding_rs = "0.8"
+flate2 = "1.1"
 tauri-plugin-fs = "2"
 tauri-plugin-opener = "2"
 reqwest = "0.13"

@@ -380,6 +380,38 @@ test('原生 EPUB 打开失败时回退 JSZip 且不留下会话', async () => {
   }
 });
 
+test('原生 EPUB 路径越界不会回退 JSZip', async () => {
+  const epub = await buildEpub({
+    items: [
+      xhtmlItem('c1', 'Text/chapter.xhtml', 'OEBPS/Text/chapter.xhtml', '<h1>不应读取</h1>')
+    ]
+  });
+  dom.window.__TAURI__ = {
+    core: {
+      invoke: async command => {
+        const name = command.split('|').pop();
+        if (name === 'openDocument') {
+          throw 'NATIVE_SECURITY_LIMIT: 压缩包路径不在 HOMURA 存档目录内';
+        }
+        if (name === 'close' || name === 'clearBook') return null;
+        throw new Error(`未模拟原生命令：${name}`);
+      }
+    }
+  };
+
+  try {
+    await assert.rejects(
+      parseEpubFile(epubFile(epub), {
+        id: 'epub-native-security',
+        nativePath: '../outside/book.epub'
+      }),
+      error => error.code === 'NATIVE_SECURITY_LIMIT'
+    );
+  } finally {
+    delete dom.window.__TAURI__;
+  }
+});
+
 test('原生文本被批次上限截断时递归补读剩余章节', async () => {
   const archiveId = 'epub-native-batched-text';
   const paths = Array.from({ length: 5 }, (_, index) => `OEBPS/Text/chapter-${index + 1}.xhtml`);

@@ -1,25 +1,25 @@
 /* ============================================================================
-   HOMURA · Android 原生文件存档
+   HOMURA · 原生文件存档
    ----------------------------------------------------------------------------
-   Android WebView 的 IndexedDB Blob / OPFS 在部分机型上无法跨进程可靠恢复。
-   Tauri Android 包把原文件写进应用私有 AppData，只把相对路径存进 IndexedDB。
+   Android WebView 的 IndexedDB Blob / OPFS 在部分机型上无法跨进程可靠恢复；
+   桌面端原生 ZIP 会话也需要一个 Rust 可访问的稳定路径。Tauri 包把原文件
+   写进应用私有 AppData，只把相对路径存进 IndexedDB。
    ========================================================================== */
 
 import { BaseDirectory, mkdir, readFile, remove, stat, writeFile } from '@tauri-apps/plugin-fs';
-import { isAndroid } from './platform.js';
+import { canUseNativeBridge } from './nativeRuntime.js';
 import { clearNativeArchiveBookCache, clearNativeArchiveCache } from './nativeArchive.js';
 
 const ROOT_DIR = 'homura-native-sources';
 const BASE_DIR = BaseDirectory.AppData;
 
 export function canUseNativeStorage() {
-  return isAndroid
-    && typeof window !== 'undefined'
-    && !!window.__TAURI__;
+  return canUseNativeBridge();
 }
 
 function safeSegment(name) {
-  return String(name || 'source').replace(/[\\/:*?"<>|]/g, '_').slice(0, 160) || 'source';
+  const segment = String(name || 'source').replace(/[\\/:*?"<>|]/g, '_').slice(0, 160);
+  return !segment || segment === '.' || segment === '..' ? 'source' : segment;
 }
 
 function dirname(path) {

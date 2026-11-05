@@ -1,7 +1,7 @@
 /* ============================================================================
    HOMURA · EPUB 解析核心
    ----------------------------------------------------------------------------
-   JSZip 与 Android 原生 ZipFile 只负责提供文本和 Blob，这里统一处理
+   JSZip 与原生 ZIP 通道只负责提供文本和 Blob，这里统一处理
    container、OPF、spine、漫画判定及正文清洗，保证两条存储后端行为一致。
    ========================================================================== */
 
@@ -13,7 +13,8 @@ import {
   closeNativeArchive,
   openNativeDocument,
   readNativePageBlob,
-  readNativeTextBatch
+  readNativeTextBatch,
+  shouldFallbackNativeArchive
 } from './nativeArchive.js';
 
 const NATIVE_TEXT_BATCH_SIZE = 128;
@@ -344,7 +345,7 @@ export async function parseEpubNativeArchive(nativePath, options = {}) {
   }
 }
 
-// 安卓优先从 AppData 里的原文件随机读取；原生失败时再回落到 JSZip。
+// 原生环境优先从 AppData 里的原文件随机读取；允许恢复的失败再回落到 JSZip。
 export async function parseEpubFile(file, options = {}) {
   const id = options.id || makeEpubId();
   const fallbackTitle = epubTitleFromFileName(options.name || file?.name);
@@ -356,7 +357,8 @@ export async function parseEpubFile(file, options = {}) {
         name: options.name || file?.name
       });
     } catch (err) {
-      console.warn('[HOMURA] Android 原生 EPUB 解析失败，回退 JSZip', err);
+      if (!shouldFallbackNativeArchive(err)) throw err;
+      console.warn('[HOMURA] 原生 EPUB 解析失败，回退 JSZip', err);
     }
   }
 

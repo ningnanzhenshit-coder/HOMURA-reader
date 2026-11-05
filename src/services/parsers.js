@@ -5,7 +5,6 @@
    书籍对象；以及把散装图片按文件夹分组生成漫画书的 buildImageFolderBooks。
    ========================================================================== */
 
-import JSZip from 'jszip';
 import { escapeHtml } from './utils.js';
 import { decodeTxtBytesAsync } from './textEncoding.js';
 import { renderMarkdown } from './markdown.js';
@@ -13,13 +12,12 @@ import { parseMobiFileData } from './mobi.js';
 import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
 import { parseEpubFile } from './epubParser.js';
 import {
-  canUseNativeArchive,
   clearNativeArchiveBookCache,
-  closeNativeArchive,
-  openNativeArchive,
-  readNativePageBlob
+  closeNativeArchive
 } from './nativeArchive.js';
 import { removeNativeBookDir } from './nativeStorage.js';
+
+export { parseCbzFileLazy, parseCbzNativeArchive } from './cbzParser.js';
 
 // 同名书被跳过时还未入架，及时释放解析阶段创建的位图 URL 与 PDF worker。
 export async function discardParsedBook(book) {
@@ -48,109 +46,6 @@ export async function discardParsedBook(book) {
 export async function parseEpubFileLazy(file, options = {}) {
   try {
     return await parseEpubFile(file, options);
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-}
-
-// Android 原生快速路径：压缩包只打开一次，页面按需解出到 AppCache。
-export async function parseCbzNativeArchive(nativePath, options = {}) {
-  if (!canUseNativeArchive() || !nativePath) return null;
-  const archiveId = options.id
-    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-  const name = options.name || 'book.cbz';
-  let coverUrl = null;
-
-  try {
-    const archive = await openNativeArchive(archiveId, nativePath);
-    const entries = archive?.entries || [];
-    if (!entries.length) throw new Error('压缩包内未找到图片');
-
-    const first = await readNativePageBlob(archiveId, 0);
-    coverUrl = URL.createObjectURL(first.blob);
-    const pageItems = entries.map((entry, index) => ({
-      nativeArchiveId: archiveId,
-      nativeIndex: index,
-      imageWidth: entry.width || 0,
-      imageHeight: entry.height || 0,
-      url: index === 0 ? coverUrl : null
-    }));
-
-    return {
-      id: archiveId,
-      type: 'manga',
-      format: 'cbz',
-      title: name.replace(/\.(cbz|zip)$/i, ''),
-      cover: coverUrl,
-      coverBlob: first.blob,
-      pageItems,
-      pageCount: pageItems.length,
-      nativeArchiveId: archiveId,
-      nativeArchivePath: nativePath,
-      nativeArchiveMode: 'pages',
-      nativeArchiveStaged: !!options.staged
-    };
-  } catch (err) {
-    if (coverUrl?.startsWith('blob:')) URL.revokeObjectURL(coverUrl);
-    await closeNativeArchive(archiveId).catch(() => {});
-    await clearNativeArchiveBookCache(archiveId).catch(() => {});
-    throw err;
-  }
-}
-
-export async function parseCbzFileLazy(file, options = {}) {
-  const id = options.id
-    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-  const name = options.name || file?.name || 'book.cbz';
-
-  if (options.nativePath && canUseNativeArchive()) {
-    try {
-      return await parseCbzNativeArchive(options.nativePath, {
-        ...options,
-        id,
-        name
-      });
-    } catch (err) {
-      console.warn('[HOMURA] Android 原生压缩包解析失败，回退 JSZip', err);
-    }
-  }
-  if (!file) return null;
-
-  try {
-    const zip = new JSZip();
-    const zipContent = await zip.loadAsync(file);
-    const imgEntries = [];
-
-    zipContent.forEach((relPath, entry) => {
-      if (!entry.dir && /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(relPath) && !relPath.includes('__MACOSX')) {
-        imgEntries.push({ name: relPath, entry });
-      }
-    });
-
-    imgEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    if (imgEntries.length === 0) throw new Error('压缩包内未找到图片');
-
-    const firstBlob = await imgEntries[0].entry.async('blob');
-    const firstUrl = URL.createObjectURL(firstBlob);
-
-    const pageItems = imgEntries.map((item, idx) => ({
-      zipEntry: item.entry,
-      url: idx === 0 ? firstUrl : null
-    }));
-
-    const title = name.replace(/\.(cbz|zip)$/i, '');
-    return {
-      id,
-      type: 'manga',
-      format: 'cbz',
-      title: title,
-      cover: firstUrl,
-      coverBlob: firstBlob,
-      pageItems: pageItems,
-      pageCount: pageItems.length,
-      nativeArchiveStaged: !!options.staged
-    };
   } catch (err) {
     console.error(err);
     return null;
