@@ -169,6 +169,7 @@ homura-reader/
 │   │   └── ui.js               # 阅读器工具栏、目录、设置与全屏状态
 │   ├── services/
 │   │   ├── parsers.js          # EPUB / CBZ / ZIP / TXT / MD / PDF / MOBI 总入口
+│   │   ├── cbzParser.js        # CBZ/ZIP 原生按需解页与 JSZip 兜底
 │   │   ├── pagination.js       # 小说智能分页、章节与图片页构建
 │   │   ├── pdf.js              # PDF 懒加载、页面位图与 LRU 缓存
 │   │   ├── mobi.js             # PalmDOC / MOBI 解析
@@ -176,7 +177,7 @@ homura-reader/
 │   │   ├── storage.js          # IndexedDB homura_shelf
 │   │   ├── opfs.js             # Origin Private File System 原文件存储
 │   │   ├── restore.js          # 原生 AppData / OPFS / 句柄 / Blob 存档恢复
-│   │   ├── nativeStorage.js    # Android 原生 AppData 原文件存储
+│   │   ├── nativeStorage.js    # Android / 桌面共用的 AppData 原文件存储
 │   │   └── progress.js         # 阅读进度与排版记忆、节流落盘
 │   ├── composables/            # 导入、快捷键、视口、抽屉拖拽
 │   └── components/             # SideNav、LibraryHeader、BookShelf、BookCard、
@@ -194,7 +195,8 @@ PDF、Markdown 安全渲染和分页测量需要 DOM / Canvas，因此 `services
 ## 本地存储与隐私
 
 - IndexedDB 数据库名为 `homura_shelf`，包含 `books`、`sources`、`progress`、`collections` 四个对象仓库，分别保存书籍元数据/封面、原始文件来源、阅读进度以及书库与书本归属；旧书架会自动升级。
-- 原始文件在 Android Tauri 包中优先写入应用私有 AppData，失败再保留 IndexedDB Blob；其余平台优先保存 `FileSystemFileHandle`，无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。读取时会从原生 AppData、OPFS、句柄、Blob 逐层恢复。
+- Android Tauri 包优先把原文件写入应用私有 AppData，失败再保留 IndexedDB Blob；桌面普通文件优先保存 `FileSystemFileHandle`，无句柄时写入 OPFS，OPFS 不可用才回落到 IndexedDB Blob。桌面 EPUB/CBZ 会在解析前 staging 到 AppData，让 Rust 直接随机读取 ZIP 条目；原生失败时仍按 AppData、OPFS、句柄、Blob 逐层恢复或回退 JSZip。
+- 桌面原生 ZIP 通道只接受 `homura-native-sources` 下的路径，漫画页按需解到 AppCache，并按最近访问时间保留 24 个文件 / 192MB；安全限制与资源超限错误不会回退到 JSZip。
 - 导入后会检查存储配额；已用空间达到 85% 或剩余不足 200 MB 时会提示。
 - 阅读进度写入做了 350 ms 防抖，并在关闭阅读器、页面卸载或切到后台时补写。
 - `localStorage` 只保存 `homura_theme_color`、`homura_surface_mode` 两个主题偏好，以及桌面侧栏的 `homura_sidenav_collapsed` 折叠状态；翻页过渡样式不持久化。

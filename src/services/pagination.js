@@ -34,8 +34,8 @@ export async function ensurePageUrlLoaded(pageObj) {
     pageObj.url = URL.createObjectURL(pageObj.mobiFile.slice(start, end, pageObj.mobiMime || ''));
     return pageObj.url;
   }
-  // 安卓原生页优先走 asset:// 直连：Kotlin 已按屏幕尺寸降采样并转码，
-  // WebView 只读一个小文件，不再把整页字节经 IPC 拷进 JS。
+  // 原生页优先走 asset:// 直连：Android 已降采样转码，桌面直接复用原图，
+  // WebView 只读本地文件，不再把整页字节经 IPC 拷进 JS。
   if (pageObj.nativeArchiveId != null && nativeAssetUsable
     && !pageObj.nativeAssetUnavailable && canUseNativeAsset()) {
     if (!pageObj.assetTask) {

@@ -113,7 +113,7 @@ export function useImporter() {
       let source = makeFileSource(epubFile);
       let nativePath = '';
 
-      // Android EPUB 同样先流式落到 AppData。原生解析只读 spine 文本和封面，
+      // 原生 EPUB 先流式落到 AppData。解析只读 spine 文本和封面，
       // 大画集不再把整个压缩包搬进 WebView 内存。
       if (canUseNativeArchive()) {
         try {
@@ -156,7 +156,7 @@ export function useImporter() {
       let source = makeFileSource(archiveFile);
       let nativePath = '';
 
-      // 安卓先把原文件流式落到 AppData，再让 Kotlin 从路径随机读取；
+      // 先把原文件流式落到 AppData，再让原生后端从路径随机读取；
       // 这样不会先用 JSZip 把整本压缩包读进 WebView。
       if (canUseNativeArchive()) {
         try {
