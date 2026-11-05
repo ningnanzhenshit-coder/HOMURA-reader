@@ -3,6 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import postcss from 'postcss';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
+import { transform } from 'esbuild';
+import tailwindConfig from './tailwind.config.js';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 // pdf.js 运行时按名字请求这些资源，不能走 import 打包
@@ -26,9 +31,51 @@ function pdfjsAssets() {
   };
 }
 
+// 开发环境继续用运行时 Tailwind（HMR 即改即见）；生产构建时把用到的类
+// 预编译成静态 CSS，避免 Play CDN 的 MutationObserver 每次 DOM 变化都
+// 重新扫描全文档并生成整份样式。
+async function compileTailwind(source) {
+  const result = await postcss([tailwindcss(tailwindConfig), autoprefixer()])
+    .process(source, { from: undefined });
+  return (await transform(result.css, { loader: 'css', minify: true })).code;
+}
+
+function tailwindStatic() {
+  let baseCss = '';
+  let utilitiesCss = '';
+  return {
+    name: 'homura-tailwind-static',
+    apply: 'build',
+    enforce: 'post',
+    async buildStart() {
+      [baseCss, utilitiesCss] = await Promise.all([
+        compileTailwind('@tailwind base; @tailwind components;'),
+        compileTailwind('@tailwind utilities;')
+      ]);
+    },
+    transformIndexHtml(html) {
+      return {
+        html: html.replace(/\s*<script src="vendor\/tailwind(?:-config)?\.js"><\/script>/g, ''),
+        tags: [
+          // preflight 仍放在最前，保持与运行时版本一致的层叠顺序
+          { tag: 'style', attrs: { id: 'homura-tailwind-base' }, children: baseCss, injectTo: 'head-prepend' },
+          // utilities 放到 body 末尾，确保能覆盖 homura.css 里的组件类
+          { tag: 'style', attrs: { id: 'homura-tailwind' }, children: utilitiesCss, injectTo: 'body' }
+        ]
+      };
+    },
+    closeBundle() {
+      // public/ 会被原样复制；生产包里不再需要运行时 Tailwind 的 441KB
+      for (const name of ['tailwind.js', 'tailwind-config.js']) {
+        fs.rmSync(path.join(rootDir, 'dist/vendor', name), { force: true });
+      }
+    }
+  };
+}
+
 // Tauri 要求相对路径产物；端口固定 5173 与 tauri.conf.json 的 devUrl 对齐
 export default defineConfig({
-  plugins: [vue(), pdfjsAssets()],
+  plugins: [vue(), pdfjsAssets(), tailwindStatic()],
   base: './',
   clearScreen: false,
   server: {
