@@ -406,3 +406,33 @@ test('回收原生页 URL 后允许下次重新尝试 asset', () => {
   assert.equal(pages[0].url, '');
   assert.equal(pages[0].nativeAssetUnavailable, false);
 });
+
+test('同一压缩包页并发取 URL 只创建一次 Blob URL', async () => {
+  const created = [];
+  const originalCreate = URL.createObjectURL;
+  const originalRevoke = URL.revokeObjectURL;
+  URL.createObjectURL = () => {
+    const url = `blob:race-${created.length + 1}`;
+    created.push(url);
+    return url;
+  };
+  URL.revokeObjectURL = () => {};
+
+  const blob = { size: 32, type: 'image/jpeg' };
+  const page = { zipEntry: { async: () => Promise.resolve(blob) }, url: null };
+
+  try {
+    // 预载与翻页可能在同一个 tick 里同时命中同一页
+    const [first, second] = await Promise.all([
+      ensurePageUrlLoaded(page),
+      ensurePageUrlLoaded(page)
+    ]);
+
+    assert.equal(created.length, 1, '并发取同一页只应创建一次 Blob URL');
+    assert.equal(first, second);
+    assert.equal(page.url, first);
+  } finally {
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+  }
+});

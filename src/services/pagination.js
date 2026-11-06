@@ -59,16 +59,25 @@ export async function ensurePageUrlLoaded(pageObj) {
     pageObj.nativeAssetUnavailable = true;
   }
   if (pageObj.nativeArchiveId != null || pageObj.zipEntry) {
-    if (!pageObj.archiveTask) pageObj.archiveTask = readArchivePageBlob(pageObj);
-    try {
-      const blob = await pageObj.archiveTask;
-      if (blob) pageObj.url = URL.createObjectURL(blob);
-    } catch (err) {
-      console.warn('[HOMURA] 页面读取失败，显示为空页', err);
-    } finally {
-      pageObj.archiveTask = null;
+    // 预载与翻页可能同时命中同一页：archiveTask 共享了 Blob，URL 也必须在任务内部
+    // 只建一次。若放到任务外创建，每个并发调用者都会 createObjectURL，
+    // 后写入 pageObj.url 会覆盖前一个，先建的 URL 就再也 revoke 不到。
+    if (!pageObj.archiveTask) {
+      const task = readArchivePageBlob(pageObj)
+        .then(blob => {
+          if (blob && !pageObj.url) pageObj.url = URL.createObjectURL(blob);
+          return pageObj.url || '';
+        })
+        .catch(err => {
+          console.warn('[HOMURA] 页面读取失败，显示为空页', err);
+          return '';
+        })
+        .finally(() => {
+          if (pageObj.archiveTask === task) pageObj.archiveTask = null;
+        });
+      pageObj.archiveTask = task;
     }
-    return pageObj.url || '';
+    return await pageObj.archiveTask;
   }
   // PDF 等需要现场渲染的页面：同一页并发请求共用一次渲染任务
   if (pageObj.render) {
