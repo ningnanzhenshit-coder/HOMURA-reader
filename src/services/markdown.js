@@ -21,10 +21,15 @@ marked.use({
     html({ text }) {
       return escapeHtml(text);
     },
-    link({ href, title, text }) {
-      if (!isSafeLinkUrl(href)) return text;
-      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
-      return `<a href="${escapeHtml(href)}"${titleAttr}>${text}</a>`;
+    link(token) {
+      // 链接文本必须走内联解析：原始 HTML 会交给 html() 渲染器转义，
+      // 直接拼 token.text 会把 <img onerror> 之类标签原样注入（存储型 XSS）
+      const text = token.tokens
+        ? this.parser.parseInline(token.tokens)
+        : escapeHtml(token.text);
+      if (!isSafeLinkUrl(token.href)) return text;
+      const titleAttr = token.title ? ` title="${escapeHtml(token.title)}"` : '';
+      return `<a href="${escapeHtml(token.href)}"${titleAttr}>${text}</a>`;
     },
     image({ href, text }) {
       if (!isSafeLinkUrl(href)) return escapeHtml(text || '');
