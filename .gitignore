@@ -6,6 +6,7 @@ src-tauri/target/
 src-tauri/gen/
 .trae/
 .trae-html-share-packages/
+.idea/
 .DS_Store
 /HOMURA-test.exe
 

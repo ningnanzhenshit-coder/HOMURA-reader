@@ -249,12 +249,21 @@ export async function parseMobiFileLazy(file) {
   }
 }
 
+// macOS 打包/压缩留下的元数据目录，里面的 “图片” 不是真正的页面。
+// 拖拽目录、文件夹句柄和旧存档都从这里进，必须在分组前统一滤掉。
+export function isJunkImagePath(path) {
+  return String(path || '')
+    .split(/[\\/]/)
+    .some(segment => segment === '__MACOSX' || segment === '.DS_Store' || segment.startsWith('._'));
+}
+
 // 把散装图片按所在文件夹分组，每组生成一本书
 export function buildImageFolderBooks(imgFiles) {
   if (!imgFiles || imgFiles.length === 0) return [];
   const folderGroups = new Map();
   imgFiles.forEach(f => {
     const rel = f.customRelativePath || f.webkitRelativePath || '';
+    if (isJunkImagePath(rel)) return;
     const parts = rel.split('/').filter(Boolean);
     let groupName = '本地漫画图集';
     if (parts.length >= 2) {
