@@ -362,6 +362,9 @@ export async function parseEpubFile(file, options = {}) {
     }
   }
 
-  const archive = await createJsZipEpubArchive(file);
+  const fallbackFile = typeof options.loadFallbackFile === 'function'
+    ? await options.loadFallbackFile()
+    : file;
+  const archive = await createJsZipEpubArchive(fallbackFile);
   return parseEpubArchive(archive, { id, fallbackTitle });
 }

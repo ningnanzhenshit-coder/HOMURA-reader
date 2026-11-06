@@ -29,6 +29,10 @@ import {
   upsertNativeBook
 } from './nativeMetadata.js';
 
+const nowMs = typeof performance !== 'undefined' && typeof performance.now === 'function'
+  ? () => performance.now()
+  : () => Date.now();
+
 export const HomuraStore = (() => {
   const DB_NAME = 'homura_shelf';
   const DB_VERSION = 3;
@@ -354,11 +358,16 @@ export const HomuraStore = (() => {
     if (written) upsertCachedBook(meta);
   }
 
-  async function saveBook(meta, source) {
+  async function saveBook(meta, source, options = {}) {
+    const timing = options.timing || null;
     markNativeDirty();
+    const idbStarted = timing ? nowMs() : 0;
     await idbSaveBook(meta, source);
+    if (timing) timing.idbMs += nowMs() - idbStarted;
     upsertCachedBook(meta);
+    const sqliteStarted = timing ? nowMs() : 0;
     await mirrorBook(meta);
+    if (timing) timing.sqliteMs += nowMs() - sqliteStarted;
   }
 
   function listBooks() {

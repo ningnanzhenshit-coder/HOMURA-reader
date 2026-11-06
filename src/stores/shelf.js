@@ -83,10 +83,10 @@ export const useShelfStore = defineStore('shelf', () => {
   }
 
   // 新增书籍并落盘；写入失败由导入层汇总记录
-  async function addBook(book, source) {
+  async function addBook(book, source, options = {}) {
     if (!source) throw new Error('缺少原文件来源');
     try {
-      const result = await persistBook(book, source);
+      const result = await persistBook(book, source, options);
       // 只有元数据与原文件都提交成功后才公开这本书，避免失败导入留下无法恢复的幽灵书。
       unshiftBook(book);
       return result;

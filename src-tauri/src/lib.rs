@@ -10,6 +10,7 @@ mod cover_thumb;
 mod desktop_archive;
 mod metadata_store;
 mod mobi_parser;
+mod native_import;
 mod text_decoder;
 mod update_downloader;
 
@@ -93,6 +94,7 @@ pub fn run() {
         .manage(desktop_archive::DesktopArchiveState::default())
         .manage(metadata_store::MetadataState::default())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_android_toast::init())
         .plugin(tauri_plugin_android_predictive_back::init())
@@ -106,6 +108,8 @@ pub fn run() {
             text_decoder::decode_text_bytes,
             mobi_parser::parse_mobi_container,
             cover_thumb::create_cover_thumbnail,
+            native_import::stage_import_path,
+            native_import::scan_import_paths,
             metadata_store::metadata_load,
             metadata_store::metadata_replace_all,
             metadata_store::metadata_upsert_book,

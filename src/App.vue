@@ -109,6 +109,7 @@ import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
 import { useUpdateStore } from './stores/updates.js';
 import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
+import { canUseNativeImport, shouldFallbackNativeImport } from './services/nativeImport.js';
 import { resolveBookFormat, scrollAppToTop } from './services/utils.js';
 import { sortShelfBooks } from './services/bookTitles.js';
 import { bookShelfCategory } from './services/shelfSections.js';
@@ -264,7 +265,20 @@ const visibleBooks = computed(() => {
   return sortShelfBooks(list, sortKey.value, shelf.progressMap);
 });
 
-function openFilePicker() {
+async function openFilePicker() {
+  if (canUseNativeImport()) {
+    try {
+      await importer.pickNativeFiles({ offerCollection: isCompact.value });
+      return;
+    } catch (err) {
+      if (!shouldFallbackNativeImport(err)) {
+        console.warn('[HOMURA] 桌面原生文件选择失败', err);
+        shelf.error = '读取所选文件失败，请重新选择';
+        return;
+      }
+      console.warn('[HOMURA] 桌面原生文件选择不可用，回退浏览器选择器', err);
+    }
+  }
   if (hasFileSystemAccess) {
     importer.pickFilesViaFSA({ offerCollection: isCompact.value });
     return;
@@ -272,8 +286,21 @@ function openFilePicker() {
   fileInput.value && fileInput.value.click();
 }
 
-function openFolderPicker() {
+async function openFolderPicker() {
   if (!canPickFolder) return;
+  if (canUseNativeImport()) {
+    try {
+      await importer.pickNativeFolder();
+      return;
+    } catch (err) {
+      if (!shouldFallbackNativeImport(err)) {
+        console.warn('[HOMURA] 桌面原生文件夹选择失败', err);
+        shelf.error = '读取所选文件夹失败，请重新选择';
+        return;
+      }
+      console.warn('[HOMURA] 桌面原生文件夹选择不可用，回退浏览器选择器', err);
+    }
+  }
   if (window.showDirectoryPicker) {
     importer.pickFolderViaFSA();
     return;

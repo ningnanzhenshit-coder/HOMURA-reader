@@ -77,11 +77,14 @@ export async function parseCbzFileLazy(file, options = {}) {
       console.warn('[HOMURA] 原生压缩包解析失败，回退 JSZip', err);
     }
   }
-  if (!file) return null;
+  const fallbackFile = typeof options.loadFallbackFile === 'function'
+    ? await options.loadFallbackFile()
+    : file;
+  if (!fallbackFile) return null;
 
   try {
     const zip = new JSZip();
-    const zipContent = await zip.loadAsync(file);
+    const zipContent = await zip.loadAsync(fallbackFile);
     const imgEntries = [];
 
     zipContent.forEach((relPath, entry) => {

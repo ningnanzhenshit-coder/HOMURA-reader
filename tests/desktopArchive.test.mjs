@@ -121,6 +121,38 @@ test('桌面普通原生失败会回退 JSZip', async () => {
   }
 });
 
+test('原生路径输入在普通失败时按需取回 File 再回退 JSZip', async () => {
+  invokeHandler = async command => {
+    if (command === 'open') throw 'NATIVE_COMMAND_FAILED: 桌面 ZIP 打开失败';
+    if (command === 'close' || command === 'clearBook') return null;
+    throw new Error(`未模拟桌面命令：${command}`);
+  };
+  const fallbackFile = await makeCbz();
+  let loaded = false;
+  const book = await parseCbzFileLazy({
+    name: 'native-stub.cbz',
+    size: fallbackFile.size,
+    type: 'application/vnd.comicbook+zip',
+    nativePath: '/Users/demo/native-stub.cbz'
+  }, {
+    id: 'desktop-native-fallback',
+    name: 'native-stub.cbz',
+    nativePath: 'homura-native-sources/desktop-native-fallback/source/native-stub.cbz',
+    loadFallbackFile: async () => {
+      loaded = true;
+      return fallbackFile;
+    }
+  });
+
+  try {
+    assert.equal(loaded, true);
+    assert.ok(book?.pageItems?.[0]?.zipEntry);
+    assert.equal(book.nativeArchiveId, undefined);
+  } finally {
+    if (book?.cover?.startsWith('blob:')) URL.revokeObjectURL(book.cover);
+  }
+});
+
 test('桌面路径越界与条目超限不会退化为 JSZip', async () => {
   for (const error of [
     'NATIVE_SECURITY_LIMIT: 压缩包路径不在 HOMURA 存档目录内',

@@ -19,6 +19,11 @@ import { parseEpubFileLazy, parseCbzFileLazy, parseCbzNativeArchive, parseTxtFil
 import { parseEpubNativeArchive } from './epubParser.js';
 import { createCoverThumbnail } from './coverThumb.js';
 import { canUseNativeArchive, shouldFallbackNativeArchive } from './nativeArchive.js';
+import { stageNativeImportPath } from './nativeImport.js';
+
+const nowMs = typeof performance !== 'undefined' && typeof performance.now === 'function'
+  ? () => performance.now()
+  : () => Date.now();
 
 export function makeFileSource(file) {
   const source = {
@@ -51,6 +56,22 @@ export async function stageNativeFileSource(bookId, file) {
   };
   // 桌面句柄是零拷贝兜底；原生文件丢失时仍能尝试原路径。
   if (file.customHandle) source.handle = file.customHandle;
+  return source;
+}
+
+// 系统选择器已经给出真实路径时，由 Rust 在进程内直接复制，
+// 不再把整本书先读成 WebView Blob。
+export async function stageNativePathSource(bookId, file) {
+  if (!canUseNativeStorage()) throw new Error('原生存档不可用');
+  const staged = await stageNativeImportPath(bookId, file.nativePath);
+  const source = {
+    kind: 'file',
+    name: file.name,
+    size: staged.size,
+    lastModified: staged.modifiedMs || file.lastModified || Date.now(),
+    nativePath: staged.nativePath,
+    preStaged: true
+  };
   return source;
 }
 
@@ -228,9 +249,13 @@ async function stageSource(bookId, source) {
 }
 
 // 失败时抛错，由调用方（shelf store）统一提示
-export async function persistBook(book, source) {
+export async function persistBook(book, source, options = {}) {
+  const timing = options.timing || null;
   // 封面解码和原文件暂存可以并行，避免导入多等一次缩略图生成。
-  const coverThumbTask = createCoverThumbnail(book.coverBlob).catch(() => null);
+  // 导入流水线会预先并发生成缩略图，这里直接复用结果，避免重复解码。
+  const coverThumbTask = options.coverThumb !== undefined
+    ? Promise.resolve(options.coverThumb)
+    : createCoverThumbnail(book.coverBlob).catch(() => null);
   const meta = {
     id: book.id,
     type: book.type,
@@ -244,10 +269,16 @@ export async function persistBook(book, source) {
   // 在用户触发导入时申请持久存储，避免配额压力下先清掉小体积的书架记录
   try {
     const persistence = await HomuraStore.requestPersistence();
-    const staged = await stageSource(book.id, source);
+    const stageStarted = timing ? nowMs() : 0;
+    let staged;
+    try {
+      staged = await stageSource(book.id, source);
+    } finally {
+      if (timing) timing.stageMs += nowMs() - stageStarted;
+    }
     const coverThumb = await coverThumbTask;
     if (coverThumb) meta.coverBlob = coverThumb;
-    await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged));
+    await HomuraStore.saveBook(meta, Object.assign({ id: book.id }, staged), { timing });
     return { persistence };
   } catch (err) {
     // 元数据没有提交成功时，OPFS / AppData 里已暂存的文件都属于失败导入，必须一并回收。

@@ -269,7 +269,10 @@ export function buildImageFolderBooks(imgFiles) {
 
   return [...folderGroups.values()].map(({ folderName, files: groupImgs }) => {
     groupImgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    const firstCoverUrl = URL.createObjectURL(groupImgs[0]);
+    const coverBlob = typeof Blob !== 'undefined' && groupImgs[0] instanceof Blob
+      ? groupImgs[0]
+      : null;
+    const firstCoverUrl = coverBlob ? URL.createObjectURL(coverBlob) : null;
     const pageItems = groupImgs.map((fileObj, idx) => ({
       file: fileObj,
       url: idx === 0 ? firstCoverUrl : null
@@ -283,7 +286,7 @@ export function buildImageFolderBooks(imgFiles) {
         format: 'images',
         title: folderName,
         cover: firstCoverUrl,
-        coverBlob: groupImgs[0],
+        coverBlob,
         pageItems: pageItems,
         pageCount: pageItems.length
       }
