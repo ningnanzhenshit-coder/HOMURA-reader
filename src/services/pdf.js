@@ -37,6 +37,15 @@ function loadPdfjs() {
 
 const renderedUrls = [];
 
+export function forgetPdfPageUrls(items = []) {
+  const pages = new Set(items);
+  for (let i = renderedUrls.length - 1; i >= 0; i--) {
+    if (!pages.has(renderedUrls[i].pageItem)) continue;
+    URL.revokeObjectURL(renderedUrls[i].url);
+    renderedUrls.splice(i, 1);
+  }
+}
+
 function rememberRenderedUrl(pageItem, url) {
   renderedUrls.push({ pageItem, url });
   while (renderedUrls.length > MAX_CACHED_PAGES) {

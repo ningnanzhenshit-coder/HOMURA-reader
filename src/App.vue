@@ -22,6 +22,7 @@
           :title="headerTitle"
           :appearance-open="appearanceOpen"
           :renamable="!!activeCollection"
+          :collapsible-search="isAndroidApp && activeNav === 'recent'"
           @toggle-appearance="appearanceOpen = !appearanceOpen"
           @rename="renameActiveCollection"
           v-model:query="query"
@@ -31,6 +32,7 @@
           <template v-if="isCompact" #actions>
             <LibraryImportActions
               compact
+              :hide-create="!!activeCollection"
               v-model:open="importMenuOpen"
               @create-collection="createCollection"
               @pick-files="pickFiles"
@@ -46,7 +48,7 @@
           data-app-scroll
         >
           <p v-if="shelf.error || (!reader.currentBook && reader.openError)" role="alert" class="mx-4 min-[900px]:mx-7 mt-3 text-[13px] text-[var(--md-error)]">{{ shelf.error || reader.openError }}</p>
-          <BookShelf v-if="favoritesOnly || shelf.library.length || shelf.collections.length" :books="visibleBooks" :favorites-only="favoritesOnly" :sort-key="sortKey" :query="query" :has-filter="!!query.trim() || typeFilter !== 'all'" :home-request="shelfHomeRequest" @open="reader.openBook" @browse="query = ''; typeFilter = 'all'" />
+          <BookShelf v-if="favoritesOnly || shelf.library.length || shelf.collections.length || shelf.importingBook || Object.keys(shelf.importingCollections).length" :books="visibleBooks" :favorites-only="favoritesOnly" :sort-key="sortKey" :query="query" :has-filter="!!query.trim() || typeFilter !== 'all'" :home-request="shelfHomeRequest" @open="reader.openBook" @browse="query = ''; typeFilter = 'all'" />
           <EmptyShelf v-else @pick-file="openFilePicker" @pick-folder="openFolderPicker" />
         </main>
       </template>
@@ -55,6 +57,7 @@
 
   <LibraryImportActions
     v-if="!isCompact && activeNav !== 'settings'"
+    :hide-create="!!activeCollection"
     v-model:open="importMenuOpen"
     @create-collection="createCollection"
     @pick-files="pickFiles"
@@ -68,6 +71,11 @@
   <DragOverlay />
   <div v-if="reader.currentBook" class="reader-back-scrim md-scrim" aria-hidden="true"></div>
   <ReaderModal />
+  <div
+    v-if="reader.openingBook"
+    role="status"
+    class="pointer-events-none fixed left-1/2 top-[calc(4rem+env(safe-area-inset-top))] z-[60] -translate-x-1/2 rounded-full bg-[var(--md-primary-container)] px-4 py-2 text-[13px] font-medium text-[var(--md-on-primary-container)]"
+  >正在打开作品…</div>
   <UpdateDialog
     :open="updates.updateDialogOpen"
     :status="updates.updateStatus"
@@ -108,8 +116,8 @@ import { useShelfStore } from './stores/shelf.js';
 import { useReaderStore } from './stores/reader.js';
 import { useUiStore } from './stores/ui.js';
 import { useUpdateStore } from './stores/updates.js';
-import { fileAccept, canPickFolder, hasFileSystemAccess } from './services/platform.js';
-import { canUseNativeImport, shouldFallbackNativeImport } from './services/nativeImport.js';
+import { fileAccept, canPickFolder, hasFileSystemAccess, isAndroid } from './services/platform.js';
+import { canUseNativeStorage } from './services/nativeStorage.js';
 import { resolveBookFormat, scrollAppToTop } from './services/utils.js';
 import { sortShelfBooks } from './services/bookTitles.js';
 import { bookShelfCategory } from './services/shelfSections.js';
@@ -152,6 +160,7 @@ const folderInput = ref(null);
 const importMenuOpen = ref(false);
 const appearanceOpen = ref(false);
 const activeNav = ref('shelf');
+const isAndroidApp = canUseNativeStorage();
 
 useScrollBounce(libraryScrollRef);
 
@@ -164,6 +173,9 @@ const libraryView = ref('shelf');
 const favoritesOnly = computed(() => libraryView.value === 'favorite');
 const favoriteBooks = computed(() => shelf.library.filter(book => book.favorite));
 const activeCollection = computed(() => activeNav.value === 'shelf' ? shelf.collections.find(item => item.id === shelf.activeCollectionId) || null : null);
+watch(() => shelf.activeCollectionId, () => {
+  if (!isAndroid) scrollAppToTop();
+});
 const activeCollectionBookCount = computed(() => {
   const ids = new Set(activeCollection.value?.bookIds || []);
   return shelf.library.filter(book => ids.has(book.id)).length;
@@ -252,6 +264,8 @@ async function renameActiveCollection() {
 
 const visibleBooks = computed(() => {
   let list = favoritesOnly.value ? favoriteBooks.value : shelf.library;
+  const preview = shelf.importingBook?.book;
+  if (!favoritesOnly.value && preview && !list.some(book => book.id === preview.id)) list = [preview, ...list];
   // 筛选 chips：类型（漫画 / 轻小说）+ 文件格式
   if (FORMAT_FILTERS.includes(typeFilter.value)) {
     list = list.filter(book => resolveBookFormat(book) === typeFilter.value);
@@ -265,20 +279,7 @@ const visibleBooks = computed(() => {
   return sortShelfBooks(list, sortKey.value, shelf.progressMap);
 });
 
-async function openFilePicker() {
-  if (canUseNativeImport()) {
-    try {
-      await importer.pickNativeFiles({ offerCollection: isCompact.value });
-      return;
-    } catch (err) {
-      if (!shouldFallbackNativeImport(err)) {
-        console.warn('[HOMURA] 桌面原生文件选择失败', err);
-        shelf.error = '读取所选文件失败，请重新选择';
-        return;
-      }
-      console.warn('[HOMURA] 桌面原生文件选择不可用，回退浏览器选择器', err);
-    }
-  }
+function openFilePicker() {
   if (hasFileSystemAccess) {
     importer.pickFilesViaFSA({ offerCollection: isCompact.value });
     return;
@@ -286,21 +287,8 @@ async function openFilePicker() {
   fileInput.value && fileInput.value.click();
 }
 
-async function openFolderPicker() {
+function openFolderPicker() {
   if (!canPickFolder) return;
-  if (canUseNativeImport()) {
-    try {
-      await importer.pickNativeFolder();
-      return;
-    } catch (err) {
-      if (!shouldFallbackNativeImport(err)) {
-        console.warn('[HOMURA] 桌面原生文件夹选择失败', err);
-        shelf.error = '读取所选文件夹失败，请重新选择';
-        return;
-      }
-      console.warn('[HOMURA] 桌面原生文件夹选择不可用，回退浏览器选择器', err);
-    }
-  }
   if (window.showDirectoryPicker) {
     importer.pickFolderViaFSA();
     return;
@@ -344,7 +332,7 @@ function onRailNav(key) {
   typeFilter.value = 'all';
   if (key === 'recent') sortKey.value = 'progress';
   else sortKey.value = 'title';
-  scrollAppToTop('smooth');
+  scrollAppToTop(isAndroid ? 'smooth' : 'auto');
 }
 
 // 全屏：F 快捷键与阅读器顶栏按钮共用 ui.toggleFullscreen()

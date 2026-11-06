@@ -14,7 +14,7 @@
 
     <div
       ref="viewportRef"
-      class="relative flex-1 min-h-0 overflow-hidden select-text"
+      class="relative flex-1 min-h-0 overflow-hidden"
       @pointermove="onViewportPointerMove"
       @pointerdown="onTouchStart"
       @pointerup="onTouchEnd"

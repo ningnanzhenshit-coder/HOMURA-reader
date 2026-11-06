@@ -22,7 +22,7 @@ export function useShortcuts(reader, viewportRef, dismissWithPredictiveBack) {
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       reader.onRightButtonClick();
-    } else if (e.key === 'ArrowDown' || e.key === ' ') {
+    } else if (e.key === 'ArrowDown' || e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
       reader.goNextPage();
     } else if (e.key === 'ArrowUp') {

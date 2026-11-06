@@ -6,7 +6,7 @@
   >
     <!-- Top App Bar: 桌面 64px / 手机 56px -->
     <div class="h-14 min-[900px]:h-16 flex items-center gap-2 min-[900px]:gap-3 px-4 min-[900px]:px-7">
-      <Transition name="library-title" mode="out-in" appear @enter="onTitleEnter">
+      <Transition name="library-title" :mode="isAndroid ? 'out-in' : undefined" :css="isAndroid" :appear="isAndroid" @enter="onTitleEnter">
         <button
           v-if="renamable"
           :key="title"
@@ -21,7 +21,7 @@
         </button>
         <h1 v-else :key="title" class="text-[21px] min-[900px]:text-[22px] font-medium tracking-tight min-w-0 truncate">{{ title }}</h1>
       </Transition>
-      <span ref="countBadgeRef" class="hidden min-[360px]:inline-flex shrink-0 px-2.5 py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold">{{ count }} 部作品</span>
+      <span ref="countBadgeRef" class="hidden shrink-0 px-2.5 py-1 rounded-full bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] font-mono text-[10px] min-[900px]:text-[12px] font-semibold" :class="collapsibleSearch ? 'min-[440px]:inline-flex' : 'min-[360px]:inline-flex'">{{ count }} 部作品</span>
 
       <div class="ml-auto flex items-center gap-0.5 min-[900px]:gap-2 shrink-0">
         <button
@@ -82,17 +82,31 @@
             </button>
           </div>
         </div>
+        <button
+          v-if="collapsibleSearch"
+          ref="searchButton"
+          type="button"
+          class="md-icon-button"
+          :aria-label="searchOpen ? '收起最近阅读搜索' : '搜索最近阅读'"
+          :aria-expanded="searchOpen"
+          aria-controls="library-search-slot"
+          @click="toggleSearch"
+        >
+          <MdIcon :name="searchOpen ? 'close' : 'search'" class="w-5 h-5" />
+        </button>
       </div>
     </div>
 
     <!-- 搜索栏：手机独立一行；桌面嵌入 Top App Bar 中段，避免被拉成整条跑道 -->
-    <div class="library-search-slot px-4 pt-2 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-1 min-[900px]:z-10 min-[900px]:w-[min(440px,38vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
-      <div class="library-search-field h-14 rounded-[28px] bg-[var(--md-surface-high)] flex items-center gap-3 pl-4 pr-2 transition-colors duration-200">
-        <MdIcon name="search" class="w-6 h-6 shrink-0 text-[var(--md-on-surface-variant)]" />
+    <div v-if="!collapsibleSearch || searchOpen" id="library-search-slot" class="library-search-slot px-4 pt-1 min-[900px]:absolute min-[900px]:left-1/2 min-[900px]:top-2 min-[900px]:z-10 min-[900px]:w-[min(390px,34vw)] min-[900px]:-translate-x-1/2 min-[900px]:p-0">
+      <div class="library-search-field h-11 rounded-full bg-[var(--md-surface-high)] flex items-center gap-2 pl-3 pr-2 transition-colors duration-200">
+        <MdIcon name="search" class="w-5 h-5 shrink-0 text-[var(--md-on-surface-variant)]" />
         <input
+          ref="searchInput"
           :value="query"
           @input="$emit('update:query', $event.target.value)"
           @keydown.enter.prevent="$event.target.blur()"
+          @keydown.esc="collapsibleSearch && toggleSearch()"
           type="search"
           inputmode="search"
           enterkeyhint="search"
@@ -177,10 +191,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, shallowRef, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, shallowRef, nextTick, onBeforeUnmount } from 'vue';
 import { useSettingsStore } from '../stores/settings.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
+import { isAndroid } from '../services/platform.js';
 import MdIcon from './MdIcon.vue';
 
 const props = defineProps({
@@ -190,7 +205,8 @@ const props = defineProps({
   query: { type: String, default: '' },
   type: { type: String, default: 'all' },
   sort: { type: String, default: 'title' },
-  renamable: { type: Boolean, default: false }
+  renamable: { type: Boolean, default: false },
+  collapsibleSearch: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update:query', 'update:type', 'update:sort', 'toggle-appearance', 'rename']);
@@ -200,12 +216,16 @@ const ui = useUiStore();
 const { isCompact } = useViewport();
 
 const menu = ref(null);
+const searchOpen = ref(false);
+const searchInput = shallowRef(null);
+const searchButton = shallowRef(null);
 const countBadgeRef = shallowRef(null);
 let previousBadgeLeft = null;
 let badgeAnimation = null;
 
 // 标题变化前记录徽章位置；新标题进场时用 FLIP 补间，制造被文字推动的效果。
 watch(() => props.title, () => {
+  if (!isAndroid) return;
   const badge = countBadgeRef.value;
   if (!badge) {
     previousBadgeLeft = null;
@@ -246,6 +266,15 @@ onBeforeUnmount(() => {
 function toggleMenu(name) {
   menu.value = menu.value === name ? null : name;
 }
+
+async function toggleSearch() {
+  searchOpen.value = !searchOpen.value;
+  if (!searchOpen.value) emit('update:query', '');
+  await nextTick();
+  (searchOpen.value ? searchInput.value : searchButton.value)?.focus();
+}
+
+watch(() => props.collapsibleSearch, () => { searchOpen.value = false; });
 
 // 外观浮层与排序菜单互斥，避免两个浮层叠在一起
 function toggleAppearance() {

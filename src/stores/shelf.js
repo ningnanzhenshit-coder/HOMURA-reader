@@ -12,6 +12,7 @@ import { collectionNameError, moveCollectionBooks, restoreCollections } from '..
 import { sortShelfBooks } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { restoreLibrary, persistBook } from '../services/restore.js';
+import { releaseBookMedia } from '../services/parsers.js';
 import { loadProgressMap } from '../services/progress.js';
 import { createDemoManga, createDemoNovel } from '../services/demo.js';
 import { prepareBookCover } from '../services/bookCover.js';
@@ -22,6 +23,8 @@ export const useShelfStore = defineStore('shelf', () => {
   const library = shallowRef([]);
   const progressMap = shallowRef({});
   const collections = shallowRef([]);
+  const importingCollections = shallowRef({});
+  const importingBook = shallowRef(null);
   const activeCollectionId = ref(null);
   const sortKey = ref('title');
   const error = ref('');
@@ -36,18 +39,23 @@ export const useShelfStore = defineStore('shelf', () => {
     return sortShelfBooks(library.value.filter(book => ids.has(book.id)), sortKey.value, progressMap.value);
   }
 
+  function queueCollectionWrite(write) {
+    const task = collectionQueue.then(write);
+    collectionQueue = task.catch(() => {});
+    return task;
+  }
+
   function updateCollections(change) {
-    const task = collectionQueue.then(async () => {
+    return queueCollectionWrite(async () => {
       const next = change(collections.value);
       await HomuraStore.saveCollections(next);
       collections.value = next;
       error.value = '';
-    });
-    collectionQueue = task.catch(err => {
+    }).catch(err => {
       error.value = err.message || '书库保存失败，请重试';
       console.warn('[HOMURA] 书库保存失败', err);
+      throw err;
     });
-    return task;
   }
 
   async function createCollection(title) {
@@ -68,6 +76,12 @@ export const useShelfStore = defineStore('shelf', () => {
     });
   }
 
+  function setCollectionMangaLayout(id, patch) {
+    return updateCollections(current => current.map(item => item.id === id
+      ? { ...item, mangaLayout: { ...item.mangaLayout, ...patch } }
+      : item));
+  }
+
   async function deleteCollection(id) {
     await updateCollections(current => current.filter(item => item.id !== id));
     if (activeCollectionId.value === id) activeCollectionId.value = null;
@@ -83,10 +97,28 @@ export const useShelfStore = defineStore('shelf', () => {
   }
 
   // 新增书籍并落盘；写入失败由导入层汇总记录
-  async function addBook(book, source, options = {}) {
+  async function addBook(book, source, target = null, onProgress) {
     if (!source) throw new Error('缺少原文件来源');
     try {
-      const result = await persistBook(book, source, options);
+      if (target) {
+        return await queueCollectionWrite(async () => {
+          const id = typeof target === 'string' ? target : target.id;
+          const current = collections.value.find(item => item.id === id);
+          if (!current) {
+            if (typeof target === 'string') throw new Error('目标书库不存在');
+            const message = collectionNameError(target.title, collections.value);
+            if (message) throw new Error(message);
+          }
+          const collection = { ...(current || target), bookIds: [...(current?.bookIds || []), book.id] };
+          const result = await persistBook(book, source, collection, onProgress);
+          collections.value = current
+            ? collections.value.map(item => item.id === id ? collection : item)
+            : [...collections.value, collection];
+          unshiftBook(book);
+          return result;
+        });
+      }
+      const result = await persistBook(book, source, undefined, onProgress);
       // 只有元数据与原文件都提交成功后才公开这本书，避免失败导入留下无法恢复的幽灵书。
       unshiftBook(book);
       return result;
@@ -104,7 +136,9 @@ export const useShelfStore = defineStore('shelf', () => {
       console.error('[HOMURA] 移除书本失败', err);
       throw err;
     }
+    const removed = library.value.find(b => b.id === id);
     library.value = library.value.filter(b => b.id !== id);
+    void releaseBookMedia(removed);
     if (progressMap.value[id]) {
       const next = { ...progressMap.value };
       delete next[id];
@@ -124,11 +158,13 @@ export const useShelfStore = defineStore('shelf', () => {
       // 清空与导入共用互斥队列；清空完成后才允许下一批文件写入存储。
       await collectionQueue.catch(() => {});
       await HomuraStore.clear();
+      const removed = library.value;
       library.value = [];
       progressMap.value = {};
       collections.value = [];
       activeCollectionId.value = null;
       error.value = '';
+      for (const book of removed) void releaseBookMedia(book);
     }).catch(err => {
       error.value = err.message || '清空书架失败，请重试';
       console.warn('[HOMURA] 清空书架失败', err);
@@ -206,11 +242,11 @@ export const useShelfStore = defineStore('shelf', () => {
   // 启动初始化：恢复书架 + 进度表；第一次使用时放示例书
   async function optimizeStoredCover(book) {
     const patch = {};
-    if (book.coverBlob) {
+    if (book.coverBlob?.size > 96 * 1024) {
       const thumb = await createCoverThumbnail(book.coverBlob);
       if (thumb && thumb !== book.coverBlob) patch.coverBlob = thumb;
     }
-    if (book.customCoverBlob) {
+    if (book.customCoverBlob?.size > 96 * 1024) {
       const thumb = await createCoverThumbnail(book.customCoverBlob);
       if (thumb && thumb !== book.customCoverBlob) patch.customCoverBlob = thumb;
     }
@@ -227,39 +263,19 @@ export const useShelfStore = defineStore('shelf', () => {
     touchBook(current);
   }
 
-  const COVER_THUMB_VERSION_KEY = 'homura-cover-thumb-version';
-  const COVER_THUMB_VERSION = '2';
-
-  // 旧版本把原图直接存进书架。启动后利用空闲时间逐本换成长边 480px 的封面，
-  // 避免一次性解码整库封面把启动和滚动拖慢；迁移完成后记版本号，后续只处理大图。
+  // 旧版本把原图直接存进书架。启动后利用空闲时间逐本换成长边 720px 的封面，
+  // 避免一次性解码整库封面把启动和滚动拖慢。
   function scheduleCoverOptimization(books) {
     if (coverOptimizationQueued) return;
-    let needsMigration = false;
-    try {
-      needsMigration = localStorage.getItem(COVER_THUMB_VERSION_KEY) !== COVER_THUMB_VERSION;
-    } catch (err) {
-      needsMigration = false;
-    }
-    if (!needsMigration) return;
     const candidates = books.filter(book => book.restored
       && !book.id.startsWith('demo_')
-      && (book.coverBlob || book.customCoverBlob));
-    if (!candidates.length) {
-      if (needsMigration) {
-        try { localStorage.setItem(COVER_THUMB_VERSION_KEY, COVER_THUMB_VERSION); } catch (err) {}
-      }
-      return;
-    }
+      && (book.coverBlob?.size > 96 * 1024 || book.customCoverBlob?.size > 96 * 1024));
+    if (!candidates.length) return;
     coverOptimizationQueued = true;
     let index = 0;
 
     const run = async () => {
-      if (index >= candidates.length) {
-        if (needsMigration) {
-          try { localStorage.setItem(COVER_THUMB_VERSION_KEY, COVER_THUMB_VERSION); } catch (err) {}
-        }
-        return;
-      }
+      if (index >= candidates.length) return;
       if (document.visibilityState === 'hidden' || document.documentElement.classList.contains('reader-active')) {
         setTimeout(scheduleNext, 1800);
         return;
@@ -305,8 +321,11 @@ export const useShelfStore = defineStore('shelf', () => {
     sortKey,
     booksInCollection,
     error,
+    importingBook,
+    importingCollections,
     createCollection,
     renameCollection,
+    setCollectionMangaLayout,
     deleteCollection,
     moveBooks,
     addBook,

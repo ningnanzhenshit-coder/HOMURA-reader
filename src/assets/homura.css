@@ -447,6 +447,7 @@
 
       #homura-mobile-nav-root .mobile-nav {
         pointer-events: auto;
+        transform: translateZ(0);
       }
 
       .library-main-column {
@@ -466,6 +467,10 @@
         overscroll-behavior-y: contain;
         -webkit-overflow-scrolling: touch;
       }
+
+      .library-scroll:has(.continue-panel-enter-active, .continue-panel-leave-active) {
+        overflow-anchor: none;
+      }
     }
 
     /* 预见式返回：系统 BackEvent / 本地指针共用进度，驱动阅读器、书架和遮罩 */
@@ -478,12 +483,19 @@
     }
 
     .reader-dismiss-layer {
+      -webkit-user-select: none;
+      user-select: none;
       transform-origin: center center;
       transform:
         translate3d(var(--homura-back-reader-x), 0, 0)
         scale(var(--homura-back-reader-scale));
       border-radius: var(--homura-back-reader-radius);
       will-change: transform, border-radius;
+    }
+
+    .reader-dismiss-layer :where(:not(input, textarea, [contenteditable], [contenteditable] *)) {
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     /* 整页只做二维平移，避免 WebView 把书架合成层当纹理缩放 */
@@ -544,6 +556,10 @@
     html.reader-back-entering .reader-dismiss-layer {
       animation: homura-reader-enter 300ms var(--md-ease-emphasized) both;
     }
+
+    html.reader-back-preparing .reader-dismiss-layer { visibility: hidden; }
+    html.reader-back-preparing .library-back-layer.is-under-reader { transform: none; }
+    html.reader-back-preparing .reader-back-scrim { opacity: 0; }
 
     html.reader-back-entering .library-back-layer.is-under-reader {
       animation: homura-library-enter 300ms var(--md-ease-emphasized) both;
@@ -744,23 +760,26 @@
 
     /* 书架网格：手机 3 列；桌面随可用宽度提升密度，避免窄桌面把书卡压成条 */
     .md-shelf-grid {
+      --shelf-gap: var(--md-space-150);
+      --shelf-cover-ratio: 8 / 11;
       display: grid;
+      align-items: start;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--md-space-150);
+      gap: var(--shelf-gap);
       padding: var(--md-space-200) var(--md-space-200) 0;
     }
     /* 768–899 仍使用底部导航，但信息密度要接近桌面，避免三列巨卡 */
     @media (min-width: 768px) and (max-width: 899px) {
       .md-shelf-grid {
+        --shelf-gap: var(--md-space-200);
         grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: var(--md-space-200);
         padding-inline: var(--md-space-250);
       }
     }
     @media (min-width: 900px) {
       .md-shelf-grid {
+        --shelf-gap: var(--md-space-200);
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: var(--md-space-200);
         padding: var(--md-space-200) 28px 0;
       }
     }
@@ -777,21 +796,19 @@
     /* 超大屏加密度，避免书卡被拉成相框 */
     @media (min-width: 1600px) {
       .md-shelf-grid {
+        --shelf-gap: var(--md-space-300);
         grid-template-columns: repeat(8, minmax(0, 1fr));
-        gap: var(--md-space-300);
         padding-inline: 36px;
       }
     }
 
     /* 继续阅读特色卡：手机整行 / 桌面跨三列 */
     .md-featured-cell {
-      grid-column: span 3;
+      --featured-span: 3;
+      grid-column: span var(--featured-span);
     }
     @media (min-width: 768px) and (max-width: 899px) {
-      .md-featured-cell { grid-column: span 2; }
-    }
-    @media (min-width: 900px) {
-      .md-featured-cell { grid-column: span 3; }
+      .md-featured-cell { --featured-span: 2; }
     }
 
     /* ==========================================================================
@@ -828,20 +845,6 @@
     .md-card:has(:focus-visible) {
       outline: 2px solid var(--md-primary);
       outline-offset: 2px;
-    }
-    /* 书架卡默认在屏外跳过布局与绘制；auto 会记住首屏实测高度，避免滚动时抖动 */
-    .md-shelf-card {
-      content-visibility: auto;
-      contain-intrinsic-size: auto 208px;
-    }
-    @media (min-width: 768px) and (max-width: 899px) {
-      .md-shelf-card { contain-intrinsic-size: auto 248px; }
-    }
-    @media (min-width: 900px) {
-      .md-shelf-card { contain-intrinsic-size: auto 272px; }
-    }
-    @media (min-width: 1280px) {
-      .md-shelf-card { contain-intrinsic-size: auto 312px; }
     }
     .md-shelf-card.is-touch-dragging { opacity: 0.38; transform: scale(0.96); }
 
@@ -887,50 +890,39 @@
     .md-collection-art { display: block; position: relative; aspect-ratio: 3 / 4; background: var(--md-surface-high); }
     .md-collection-board {
       position: absolute;
-      inset: 5px;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: repeat(2, minmax(0, 1fr));
-      gap: 4px;
-      padding: 4px;
-      border-radius: 8px;
-      background: var(--md-surface-container);
+      inset: 13px 9px 4px 4px;
     }
-    .md-collection-tile {
-      position: relative;
-      display: grid;
-      min-width: 0;
+    .md-collection-tab {
+      position: absolute;
+      top: -10px;
+      left: 0;
+      width: 42%;
+      height: 18px;
+      border-radius: 8px 8px 0 0;
+      background: var(--md-primary-container);
+    }
+    .md-collection-layer {
+      position: absolute;
+      inset: 0;
       overflow: hidden;
-      place-items: center;
-      border-radius: 4px;
-      background: var(--md-surface-high);
+      border-radius: 3px 10px 10px 10px;
+      background: var(--md-primary-container);
+      transform: translate(calc(1.6px * var(--layer)), calc(-1.6px * var(--layer)));
+      box-shadow: 0 0 0 1px color-mix(in oklab, var(--md-shadow-color) 25%, transparent);
     }
-    .md-collection-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .md-collection-tile.is-empty {
-      background: var(--md-surface-highest);
-      color: color-mix(in oklab, var(--md-on-surface-variant) 36%, transparent);
-    }
-    .md-collection-tile.is-empty svg { width: 16px; height: 16px; }
+    .md-collection-layer img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .md-collection-fallback {
-      display: -webkit-box;
-      overflow: hidden;
+      display: grid;
+      place-items: center;
       height: 100%;
-      padding: 5px;
+      padding: 8px;
       font-family: var(--font-display, serif);
-      font-size: 8px;
+      font-size: 12px;
       font-weight: 650;
       line-height: 1.15;
       overflow-wrap: anywhere;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
       background: linear-gradient(145deg, var(--md-primary-container), var(--md-secondary-container));
       color: var(--md-on-primary-container);
-    }
-    @media (min-width: 768px) {
-      .md-collection-board { inset: 8px; gap: 6px; padding: 7px; border-radius: 11px; }
-      .md-collection-tile { border-radius: 6px; }
-      .md-collection-tile.is-empty svg { width: 18px; height: 18px; }
-      .md-collection-fallback { padding: 6px; font-size: 9px; }
     }
     .md-collection-info { display: flex; flex: 1; flex-direction: column; gap: var(--md-space-50); min-width: 0; padding: var(--md-space-100); }
     .md-collection-title { overflow: hidden; font-size: 12px; font-weight: 700; line-height: 1.375; text-overflow: ellipsis; white-space: nowrap; }
@@ -1154,51 +1146,38 @@
     .md-reader-topbar,
     .md-reader-bottombar {
       position: absolute;
+      inset-inline: 0;
       z-index: 30;
       background: var(--md-surface-container);
       color: var(--md-on-surface);
-      box-shadow:
-        0 1px 2px 0 color-mix(in oklab, var(--md-shadow-color) 22%, transparent),
-        0 10px 30px -18px color-mix(in oklab, var(--md-shadow-color) 46%, transparent),
-        inset 0 0 0 1px color-mix(in oklab, var(--md-outline-variant) 48%, transparent);
     }
     .md-reader-topbar {
-      top: calc(env(safe-area-inset-top, 0px) + 10px);
-      right: 12px;
-      left: 12px;
+      top: 0;
+      border-bottom: 1px solid var(--md-outline-variant);
       display: flex;
-      min-height: 64px;
+      min-height: calc(64px + env(safe-area-inset-top, 0px));
       align-items: center;
       gap: 2px;
-      padding: 8px 8px 8px 4px;
-      border-radius: 28px;
+      padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) 8px calc(4px + env(safe-area-inset-left, 0px));
     }
     .md-reader-bottombar {
-      right: 12px;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-      left: 12px;
+      bottom: 0;
+      border-top: 1px solid var(--md-outline-variant);
       display: flex;
-      min-height: 72px;
+      min-height: calc(72px + env(safe-area-inset-bottom, 0px));
       align-items: center;
       gap: 6px;
-      padding: 8px 10px;
-      border-radius: 28px;
+      padding: 8px calc(10px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
     }
     @media (min-width: 900px) {
       .md-reader-topbar {
-        top: calc(env(safe-area-inset-top, 0px) + 14px);
-        right: 16px;
-        left: 16px;
         gap: 4px;
-        padding: 8px 12px 8px 8px;
+        padding-inline: calc(8px + env(safe-area-inset-left, 0px)) calc(12px + env(safe-area-inset-right, 0px));
       }
       .md-reader-bottombar {
-        right: 16px;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-        left: 16px;
-        min-height: 76px;
+        min-height: calc(76px + env(safe-area-inset-bottom, 0px));
         gap: 10px;
-        padding: 8px 14px;
+        padding-inline: calc(14px + env(safe-area-inset-left, 0px)) calc(14px + env(safe-area-inset-right, 0px));
       }
     }
 
@@ -1696,20 +1675,6 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* 触屏上没有 hover：书本卡片的移除按钮隐藏，删除走选择模式 */
-    .card-remove-btn {
-      opacity: 0;
-      transition: opacity 0.15s ease;
-    }
-    .group:hover .card-remove-btn {
-      opacity: 1;
-    }
-    @media (hover: none) {
-      .card-remove-btn {
-        display: none;
-      }
-    }
-
     /* 触屏阅读手势层：翻页模式无需滚动，全部手势交给 JS，避免纵向抖动触发 pointercancel */
     .reader-gesture-layer {
       touch-action: none;
@@ -1743,12 +1708,6 @@
       transform: translateZ(0);
       backface-visibility: hidden;
       -webkit-user-drag: none;
-    }
-
-    /* 安卓 WebView 给整屏大图加 color filter 会多一次离屏合成，
-       暖色 / 夜间模式翻页明显掉帧；移动端直接跳过这层滤镜。 */
-    html[data-platform="android"] .manga-page-img {
-      filter: none;
     }
 
     /* GPU-Accelerated Double-Buffer Stage Layer */
@@ -1972,26 +1931,6 @@
       border-radius: 0.5rem;
       margin: 0.5rem auto;
       display: block;
-    }
-    /* MOBI 图片记录损坏时保留整页占位，避免分页把这一页悄悄吞掉 */
-    .epub-content .mobi-missing-page {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 52vh;
-      margin: 0.5rem auto;
-      border-radius: 0.5rem;
-      border: 1px dashed var(--md-outline-variant);
-      background: color-mix(in oklab, var(--md-surface-high) 70%, transparent);
-      color: var(--md-on-surface-variant);
-      font-size: 0.85em;
-      text-indent: 0;
-    }
-    .epub-content .mobi-missing-page figcaption {
-      padding: 0.75rem 1rem;
-      text-align: center;
-      line-height: 1.6;
     }
     .epub-content { overflow-wrap: anywhere; }
     .epub-content p {

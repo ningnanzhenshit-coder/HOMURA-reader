@@ -12,47 +12,32 @@
       <div class="min-[900px]:hidden w-8 h-1 rounded-full bg-[var(--md-outline-variant)] mx-auto mb-5" aria-hidden="true"></div>
       <h2 id="duplicate-import-title" class="text-[17px] font-semibold">发现同名书本</h2>
       <div id="duplicate-import-description" class="mt-3 text-[13px] leading-relaxed text-[var(--md-on-surface-variant)]">
-        <template v-if="pendingDuplicate.batch">
-          <p class="break-words">按文件名检测到 {{ pendingDuplicate.count }} 本可能与书架现有书名重复：</p>
-          <p class="mt-2 break-words">{{ batchTitles }}</p>
-          <p class="mt-2 break-words">这批文件将按同一选择处理；仍然导入会保留为独立书本。</p>
-        </template>
-        <template v-else>
-          <p class="break-words">书架中已有《{{ pendingDuplicate.existingTitle }}》。</p>
-          <p class="mt-2 break-words">是否仍要导入《{{ pendingDuplicate.title }}》？仍然导入会保留为独立书本。</p>
-        </template>
+        <p class="break-words">书架中已有《{{ pendingDuplicate.existingTitle }}》。</p>
+        <p class="mt-2 break-words">是否仍要导入《{{ pendingDuplicate.title }}》？仍然导入会保留为独立书本。</p>
       </div>
       <div class="mt-6 flex flex-wrap justify-end gap-2">
         <button
           class="min-h-11 px-4 rounded-full text-[13px] font-semibold text-[var(--md-primary)] hover:bg-[var(--md-surface-high)] transition-colors duration-200"
           @click="resolveImport(true)"
-        >{{ pendingDuplicate.batch ? '仍然导入这批' : '仍然导入' }}</button>
+        >仍然导入</button>
         <button
           ref="skipButtonRef"
           autofocus
           class="min-h-11 px-4 rounded-full text-[13px] font-semibold bg-[var(--md-secondary-container)] text-[var(--md-on-secondary-container)] hover:bg-[var(--md-surface-high)] transition-colors duration-200"
           @click="resolveImport()"
-        >{{ pendingDuplicate.batch ? '跳过这批' : '跳过此书' }}</button>
+        >跳过此书</button>
       </div>
     </div>
   </dialog>
 </template>
 
 <script setup>
-import { computed, shallowRef, watch, nextTick, onBeforeUnmount } from 'vue';
+import { shallowRef, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useDuplicateImport } from '../composables/useDuplicateImport.js';
 
 const dialogRef = shallowRef(null);
 const skipButtonRef = shallowRef(null);
 const { pendingDuplicate, resolveImport } = useDuplicateImport();
-
-const batchTitles = computed(() => {
-  const items = pendingDuplicate.value?.items || [];
-  const shown = items.slice(0, 3);
-  const names = shown.map(item => `《${item.title}》`).join('、');
-  const shownCount = shown.reduce((total, item) => total + (item.count || 1), 0);
-  return shownCount < (pendingDuplicate.value?.count || 0) ? `${names} 等 ${pendingDuplicate.value.count} 本` : names;
-});
 
 watch(pendingDuplicate, async pending => {
   if (!pending) {

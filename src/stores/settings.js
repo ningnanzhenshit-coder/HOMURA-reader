@@ -8,18 +8,16 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
 import { isWindows } from '../services/platform.js';
+import { READING_DIRECTIONS } from '../services/collectionReading.js';
 
 const READER_DEFAULTS_KEY = 'homura_reader_defaults';
 const DEBUG_FORCE_FULLSCREEN_KEY = 'homura_debug_force_fullscreen';
-const DIRECTIONS = ['ltr', 'rtl', 'vertical'];
-const WEBTOON_FITS = ['screen', 'medium', 'wide'];
 
 export const DEFAULT_READER_SETTINGS = Object.freeze({
   direction: 'ltr',
   spread: 2,
   coverOffset: true,
-  fontSize: 18,
-  webtoonFit: 'screen'
+  fontSize: 18
 });
 
 function normalizeReaderDefaults(value) {
@@ -30,17 +28,14 @@ function normalizeReaderDefaults(value) {
     : DEFAULT_READER_SETTINGS.fontSize;
 
   return {
-    direction: DIRECTIONS.includes(source.direction)
+    direction: READING_DIRECTIONS.includes(source.direction)
       ? source.direction
       : DEFAULT_READER_SETTINGS.direction,
     spread: source.spread === 1 ? 1 : 2,
     coverOffset: typeof source.coverOffset === 'boolean'
       ? source.coverOffset
       : DEFAULT_READER_SETTINGS.coverOffset,
-    fontSize,
-    webtoonFit: WEBTOON_FITS.includes(source.webtoonFit)
-      ? source.webtoonFit
-      : DEFAULT_READER_SETTINGS.webtoonFit
+    fontSize
   };
 }
 

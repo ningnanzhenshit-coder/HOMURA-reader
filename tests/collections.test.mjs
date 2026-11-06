@@ -13,11 +13,12 @@ test('批量移动只保留一个归属，移回主页不删除书本', () => {
 
 test('恢复时去除失效与重复归属，保留空书库', () => {
   const restored = restoreCollections([
-    { id: 'a', title: '甲', bookIds: ['1', '1', 'gone'] },
+    { id: 'a', title: '甲', bookIds: ['1', '1', 'gone'], mangaLayout: { direction: 'vertical', webtoonFit: 'wide' } },
     { id: 'b', title: '乙', bookIds: ['1', '2'] },
     { id: 'c', title: '空书库', bookIds: [] }
   ], [{ id: '1' }, { id: '2' }]);
   assert.deepEqual(restored.map(item => item.bookIds), [['1'], ['2'], []]);
+  assert.deepEqual(restored[0].mangaLayout, { direction: 'vertical', webtoonFit: 'wide' });
 });
 
 test('目录逐层展平为独立书库，不合并同名子目录', () => {

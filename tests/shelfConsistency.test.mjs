@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
+import { watch } from 'vue';
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -32,6 +33,28 @@ function makeBook(id = 'book-1') {
 function makeSource() {
   return { kind: 'file', name: 'sample.txt', size: 1, lastModified: 1, handle: {} };
 }
+
+test('书本删除和清空后回收媒体，事务失败时仍然可打开', async t => {
+  const store = makeStore();
+  silenceExpectedLogs(t);
+  const cover = URL.createObjectURL(new Blob(['cover']));
+  const page = URL.createObjectURL(new Blob(['page']));
+  t.after(() => [cover, page].forEach(URL.revokeObjectURL));
+  store.library = [{ ...makeBook(), cover }, { ...makeBook('book-2'), pageItems: [{ url: page }] }];
+  let fail = true;
+  stubStore(t, {
+    deleteBook: async () => { if (fail) throw new Error('事务失败'); },
+    clear: async () => {}
+  });
+  await assert.rejects(store.removeBook('book-1'), /事务失败/);
+  assert.equal(await (await fetch(cover)).text(), 'cover');
+  fail = false;
+  await store.removeBook('book-1');
+  await assert.rejects(fetch(cover));
+  assert.equal(await (await fetch(page)).text(), 'page');
+  await store.clearShelf();
+  await assert.rejects(fetch(page));
+});
 
 function stubStore(t, overrides) {
   const originals = {};
@@ -112,6 +135,32 @@ test('导入只有在存档提交成功后才公开书本', async t => {
   releaseSave();
   await task;
   assert.deepEqual(store.library.map(book => book.id), ['book-1']);
+});
+
+test('导入到新书库时，书本与归属一起写入且首次出现就在库内', async t => {
+  const store = makeStore();
+  const target = { id: 'target', title: '测试书库', createdAt: 1, bookIds: [] };
+  let releaseSave;
+  stubStore(t, {
+    requestPersistence: async () => ({}),
+    saveBook: (meta, source, collection) => new Promise(resolve => {
+      assert.equal(meta.id, source.id);
+      assert.deepEqual(collection, { ...target, bookIds: [meta.id] });
+      releaseSave = resolve;
+    })
+  });
+  const stop = watch(() => store.library, books => {
+    assert.deepEqual(store.booksInCollection(target.id), books);
+  }, { flush: 'sync' });
+  t.after(stop);
+
+  const task = store.addBook(makeBook(), makeSource(), target);
+  await waitFor(() => releaseSave, '未进入书籍与书库的保存步骤');
+  assert.deepEqual(store.library, []);
+  assert.deepEqual(store.collections, []);
+  releaseSave();
+  await task;
+  assert.deepEqual(store.collections[0].bookIds, ['book-1']);
 });
 
 test('存档写入失败不会留下幽灵书', async t => {

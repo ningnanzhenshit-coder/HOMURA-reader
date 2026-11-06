@@ -10,7 +10,7 @@ HOMURA 是一个**本地优先**的 ACGN 阅读器：漫画、轻小说、图集
 - 当前版本 `2.2.1`
 - 技术栈：Vue 3 + Pinia + Vite 6 + Tauri 2（Rust）
 - 纯 JavaScript，没有 TypeScript、没有 ESLint、没有自动测试
-- 数据存本机 IndexedDB；Tauri 环境额外把书目 / 封面缩略图 / 书库 / 进度镜像到 AppData 下的 SQLite；原文件在 Android 及桌面 EPUB/CBZ 原生解析链路写 AppData，其余平台按能力写 OPFS 或 IndexedDB Blob；主题偏好写 localStorage
+- 数据存本机 IndexedDB；原文件在 Android 写 AppData，其余平台按能力写 OPFS 或 IndexedDB Blob；主题偏好写 localStorage
 
 支持的格式：
 
@@ -55,20 +55,17 @@ src/
     reader.js              当前书、页码、双缓冲、排版配置、翻页动作
     ui.js                  阅读器工具栏显隐、设置/目录抽屉、全屏
   services/
-    storage.js             IndexedDB 完整存档 + SQLite 元数据镜像
-    nativeMetadata.js      SQLite 书目 / 书库 / 进度桥接
-    coverThumb.js          Rust 封面缩略图与 Canvas 兜底
+    storage.js             IndexedDB homura_shelf
     opfs.js                OPFS 原始文件存储
     platform.js            平台能力探测、formatBytes
     parsers.js             EPUB/CBZ/ZIP/TXT/MD/PDF/MOBI 解析总入口
-    cbzParser.js           CBZ/ZIP 原生按需解页与 JSZip 兜底
     pdf.js                 pdf.js 懒加载、页面位图、LRU 缓存
     mobi.js                PalmDOC 解析
     markdown.js            marked + 安全渲染器
     pagination.js          小说智能分页、章节/图片页构建
     progress.js            阅读进度与排版记忆、落盘节流
     restore.js             原生 AppData / OPFS / 句柄 / Blob 存档恢复
-    nativeStorage.js       Android / 桌面共用的 AppData 原文件存储
+    nativeStorage.js       Android 原生 AppData 原文件存储
     demo.js                空书架示例书
     utils.js               escapeHtml 等小工具
   composables/
@@ -77,8 +74,7 @@ src/
     useViewport.js         宽度、触屏、断点
   components/              Vue 组件（见下方 UI 说明）
 src-tauri/                 Tauri 2 壳：lib.rs、tauri.conf.json、capabilities
-public/vendor/             运行时 Tailwind，仅开发环境使用；生产构建转为静态 CSS
-tailwind.config.js         构建期 Tailwind 配置（开发环境仍读 vendor/tailwind-config.js）
+public/vendor/             运行时 Tailwind（断网可用），不要换成构建版
 public/pdfjs/              pdf.js 运行时资源，由 vite 插件生成，已 gitignore
 scripts/release-notes.mjs  Conventional Commits → Release 说明
 scripts/check-dark-glow.mjs 夜间投影/遮罩泛光检查（build:vite 自动执行）
@@ -100,10 +96,6 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 - **重对象必须 `shallowRef`**：`zipContent`、`File`、`Animation`、timer、DOM 引用一律不要被 Vue 深度代理，否则会拖慢动画，甚至让 `Animation.cancel()` 异常。
 - 翻页引擎 `PaginatedView.vue` / `WebtoonView.vue` **直接操作 ref DOM + Web Animations API**，不走响应式重渲染。不要为了“优雅”改写成 `v-for` + 响应式布局。
 - Tauri 通过 `window.__TAURI__` 全局对象与 `@tauri-apps/plugin-*` 调用，项目不直接依赖 `@tauri-apps/api`。新增原生能力时必须同步 Rust 插件注册与 `src-tauri/capabilities/default.json` 的 permissions。
-- P4 的 SQLite 只是元数据镜像，IndexedDB 的 `books + sources` 事务才是书籍是否存在与删除顺序的最终依据。任何原生元数据写入前必须先落 `homura-native-metadata-dirty`，成功后清除；下次启动发现标记时从 IndexedDB 全量重建 SQLite。禁止改成 SQLite 先删、IndexedDB 后删。
-- SQLite 位于 `$APPDATA/homura-metadata/homura.sqlite3`，使用 WAL 与 `rusqlite` bundled，不能依赖系统 SQLite。`image` 固定 `0.25.5` 以兼容项目 MSRV；升级前先确认其 `rust-version`。
-- Android 漫画页由 Kotlin 按屏幕长边降采样并转成 WebP，再由 asset 协议直接喂给 `<img>`。`src-tauri/Cargo.toml` 的 `protocol-asset` feature 与 `tauri.conf.json` 的 `$APPCACHE/**` scope 必须保留，删掉会退回 Blob 通道并明显变慢。
-- 原生页缓存（Android Kotlin / 桌面 Rust）按最近访问时间 LRU 淘汰（24 个文件 / 192MB）。EPUB 的条目索引和阅读页序无关，禁止按 index 前后窗口删缓存或预取；前端页图 URL 回收也必须跟翻页同步执行，不能依赖延时的预载任务。
 - 图标统一走 `src/components/MdIcon.vue`（Material Symbols 24dp 内联路径），选中态用 `filled`；不引入图标库 / 组件库。新增依赖需要明确理由。
 - 注释用中文；复杂模块顶部保留现有的 banner 注释风格。只在逻辑不直观处写注释，不要给没改动的代码补注释。
 - 全局 Toast 已移除：不要重新引入 toast / alert；可恢复错误记录到 console，Android 原生返回提示除外。
@@ -164,24 +156,19 @@ design-preview/            设计原型 HTML 与截图，不是生产代码
 4. **工具栏自动隐藏 2.2 秒**：`ui.js` 的 `AUTO_HIDE_DELAY = 2200`；点击阅读画布 / 轻点可唤出。抽屉打开时不自动隐藏。
 5. **移动端手势**：横向滑动跟手翻页，带阻尼与回弹；轻点左 30% 上一页、右 30% 下一页、中间切换工具栏。手势层 z-index 必须高于阅读舞台，否则会被图片层拦截。
 6. **窄屏强制单页**：`DOUBLE_SPREAD_MIN_WIDTH = 768`，`<768` 即使设置里选了双页也只按单页渲染。
-7. **存储降级**：Android Tauri 包优先把原文件写入应用私有 AppData，失败再保留 IndexedDB Blob；桌面普通文件走 FileSystemFileHandle → OPFS → IndexedDB Blob，EPUB/CBZ 解析前会先 staging 到 AppData。读取时逐层回退，不能因为前一层失效就判定整本书丢失。导入后检查配额，已用 ≥85% 或剩余 <200MB 时提示。不要删掉这套备份方案。
+7. **移动端存储降级**：Android Tauri 包优先把原文件写入应用私有 AppData，失败再保留 IndexedDB Blob；其余平台走 FileSystemFileHandle → OPFS → IndexedDB Blob。读取时逐层回退，不能因为前一层失效就判定整本书丢失。导入后检查配额，已用 ≥85% 或剩余 <200MB 时提示。不要删掉这套备份方案。
 8. **全屏走 Tauri 原生窗口 API**：Windows WebView2 不接管 F11，`ui.js` 的 `toggleFullscreen` 已处理；浏览器调试环境才回退 Fullscreen API。
 9. **PDF 资源必须随包分发**：`vite.config.js` 的 `pdfjsAssets` 插件会把 `cmaps / standard_fonts / wasm / iccs` 同步到 `public/pdfjs`。删掉插件会导致 PDF 白屏。`public/pdfjs` 已 gitignore，不要提交。
 10. **PDF 渲染约束**：按页懒加载，LRU 缓存 24 页；首次打开默认单页；不支持字号调整与重排。
 11. **Markdown 安全**：输出会进 `v-html`，原始 HTML 必须转义，链接/图片只放行 `http/https/mailto/tel` 与相对路径。章节按一级/二级标题切分，并排除代码块内的标题标记。
 12. **进度与排版记忆**：翻页、滚轮、条漫滚动、拖进度条都要按书保存，包含方向 / 单双页 / 首页单排 / 字号 / 条漫尺寸。目录与书签目前**没有**持久化，这是已知限制，不要假装已支持。
 13. **重对象不进响应式深度代理**：见第 4 节。`PaginatedView` 的双缓冲动画对象尤其不能变成 `ref` 深层代理。
-14. **桌面原生压缩包会话**：EPUB/CBZ 只从 `homura-native-sources` 读取，Rust 按 ZIP 中央目录随机解页到 AppCache；路径越界、条目过多、解压超限必须直接失败。JSZip 只对不可用、暂不支持或普通解析失败回退，不能吞掉 `NATIVE_SECURITY_LIMIT` / `NATIVE_LIMIT_EXCEEDED`。
-15. **封面与元数据原生兜底**：封面缩略图优先走 Rust `create_cover_thumbnail`，格式不支持、命令不可用或没有 Tauri 时才回退 Canvas；原生像素 / 输入大小上限不得继续交给 JS 重试。SQLite 元数据失败时回退 IndexedDB，但 `dirty` 标记与删除顺序不能删，否则旧镜像可能复活已删除书本。
 
 ## 7. 常见坑
 
 - 依赖没装就 `npm run dev` 会提示找不到 tauri 命令：先 `npm install`。
 - `dist/index.html` 用 `file://` 打开会因相对路径 / IndexedDB 限制而异常，必须走 `http://localhost`。
 - PDF 白屏优先查 `public/pdfjs/` 是否生成、控制台是否有 cmaps / standard_fonts 404。
-- 原生漫画页白屏先确认 `protocol-asset` feature 与 assetProtocol scope 是否还在；`ensurePageUrlLoaded` 在 asset 失败时会自动回退 Blob，回退仍白屏才是解码/缓存问题。
-- 桌面 EPUB/CBZ 原生通道异常时先确认导入文件已写进 `$APPDATA/homura-native-sources`，并检查 `open` / `openDocument` 是否注册；安全限制错误本来就不会回退 JSZip。
-- SQLite 书目异常时先查 `$APPDATA/homura-metadata/homura.sqlite3` 与控制台是否出现 `原生元数据不可用`；保留 `homura-native-metadata-dirty` 让下次启动重建，不要手工只清 SQLite 行。封面格式不支持时 Rust 返回 `NATIVE_UNSUPPORTED`，Canvas 会接管；`NATIVE_LIMIT_EXCEEDED` 不会回退。
 - Tailwind 对 CSS 变量加透明度修饰会失效，改用 `color-mix`。
 - 夜间出现白色泛光时，优先检查 `--md-on-surface` / `--md-on-surface-variant` 是否被当作阴影或遮罩色；投影统一改用 `--md-shadow-color`，并运行 `npm run check:dark-glow`。
 - 触屏上不要依赖 `:hover` 显示操作按钮；触屏常显，鼠标设备才 hover。

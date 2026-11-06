@@ -18,20 +18,13 @@ function makeRecord(reader) {
   const lastIdx = Math.max(0, total - 1);
   const index = Math.min(lastIdx, Math.max(0, reader.currentIndex));
   const currentPage = reader.activePages[index];
-  const chapterIndex = currentPage && typeof currentPage.chapterIndex === 'number' ? currentPage.chapterIndex : 0;
-  // 章内比例用于增量分页恢复：整本页数尚未补齐时也能命中同一章里的相近位置。
-  let chapterStart = index;
-  let chapterEnd = index;
-  while (chapterStart > 0 && reader.activePages[chapterStart - 1]?.chapterIndex === chapterIndex) chapterStart--;
-  while (chapterEnd < lastIdx && reader.activePages[chapterEnd + 1]?.chapterIndex === chapterIndex) chapterEnd++;
   return {
     id: book.id,
     type: book.type,
     index,
     total,
     ratio: lastIdx > 0 ? index / lastIdx : 0,
-    chapterIndex,
-    chapterRatio: chapterEnd > chapterStart ? (index - chapterStart) / (chapterEnd - chapterStart) : 0,
+    chapterIndex: currentPage && typeof currentPage.chapterIndex === 'number' ? currentPage.chapterIndex : 0,
     // 每本书自己的排版：方向 / 单双页 / 首页单排 / 字号 / 条漫尺寸
     layout: {
       direction: reader.layoutConfig.direction,
@@ -71,6 +64,10 @@ export function applyRestoredProgress(book, activePages, progressMap) {
   const rec = book && progressMap[book.id];
   if (!rec || activePages.length === 0) return -1;
   const lastIdx = Math.max(0, activePages.length - 1);
+  // 旧版纯图 MOBI 可能只记录了一两页，不能把旧的 100% 换算成整本漫画的末页。
+  if (book.format === 'mobi' && book.type === 'manga' && rec.type === 'novel') {
+    return Math.min(lastIdx, Math.max(0, Number.isInteger(rec.index) ? rec.index : 0));
+  }
   const ratio = typeof rec.ratio === 'number' ? rec.ratio : 0;
   return Math.min(lastIdx, Math.max(0, Math.round(ratio * lastIdx)));
 }

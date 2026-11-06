@@ -5,37 +5,53 @@
    书籍对象；以及把散装图片按文件夹分组生成漫画书的 buildImageFolderBooks。
    ========================================================================== */
 
+import JSZip from 'jszip';
 import { escapeHtml } from './utils.js';
-import { decodeTxtBytesAsync } from './textEncoding.js';
+import { decodeTxtBytes } from './textEncoding.js';
 import { renderMarkdown } from './markdown.js';
-import { parseMobiFileData } from './mobi.js';
-import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob } from './pdf.js';
+import { parseMobiBuffer } from './mobi.js';
+import { openPdfDocument, createPdfPageItems, renderPdfCoverBlob, forgetPdfPageUrls } from './pdf.js';
 import { parseEpubFile } from './epubParser.js';
 import {
+  canUseNativeArchive,
   clearNativeArchiveBookCache,
-  closeNativeArchive
+  closeNativeArchive,
+  openNativeArchive,
+  readNativePageBlob
 } from './nativeArchive.js';
 import { removeNativeBookDir } from './nativeStorage.js';
 
-export { parseCbzFileLazy, parseCbzNativeArchive } from './cbzParser.js';
-
-// 同名书被跳过时还未入架，及时释放解析阶段创建的位图 URL 与 PDF worker。
-export async function discardParsedBook(book) {
-  const urls = new Set([book.cover, ...(book.resourceUrls || []), ...(book.pageItems || []).map(item => item.url)]);
-  for (const url of urls) {
-    if (typeof url === 'string' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+// 撤销页面资源，不触碰已经由存储层管理的原始文件。
+export async function releaseBookMedia(book) {
+  if (!book) return;
+  const revoke = url => { if (url?.startsWith('blob:')) URL.revokeObjectURL(url); };
+  const urls = new Set([book.cover, book.originalCover, ...(book.resourceUrls || [])]);
+  for (const page of book.pageItems || []) {
+    urls.add(page.url);
+    const pending = page.archiveTask || page.renderTask;
+    if (pending) pending.then(revoke, () => {});
   }
+  urls.forEach(revoke);
+  if (book.pdfDoc) {
+    try {
+      await book.pdfDoc.loadingTask.destroy();
+    } catch (err) {
+      console.warn('[HOMURA] 释放 PDF 失败', err);
+    } finally {
+      forgetPdfPageUrls(book.pageItems);
+    }
+  }
+}
+
+// 同名书被跳过时还未入架，原生暂存文件也需要回收。
+export async function discardParsedBook(book) {
+  await releaseBookMedia(book);
   if (book.nativeArchiveId) {
     await closeNativeArchive(book.nativeArchiveId).catch(() => {});
     await clearNativeArchiveBookCache(book.nativeArchiveId).catch(() => {});
   }
   if (book.nativeArchiveStaged) {
     await removeNativeBookDir(book.id).catch(() => {});
-  }
-  try {
-    await book.pdfDoc?.loadingTask.destroy();
-  } catch (err) {
-    console.warn('[HOMURA] 释放跳过的 PDF 失败', err);
   }
 }
 
@@ -46,6 +62,107 @@ export async function discardParsedBook(book) {
 export async function parseEpubFileLazy(file, options = {}) {
   try {
     return await parseEpubFile(file, options);
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+// Android 原生快速路径：压缩包只打开一次，页面按需解出到 AppCache。
+export async function parseCbzNativeArchive(nativePath, options = {}) {
+  if (!canUseNativeArchive() || !nativePath) return null;
+  const archiveId = options.id
+    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const name = options.name || 'book.cbz';
+  let coverUrl = null;
+
+  try {
+    const archive = await openNativeArchive(archiveId, nativePath);
+    const entries = archive?.entries || [];
+    if (!entries.length) throw new Error('压缩包内未找到图片');
+
+    const first = await readNativePageBlob(archiveId, 0);
+    coverUrl = URL.createObjectURL(first.blob);
+    const pageItems = entries.map((entry, index) => ({
+      nativeArchiveId: archiveId,
+      nativeIndex: index,
+      url: index === 0 ? coverUrl : null
+    }));
+
+    return {
+      id: archiveId,
+      type: 'manga',
+      format: 'cbz',
+      title: name.replace(/\.(cbz|zip)$/i, ''),
+      cover: coverUrl,
+      coverBlob: first.blob,
+      pageItems,
+      pageCount: pageItems.length,
+      nativeArchiveId: archiveId,
+      nativeArchivePath: nativePath,
+      nativeArchiveMode: 'pages',
+      nativeArchiveStaged: !!options.staged
+    };
+  } catch (err) {
+    if (coverUrl?.startsWith('blob:')) URL.revokeObjectURL(coverUrl);
+    await closeNativeArchive(archiveId).catch(() => {});
+    await clearNativeArchiveBookCache(archiveId).catch(() => {});
+    throw err;
+  }
+}
+
+export async function parseCbzFileLazy(file, options = {}) {
+  const id = options.id
+    || `cbz_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const name = options.name || file?.name || 'book.cbz';
+
+  if (options.nativePath && canUseNativeArchive()) {
+    try {
+      return await parseCbzNativeArchive(options.nativePath, {
+        ...options,
+        id,
+        name
+      });
+    } catch (err) {
+      console.warn('[HOMURA] Android 原生压缩包解析失败，回退 JSZip', err);
+    }
+  }
+  if (!file) return null;
+
+  try {
+    const zip = new JSZip();
+    const zipContent = await zip.loadAsync(file);
+    const imgEntries = [];
+
+    zipContent.forEach((relPath, entry) => {
+      if (!entry.dir && /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(relPath) && !relPath.includes('__MACOSX')) {
+        imgEntries.push({ name: relPath, entry });
+      }
+    });
+
+    imgEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    if (imgEntries.length === 0) throw new Error('压缩包内未找到图片');
+
+    const firstBlob = await imgEntries[0].entry.async('blob');
+    const firstUrl = URL.createObjectURL(firstBlob);
+
+    const pageItems = imgEntries.map((item, idx) => ({
+      zipEntry: item.entry,
+      url: idx === 0 ? firstUrl : null
+    }));
+
+    const title = name.replace(/\.(cbz|zip)$/i, '');
+    return {
+      id,
+      type: 'manga',
+      format: 'cbz',
+      title: title,
+      cover: firstUrl,
+      coverBlob: firstBlob,
+      pageItems: pageItems,
+      pageCount: pageItems.length,
+      nativeArchiveStaged: !!options.staged
+    };
   } catch (err) {
     console.error(err);
     return null;
@@ -82,7 +199,7 @@ export async function parsePdfFileLazy(file) {
 
 export async function parseTxtFile(txtFile) {
   try {
-    const rawText = await decodeTxtBytesAsync(await txtFile.arrayBuffer());
+    const rawText = decodeTxtBytes(await txtFile.arrayBuffer());
     const lines = rawText.split(/\r\n?|\n/).map(l => l.trim()).filter(Boolean);
     const title = txtFile.name.replace(/\.[^.]+$/, '');
     const chapters = [];
@@ -197,64 +314,43 @@ export function parseMarkdownFile(mdFile) {
   });
 }
 
-// ---- MOBI：PalmDOC 解压 + 正文净化，输出小说管道可用的章节 ----
+// ---- MOBI：纯图走漫画管道，带正文的作品仍按小说排版 ----
 
-export async function parseMobiFileLazy(file) {
+export async function parseMobiFileLazy(file, onProgress) {
   try {
     const fallbackTitle = file.name.replace(/\.(mobi|prc|azw)$/i, '');
-    const data = await parseMobiFileData(file, fallbackTitle);
-    let coverBlob = data.coverBlob;
-    if (!coverBlob && data.type === 'manga') {
-      const first = data.pages.find(page => page.start != null);
-      if (first) coverBlob = file.slice(first.start, first.end, first.mime || '');
-    }
-    const coverUrl = coverBlob ? URL.createObjectURL(coverBlob) : null;
-
-    if (data.type === 'manga' && data.pages.length > 0) {
-      const pageItems = data.pages.map(page => ({
-        mobiFile: file,
-        mobiRange: page.start == null ? null : [page.start, page.end],
-        mobiMime: page.mime || '',
-        alt: page.alt || '',
-        url: null
+    let bytes;
+    if (onProgress && file.size) {
+      bytes = new Uint8Array(file.size);
+      let offset = 0;
+      await file.stream().pipeTo(new WritableStream({
+        write(chunk) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+          onProgress(offset / bytes.length);
+        }
       }));
-      return {
-        id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        type: 'manga',
-        format: 'mobi',
-        title: data.title,
-        cover: coverUrl,
-        coverBlob,
-        pageItems,
-        pageCount: pageItems.length,
-        readingDirection: data.readingDirection,
-        resourceUrls: []
-      };
+    } else {
+      bytes = await file.arrayBuffer();
     }
+    const data = parseMobiBuffer(bytes, fallbackTitle);
+    const coverUrl = data.coverBlob ? URL.createObjectURL(data.coverBlob) : null;
 
     return {
       id: 'mobi_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      type: 'novel',
+      type: data.pageItems ? 'manga' : 'novel',
       format: 'mobi',
       title: data.title,
       cover: coverUrl,
-      coverBlob,
-      chapters: data.chapters,
+      coverBlob: data.coverBlob,
+      ...(data.pageItems ? { pageItems: data.pageItems } : { chapters: data.chapters }),
       resourceUrls: data.resourceUrls,
-      pageCount: data.chapters.length
+      pageCount: (data.pageItems || data.chapters).length
     };
   } catch (err) {
     console.error(err);
     return null;
   }
-}
-
-// macOS 打包/压缩留下的元数据目录，里面的 “图片” 不是真正的页面。
-// 拖拽目录、文件夹句柄和旧存档都从这里进，必须在分组前统一滤掉。
-export function isJunkImagePath(path) {
-  return String(path || '')
-    .split(/[\\/]/)
-    .some(segment => segment === '__MACOSX' || segment === '.DS_Store' || segment.startsWith('._'));
 }
 
 // 把散装图片按所在文件夹分组，每组生成一本书
@@ -263,25 +359,21 @@ export function buildImageFolderBooks(imgFiles) {
   const folderGroups = new Map();
   imgFiles.forEach(f => {
     const rel = f.customRelativePath || f.webkitRelativePath || '';
-    if (isJunkImagePath(rel)) return;
-    const parts = rel.split('/').filter(Boolean);
+    const parts = rel.replace(/\\/g, '/').split('/').filter(Boolean);
     let groupName = '本地漫画图集';
     if (parts.length >= 2) {
       groupName = parts[parts.length - 2];
     } else if (imgFiles.length === 1) {
       groupName = f.name.replace(/\.[^.]+$/, '');
     }
-    const folderPath = parts.length >= 2 ? parts.slice(0, -1).join('/') : groupName;
+    const folderPath = parts.slice(0, -1).join('/');
     if (!folderGroups.has(folderPath)) folderGroups.set(folderPath, { folderName: groupName, files: [] });
     folderGroups.get(folderPath).files.push(f);
   });
 
   return [...folderGroups.values()].map(({ folderName, files: groupImgs }) => {
     groupImgs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    const coverBlob = typeof Blob !== 'undefined' && groupImgs[0] instanceof Blob
-      ? groupImgs[0]
-      : null;
-    const firstCoverUrl = coverBlob ? URL.createObjectURL(coverBlob) : null;
+    const firstCoverUrl = URL.createObjectURL(groupImgs[0]);
     const pageItems = groupImgs.map((fileObj, idx) => ({
       file: fileObj,
       url: idx === 0 ? firstCoverUrl : null
@@ -295,7 +387,7 @@ export function buildImageFolderBooks(imgFiles) {
         format: 'images',
         title: folderName,
         cover: firstCoverUrl,
-        coverBlob,
+        coverBlob: groupImgs[0],
         pageItems: pageItems,
         pageCount: pageItems.length
       }

@@ -1,7 +1,20 @@
 <template>
-  <Transition name="shelf-header">
+  <Transition name="shelf-header" :css="isAndroid">
     <div v-if="showShelfHeaderRow" class="min-h-11 px-4 min-[900px]:px-7 pt-3 flex items-center gap-2">
-      <span class="text-[11px] font-medium text-[var(--md-on-surface-variant)] flex-1">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : '我的书架' }}</span>
+      <span class="shrink-0 text-[11px] font-medium text-[var(--md-on-surface-variant)]">{{ favoritesOnly ? `已收藏 · ${displayBooks.length} 本作品` : '我的书架' }}</span>
+      <Transition name="continue-pill" :css="isAndroid">
+        <button
+          v-if="showContinueReading && continueCollapsed"
+          type="button"
+          class="continue-pill min-w-0 flex-1"
+          aria-label="展开上次阅读"
+          aria-expanded="false"
+          data-no-scroll-bounce
+          @click="setContinueCollapsed(false)"
+        >
+          <span><MdIcon name="expand_more" :size="16" /></span>
+        </button>
+      </Transition>
       <button type="button" class="md-library-text-button ml-auto" :disabled="!displayBooks.length && !displayCollections.length" @click="toggleSelection">选择</button>
     </div>
   </Transition>
@@ -19,7 +32,7 @@
       <MdIcon name="chevron_left" class="w-5 h-5" />
     </button>
     <div class="relative flex-1 min-w-0 h-11">
-      <Transition name="shelf-select">
+      <Transition name="shelf-select" :css="isAndroid">
         <button v-if="!selecting" key="select" type="button" class="absolute right-0 top-0 md-library-text-button" :disabled="!displayBooks.length" @click="toggleSelection">选择</button>
         <ShelfBatchBar
           v-else
@@ -41,7 +54,7 @@
       </Transition>
     </div>
   </div>
-  <Transition v-else name="shelf-batch">
+  <Transition v-else name="shelf-batch" :css="isAndroid">
     <div v-if="selecting" class="mx-4 min-[900px]:mx-7 mt-2">
       <ShelfBatchBar
         :label="selectionLabel"
@@ -60,10 +73,26 @@
     </div>
   </Transition>
   <section class="md-shelf-grid" :aria-label="favoritesOnly ? '收藏内容' : currentCollection ? `书库：${currentCollection.title}` : '书架内容'">
-    <ContinueReading v-if="!favoritesOnly && !currentCollection && !selecting && featuredBooks.length" :books="featuredBooks" @open="$emit('open', $event)" />
-    <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" :touch-over="touchDrag.overId === collection.id" :selecting="selecting" :selected="selectedCollectionIds.includes(collection.id)" @open="openCollection" @toggle="toggleCollection" @move="moveDropped" />
-    <BookCard v-for="book in renderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :dragging="touchDrag.active && touchDrag.ids.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" @open="openBook" @remove="removeBook" @drag="onBookDrag" @touchstart="onBookTouchStart($event, book.id)" />
-    <div v-if="renderedBooks.length < orderedBooks.length" ref="loadMoreSentinel" class="col-span-full h-8" aria-hidden="true"></div>
+    <Transition name="continue-panel" :css="isAndroid && !currentCollection">
+      <div v-if="showContinueReading && (currentCollection || !continueCollapsed)" class="md-featured-cell continue-panel">
+        <div class="continue-panel-inner">
+          <ContinueReading :book="lastReadBook" :record="shelf.progressMap[lastReadBook.id]" @open="$emit('open', $event)" />
+          <button
+            v-if="!currentCollection"
+            type="button"
+            class="continue-collapse"
+            aria-label="收起上次阅读"
+            aria-expanded="true"
+            data-no-scroll-bounce
+            @click="setContinueCollapsed(true)"
+          >
+            <MdIcon name="expand_more" :size="17" class="rotate-180" />
+          </button>
+        </div>
+      </div>
+    </Transition>
+    <CollectionCard v-for="collection in displayCollections" :key="collection.id" :collection="collection" :books="booksForCollection(collection)" :sort-key="sortKey" :touch-over="touchDrag.overId === collection.id" :selecting="selecting" :selected="selectedCollectionIds.includes(collection.id)" :import-status="shelf.importingCollections[collection.id]" @open="openCollection" @toggle="toggleCollection" @move="moveDropped" />
+    <BookCard v-for="book in orderedBooks" :key="book.id" :book="book" :progress="shelf.progressInfoFor(book.id)" :selecting="selecting" :selected="selectedIds.includes(book.id)" :dragging="touchDrag.active && touchDrag.ids.includes(book.id)" :remove-label="favoritesOnly ? '取消收藏' : '从书架移除'" :import-ratio="importingBookId === book.id ? shelf.importingBook.ratio : null" @open="openBook" @remove="removeBook" @drag="onBookDrag" @touchstart="importingBookId !== book.id && onBookTouchStart($event, book.id)" />
     <p v-if="!displayBooks.length && !displayCollections.length" class="col-span-full py-16 text-center text-[13px] text-[var(--md-on-surface-variant)]">{{ emptyShelfHint }}</p>
   </section>
 
@@ -83,12 +112,13 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useShelfStore } from '../stores/shelf.js';
 import { useShelfDialogs } from '../composables/useShelfDialogs.js';
 import { useViewport } from '../composables/useViewport.js';
 import { compareBookTitles, normalizeBookTitle } from '../services/bookTitles.js';
 import { groupShelfBooks } from '../services/shelfSections.js';
+import { isAndroid } from '../services/platform.js';
 import BookCard from './BookCard.vue';
 import ContinueReading from './ContinueReading.vue';
 import CollectionCard from './CollectionCard.vue';
@@ -101,28 +131,47 @@ const shelf = useShelfStore();
 const { askShelfDialog } = useShelfDialogs();
 const { isTouch } = useViewport();
 const selecting = ref(false);
+const continueCollapsed = ref(localStorage.getItem('homura_continue_collapsed') === '1');
 const selectedIds = ref([]);
 const selectedCollectionIds = ref([]);
 const busy = ref(false);
+const EMPTY_BOOKS = [];
 const currentCollection = computed(() => props.favoritesOnly ? null : shelf.collections.find(item => item.id === shelf.activeCollectionId) || null);
 const showShelfHeaderRow = computed(() => !currentCollection.value && !selecting.value);
 const groupedIds = computed(() => new Set(shelf.collections.flatMap(item => item.bookIds)));
-const displayBooks = computed(() => props.books.filter(book => props.favoritesOnly ? book.favorite : currentCollection.value ? currentCollection.value.bookIds.includes(book.id) : !groupedIds.value.has(book.id)));
-const featuredBooks = computed(() => currentCollection.value ? displayBooks.value : props.hasFilter ? props.books : shelf.library);
+const importingBookId = computed(() => shelf.importingBook?.book.id);
+const memberIds = computed(() => currentCollection.value ? new Set(currentCollection.value.bookIds) : null);
+const displayBooks = computed(() => props.books.filter(book => props.favoritesOnly ? book.favorite : memberIds.value ? memberIds.value.has(book.id) : !groupedIds.value.has(book.id)));
+const lastReadBook = computed(() => {
+  if (props.favoritesOnly || selecting.value) return null;
+  const ids = memberIds.value;
+  const records = shelf.progressMap;
+  let lastRead = null;
+  let latest = 0;
+  for (const book of shelf.library) {
+    if ((ids && !ids.has(book.id)) || book.id === importingBookId.value) continue;
+    const time = records[book.id]?.updatedAt || 0;
+    if (time > latest) {
+      latest = time;
+      lastRead = book;
+    }
+  }
+  return lastRead;
+});
+const showContinueReading = computed(() => !!lastReadBook.value);
+
+function setContinueCollapsed(collapsed) {
+  continueCollapsed.value = collapsed;
+  localStorage.setItem('homura_continue_collapsed', collapsed ? '1' : '0');
+}
 const orderedBooks = computed(() => currentCollection.value ? displayBooks.value : groupShelfBooks(displayBooks.value).flatMap(section => section.books));
-const INITIAL_RENDER_LIMIT = 96;
-const RENDER_STEP = 96;
-const renderLimit = ref(INITIAL_RENDER_LIMIT);
-const loadMoreSentinel = ref(null);
-const renderedBooks = computed(() => orderedBooks.value.length > renderLimit.value
-  ? orderedBooks.value.slice(0, renderLimit.value)
-  : orderedBooks.value);
-let loadMoreObserver = null;
+const selectableBooks = computed(() => displayBooks.value.filter(book => book.id !== importingBookId.value));
+const selectableCollections = computed(() => displayCollections.value.filter(item => !shelf.importingCollections[item.id]));
 const allSelected = computed(() => {
-  const total = displayBooks.value.length + displayCollections.value.length;
+  const total = selectableBooks.value.length + selectableCollections.value.length;
   return total > 0 &&
-    displayBooks.value.every(book => selectedIds.value.includes(book.id)) &&
-    displayCollections.value.every(collection => selectedCollectionIds.value.includes(collection.id));
+    selectableBooks.value.every(book => selectedIds.value.includes(book.id)) &&
+    selectableCollections.value.every(collection => selectedCollectionIds.value.includes(collection.id));
 });
 const selectionLabel = computed(() => {
   const bookCount = selectedIds.value.length;
@@ -180,14 +229,25 @@ const displayCollections = computed(() => {
   if (props.favoritesOnly || currentCollection.value) return [];
   const visible = new Set(props.books.map(book => book.id));
   const keyword = normalizeBookTitle(props.query);
-  const list = shelf.collections.filter(item => !props.hasFilter || (keyword && normalizeBookTitle(item.title).includes(keyword)) || item.bookIds.some(id => visible.has(id)));
+  const collections = new Map(shelf.collections.map(item => [item.id, item]));
+  for (const { collection } of Object.values(shelf.importingCollections)) {
+    if (!collections.has(collection.id)) collections.set(collection.id, collection);
+  }
+  const list = [...collections.values()].filter(item => !props.hasFilter || (keyword && normalizeBookTitle(item.title).includes(keyword)) || item.bookIds.some(id => visible.has(id)));
   const latest = item => Math.max(0, ...item.bookIds.map(id => shelf.progressMap[id]?.updatedAt || 0));
   return [...list].sort((a, b) => (props.sortKey === 'recent' ? b.createdAt - a.createdAt : props.sortKey === 'progress' ? latest(b) - latest(a) : 0) || compareBookTitles(a, b));
 });
 
+const collectionBooks = computed(() => {
+  const booksById = new Map(shelf.library.map(book => [book.id, book]));
+  return new Map(shelf.collections.map(collection => [
+    collection.id,
+    collection.bookIds.map(id => booksById.get(id)).filter(Boolean)
+  ]));
+});
+
 function booksForCollection(collection) {
-  const ids = new Set(collection.bookIds);
-  return shelf.library.filter(book => ids.has(book.id));
+  return collectionBooks.value.get(collection.id) || EMPTY_BOOKS;
 }
 
 function openCollection(id) { shelf.activeCollectionId = id; emit('browse'); }
@@ -203,8 +263,8 @@ function selectAll() {
     clearSelection();
     return;
   }
-  selectedIds.value = displayBooks.value.map(book => book.id);
-  selectedCollectionIds.value = displayCollections.value.map(collection => collection.id);
+  selectedIds.value = selectableBooks.value.map(book => book.id);
+  selectedCollectionIds.value = selectableCollections.value.map(collection => collection.id);
 }
 async function removeBook(id) {
   if (!props.favoritesOnly) {
@@ -265,7 +325,7 @@ async function deleteSelected() {
   if (!confirmed) return;
 
   const bookIds = [...selectedIds.value];
-  const collectionIds = [...selectedCollectionIds.value];
+  const collectionIds = selectedCollectionIds.value.filter(id => !shelf.importingCollections[id]);
   await perform(async () => {
     const failedBooks = [];
     const failedCollections = [];
@@ -513,52 +573,98 @@ function onRootDrop(event) {
   try { const ids = JSON.parse(event.dataTransfer.getData('application/x-homura-books')); if (Array.isArray(ids)) moveDropped(ids.filter(id => typeof id === 'string'), null); } catch (err) { console.warn('[HOMURA] 拖动书本失败', err); }
 }
 
-watch(() => shelf.activeCollectionId, () => { selecting.value = false; selectedIds.value = []; });
-watch(() => props.homeRequest, () => { selecting.value = false; selectedIds.value = []; });
+watch([() => shelf.activeCollectionId, () => props.homeRequest, () => props.favoritesOnly], () => {
+  selecting.value = false;
+  clearSelection();
+});
 watch(displayBooks, list => { const ids = new Set(list.map(book => book.id)); selectedIds.value = selectedIds.value.filter(id => ids.has(id)); });
 
-// 超大书架先渲染前几屏；卡片本身用 content-visibility 跳过屏外布局，
-// 这里再限制 DOM 数量，避免几千本书一次性建节点。
-function observeLoadMore() {
-  if (!loadMoreObserver) {
-    loadMoreObserver = new IntersectionObserver(entries => {
-      if (entries.some(entry => entry.isIntersecting)) loadMore();
-    }, { rootMargin: '900px 0px' });
-  }
-  loadMoreObserver.disconnect();
-  if (loadMoreSentinel.value && renderedBooks.value.length < orderedBooks.value.length) {
-    loadMoreObserver.observe(loadMoreSentinel.value);
-  }
-}
-
-function loadMore() {
-  if (renderLimit.value >= orderedBooks.value.length) return;
-  renderLimit.value += RENDER_STEP;
-  nextTick(observeLoadMore);
-}
-
-watch(
-  [() => props.query, () => props.sortKey, () => props.favoritesOnly, () => currentCollection.value?.id],
-  () => {
-    renderLimit.value = INITIAL_RENDER_LIMIT;
-    nextTick(observeLoadMore);
-  }
-);
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick, true);
-  nextTick(observeLoadMore);
-});
+onMounted(() => document.addEventListener('click', onDocumentClick, true));
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick, true);
-  loadMoreObserver?.disconnect();
-  loadMoreObserver = null;
   if (swallowClickTimer !== null) window.clearTimeout(swallowClickTimer);
   resetTouchDrag();
 });
 </script>
 
 <style scoped>
+.continue-panel {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-width: 0;
+  align-self: stretch;
+}
+.continue-panel-inner {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+@media (min-width: 768px) {
+  .continue-panel { container-type: inline-size; }
+}
+.continue-collapse {
+  position: absolute;
+  inset: 2px 2px auto auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--md-on-primary-container);
+  border-radius: 50%;
+}
+.continue-collapse:hover {
+  background: color-mix(in oklab, var(--md-on-primary-container) 9%, transparent);
+}
+.continue-pill {
+  height: 44px;
+  display: grid;
+  align-items: center;
+}
+.continue-pill > span {
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+.continue-panel-enter-active,
+.continue-panel-leave-active {
+  transition: grid-template-rows 280ms var(--md-ease-emphasized), opacity 200ms ease;
+}
+.continue-panel-enter-from,
+.continue-panel-leave-to {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.continue-panel-leave-active {
+  pointer-events: none;
+}
+@media (max-width: 767px) {
+  /* 把整行特色卡的间距放进动画轨道，移除卡片时网格不用再补一次位移。 */
+  .md-shelf-grid {
+    row-gap: 0;
+  }
+  .md-shelf-grid > :is(.md-shelf-card, .md-collection-card) {
+    margin-bottom: var(--md-space-150);
+  }
+  .continue-panel {
+    grid-template-rows: 1fr var(--md-space-150);
+  }
+  .continue-panel-enter-from,
+  .continue-panel-leave-to {
+    grid-template-rows: 0fr 0px;
+  }
+}
+.continue-pill-enter-active,
+.continue-pill-leave-active {
+  transition: opacity 200ms ease, transform 240ms var(--md-ease-emphasized);
+}
+.continue-pill-enter-from,
+.continue-pill-leave-to {
+  opacity: 0;
+  transform: scaleX(.94);
+}
 .shelf-header-enter-active,
 .shelf-header-leave-active,
 .shelf-batch-enter-active,
@@ -601,6 +707,12 @@ onBeforeUnmount(() => {
   color: var(--md-on-primary-container);
 }
 @media (prefers-reduced-motion: reduce) {
+  .continue-panel-enter-active,
+  .continue-panel-leave-active,
+  .continue-pill-enter-active,
+  .continue-pill-leave-active {
+    transition: none;
+  }
   .shelf-header-enter-active,
   .shelf-header-leave-active,
   .shelf-select-enter-active,

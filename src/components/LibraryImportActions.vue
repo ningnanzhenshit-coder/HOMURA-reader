@@ -1,5 +1,5 @@
 <template>
-  <div :class="compact ? 'relative flex items-center' : 'md-fab-pos flex flex-col items-end'">
+  <div :class="compact ? 'relative flex items-center gap-1' : 'md-fab-pos flex flex-col items-stretch gap-2'">
     <div v-if="open" class="fixed inset-0 z-20" @click="$emit('update:open', false)"></div>
     <Transition
       enter-active-class="md-sheet-enter-active"
@@ -14,7 +14,7 @@
         class="absolute right-0 w-60 z-30 md-menu"
         :class="compact ? 'top-full mt-2' : 'bottom-[calc(100%+12px)]'"
         role="menu"
-        aria-label="导入与书库"
+        aria-label="导入作品"
       >
         <p role="presentation" class="md-menu-label">导入作品</p>
         <button type="button" role="menuitem" class="md-menu-item" @click="choose('pick-files')">
@@ -25,12 +25,21 @@
           <MdIcon name="folder_open" />
           <span class="flex-1">导入文件夹</span>
         </button>
-        <button type="button" role="menuitem" class="md-menu-item" @click="choose('create-collection')">
-          <MdIcon name="create_new_folder" />
-          <span class="flex-1">新建书库</span>
-        </button>
       </div>
     </Transition>
+
+    <button
+      v-if="!hideCreate"
+      type="button"
+      class="import-fab create-fab relative z-10"
+      :class="{ 'is-compact': compact }"
+      title="新建书库"
+      aria-label="新建书库"
+      @click="choose('create-collection')"
+    >
+      <MdIcon name="create_new_folder" :class="compact ? 'w-5 h-5' : 'w-6 h-6'" />
+      <span v-if="!compact">新建</span>
+    </button>
 
     <button
       type="button"
@@ -54,7 +63,8 @@ import MdIcon from './MdIcon.vue';
 
 defineProps({
   compact: Boolean,
-  open: Boolean
+  open: Boolean,
+  hideCreate: Boolean
 });
 const emit = defineEmits(['update:open', 'create-collection', 'pick-files', 'pick-folder']);
 
@@ -74,8 +84,10 @@ function choose(action) {
   gap: 12px;
   border: 0;
   border-radius: 16px;
-  background: var(--md-primary-container);
-  color: var(--md-on-primary-container);
+  --fab-bg: var(--md-primary-container);
+  --fab-fg: var(--md-on-primary-container);
+  background: var(--fab-bg);
+  color: var(--fab-fg);
   font-size: 13px;
   font-weight: 600;
   box-shadow:
@@ -86,8 +98,13 @@ function choose(action) {
     box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+.create-fab {
+  --fab-bg: var(--md-secondary-container);
+  --fab-fg: var(--md-on-secondary-container);
+}
+
 .import-fab.is-open {
-  background: color-mix(in oklab, var(--md-primary-container) 92%, var(--md-on-primary-container));
+  background: color-mix(in oklab, var(--fab-bg) 92%, var(--fab-fg));
   box-shadow:
     0 2px 6px -2px color-mix(in oklab, var(--md-shadow-color) 30%, transparent),
     0 10px 24px -10px color-mix(in oklab, var(--md-shadow-color) 42%, transparent);
@@ -95,7 +112,7 @@ function choose(action) {
 
 @media (hover: hover) and (pointer: fine) {
   .import-fab:hover {
-    background: color-mix(in oklab, var(--md-primary-container) 92%, var(--md-on-primary-container));
+    background: color-mix(in oklab, var(--fab-bg) 92%, var(--fab-fg));
     box-shadow:
       0 2px 6px -2px color-mix(in oklab, var(--md-shadow-color) 30%, transparent),
       0 10px 24px -10px color-mix(in oklab, var(--md-shadow-color) 42%, transparent);
@@ -103,7 +120,7 @@ function choose(action) {
 }
 
 .import-fab:active {
-  background: color-mix(in oklab, var(--md-primary-container) 86%, var(--md-on-primary-container));
+  background: color-mix(in oklab, var(--fab-bg) 86%, var(--fab-fg));
 }
 
 .import-fab.is-compact {

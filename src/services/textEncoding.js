@@ -5,24 +5,6 @@
    使用 GB18030 解码，覆盖 GBK / GB2312，无需修改或转存原文件。
    ========================================================================== */
 
-import {
-  NativeErrorCode,
-  bytesToBase64,
-  canUseNativeBridge,
-  runNativeWithFallback
-} from './nativeRuntime.js';
-
-// TXT 通常远小于这个值；大文件继续交给 JS，避免 base64 和 IPC 先吃掉内存。
-export const NATIVE_TEXT_MAX_BYTES = 8 * 1024 * 1024;
-
-const TEXT_FALLBACK_CODES = [
-  NativeErrorCode.UNAVAILABLE,
-  NativeErrorCode.UNSUPPORTED,
-  NativeErrorCode.DISABLED,
-  NativeErrorCode.COMMAND_FAILED,
-  NativeErrorCode.INVALID_DATA
-];
-
 function guessUtf16(bytes) {
   const pairs = Math.floor(Math.min(bytes.length, 65536) / 2);
   if (!pairs) return null;
@@ -51,30 +33,4 @@ export function decodeTxtBytes(input) {
   } catch (err) {
     return new TextDecoder('gb18030').decode(bytes);
   }
-}
-
-function textFromNativeResult(result) {
-  if (result && typeof result.text === 'string') return result.text;
-  return null;
-}
-
-// Tauri 环境优先让 Rust 识别编码；没有桥接、文件过大或原生失败时继续使用
-// 同步的浏览器解码路径。返回值始终是字符串，调用方不感知后端差异。
-export async function decodeTxtBytesAsync(input) {
-  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (bytes.length === 0 || bytes.length > NATIVE_TEXT_MAX_BYTES || !canUseNativeBridge()) {
-    return decodeTxtBytes(bytes);
-  }
-
-  const payload = bytesToBase64(bytes);
-  if (payload === null) return decodeTxtBytes(bytes);
-
-  const result = await runNativeWithFallback({
-    feature: 'text',
-    command: 'decode_text_bytes',
-    args: { bytesBase64: payload },
-    fallback: () => decodeTxtBytes(bytes),
-    fallbackOn: TEXT_FALLBACK_CODES
-  });
-  return textFromNativeResult(result) ?? decodeTxtBytes(bytes);
 }

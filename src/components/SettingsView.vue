@@ -175,20 +175,6 @@
               </div>
             </div>
 
-            <div class="settings-block">
-              <div class="settings-head">
-                <span class="settings-title">条漫宽度</span>
-                <span class="settings-value">{{ webtoonFitLabel }}</span>
-              </div>
-              <MdSegmentedControl
-                class="w-full"
-                :model-value="readerDefaults.webtoonFit"
-                :options="webtoonOptions"
-                aria-label="条漫宽度"
-                @update:model-value="value => settings.setReaderDefault('webtoonFit', value)"
-              />
-            </div>
-
             <button type="button" class="settings-reset-button" @click="settings.resetReaderDefaults">
               恢复阅读默认值
             </button>
@@ -468,7 +454,6 @@ import {
   TRANSITION_OPTIONS,
   useThemeStore
 } from '../stores/theme.js';
-import { WEBTOON_FIT_LABELS } from '../stores/reader.js';
 import { useUpdateStore } from '../stores/updates.js';
 import { useViewport } from '../composables/useViewport.js';
 import MdIcon from './MdIcon.vue';
@@ -499,11 +484,6 @@ const directionOptions = [
 const spreadOptions = [
   { value: 1, label: '单页' },
   { value: 2, label: '双页' }
-];
-const webtoonOptions = [
-  { value: 'screen', label: WEBTOON_FIT_LABELS.screen },
-  { value: 'medium', label: WEBTOON_FIT_LABELS.medium },
-  { value: 'wide', label: WEBTOON_FIT_LABELS.wide }
 ];
 
 const sections = [
@@ -563,7 +543,6 @@ const directionLabel = computed(() => {
   return option ? option.label : '';
 });
 const spreadLabel = computed(() => readerDefaults.spread === 2 ? '双页' : '单页');
-const webtoonFitLabel = computed(() => WEBTOON_FIT_LABELS[readerDefaults.webtoonFit] || '');
 const previewSinglePage = computed(() =>
   readerDefaults.spread === 1 || readerDefaults.direction === 'vertical'
 );

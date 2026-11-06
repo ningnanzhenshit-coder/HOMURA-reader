@@ -1,25 +1,26 @@
 /* ============================================================================
-   HOMURA · 原生文件存档
+   HOMURA · Android 原生文件存档
    ----------------------------------------------------------------------------
-   Android WebView 的 IndexedDB Blob / OPFS 在部分机型上无法跨进程可靠恢复；
-   桌面端原生 ZIP 会话也需要一个 Rust 可访问的稳定路径。Tauri 包把原文件
-   写进应用私有 AppData，只把相对路径存进 IndexedDB。
+   Android WebView 的 IndexedDB Blob / OPFS 在部分机型上无法跨进程可靠恢复。
+   Tauri Android 包把原文件写进应用私有 AppData，只把相对路径存进 IndexedDB。
    ========================================================================== */
 
 import { BaseDirectory, mkdir, readFile, remove, stat, writeFile } from '@tauri-apps/plugin-fs';
-import { canUseNativeBridge } from './nativeRuntime.js';
+import { isAndroid } from './platform.js';
 import { clearNativeArchiveBookCache, clearNativeArchiveCache } from './nativeArchive.js';
 
 const ROOT_DIR = 'homura-native-sources';
 const BASE_DIR = BaseDirectory.AppData;
+const WRITE_CHUNK_BYTES = 512 * 1024;
 
 export function canUseNativeStorage() {
-  return canUseNativeBridge();
+  return isAndroid
+    && typeof window !== 'undefined'
+    && !!window.__TAURI__;
 }
 
 function safeSegment(name) {
-  const segment = String(name || 'source').replace(/[\\/:*?"<>|]/g, '_').slice(0, 160);
-  return !segment || segment === '.' || segment === '..' ? 'source' : segment;
+  return String(name || 'source').replace(/[\\/:*?"<>|]/g, '_').slice(0, 160) || 'source';
 }
 
 function dirname(path) {
@@ -36,13 +37,26 @@ export function nativeFilePath(bookId, relativePath) {
   return [ROOT_DIR, bookDir, ...segments].join('/');
 }
 
-export async function putNativeFile(path, blob) {
+export async function putNativeFile(path, blob, onProgress) {
   if (!canUseNativeStorage()) throw new Error('原生文件存档不可用');
   if (!(blob instanceof Blob)) throw new Error('原文件不是 Blob');
 
   await mkdir(dirname(path), { baseDir: BASE_DIR, recursive: true });
   // 用流分块写，避免把整本漫画一次性序列化成巨大的 IPC 字节数组。
-  await writeFile(path, blob.stream(), { baseDir: BASE_DIR });
+  let offset = 0;
+  const stream = new ReadableStream({
+    async pull(controller) {
+      if (offset >= blob.size) {
+        controller.close();
+        return;
+      }
+      const chunk = await blob.slice(offset, offset + WRITE_CHUNK_BYTES).arrayBuffer();
+      offset += chunk.byteLength;
+      controller.enqueue(new Uint8Array(chunk));
+      onProgress?.(offset / blob.size);
+    }
+  });
+  await writeFile(path, stream, { baseDir: BASE_DIR });
   const info = await stat(path, { baseDir: BASE_DIR });
   if (info.size !== blob.size) {
     await remove(path, { baseDir: BASE_DIR }).catch(() => {});

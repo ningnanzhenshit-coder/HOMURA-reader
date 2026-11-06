@@ -72,15 +72,15 @@
         </section>
 
         <!-- 翻页布局 -->
-        <section v-if="!isVertical || isManga" class="md-drawer-section">
+        <section class="md-drawer-section">
           <div class="md-drawer-group-head">
-            <span class="md-drawer-group-label">{{ isVertical ? '条漫尺寸' : '翻页布局' }}</span>
+            <span class="md-drawer-group-label">{{ isVertical ? '条漫宽度' : '翻页布局' }}</span>
             <b class="md-drawer-group-value">{{ spreadLabel }}</b>
           </div>
           <MdSegmentedControl
             v-if="!isVertical && !isPhone"
             class="w-full"
-            :model-value="config.spread"
+            :model-value="reader.requestedSpread"
             :options="spreadOptions"
             aria-label="翻页布局"
             @update:model-value="value => reader.setSpreadCount(Number(value))"
@@ -101,11 +101,11 @@
           </MdSwitch>
 
           <MdSegmentedControl
-            v-if="isVertical && isManga"
+            v-if="isVertical"
             class="w-full mt-3.5"
             :model-value="config.webtoonFit"
             :options="webtoonFits"
-            aria-label="条漫尺寸"
+            aria-label="条漫宽度"
             @update:model-value="reader.setWebtoonFit"
           />
         </section>
@@ -217,6 +217,7 @@
 <script setup>
 import { computed, ref, shallowRef, watch, nextTick } from 'vue';
 import { useReaderStore, WEBTOON_FIT_LABELS, NOVEL_FONT_MIN, NOVEL_FONT_MAX } from '../stores/reader.js';
+import { isAndroid, isIOS } from '../services/platform.js';
 import { useShelfStore } from '../stores/shelf.js';
 import {
   SURFACE_MODE_OPTIONS,
@@ -251,11 +252,21 @@ watch(() => reader.currentBook?.id, () => { coverError.value = ''; });
 watch([scrollRef, contentRef], ([scroll, content], previous, onCleanup) => {
   if (!scroll || !content) return;
   const update = () => { hasOverflow.value = scroll.scrollHeight > scroll.clientHeight + 1; };
-  const observer = new ResizeObserver(update);
+  let frame = 0;
+  const observer = new ResizeObserver(() => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      update();
+    });
+  });
   observer.observe(scroll);
   observer.observe(content);
   nextTick(update);
-  onCleanup(() => observer.disconnect());
+  onCleanup(() => {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+  });
 }, { flush: 'post' });
 
 function onFontNumberChange(event) {
@@ -314,14 +325,16 @@ const spreadOptions = [
   { value: 2, label: '双页' }
 ];
 
-const webtoonFits = [
-  { value: 'screen', label: WEBTOON_FIT_LABELS.screen },
+const webtoonFits = computed(() => [
+  { value: 'screen', label: isManga.value && (isAndroid || isIOS) ? WEBTOON_FIT_LABELS.screen : '紧凑宽幅' },
   { value: 'medium', label: WEBTOON_FIT_LABELS.medium },
   { value: 'wide', label: WEBTOON_FIT_LABELS.wide }
-];
+]);
 
 const directionLabel = computed(() => (directions.find(d => d.value === config.direction) || directions[0]).label);
-const spreadLabel = computed(() => (isVertical.value ? '长卷' : (!isPhone.value && config.spread === 2 ? '双页' : '单页')));
+const spreadLabel = computed(() => isVertical.value
+  ? webtoonFits.value.find(option => option.value === config.webtoonFit)?.label
+  : (!isPhone.value && config.spread === 2 ? '双页' : '单页'));
 const modeLabel = computed(() => (SURFACE_MODE_OPTIONS.find(option => option.value === theme.surfaceMode) || SURFACE_MODE_OPTIONS[0]).label);
 const themeLabel = computed(() => (THEME_OPTIONS.find(option => option.name === theme.themeColor) || THEME_OPTIONS[0]).title.replace(' (默认)', ''));
 

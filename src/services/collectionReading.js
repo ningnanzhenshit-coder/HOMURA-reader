@@ -2,6 +2,16 @@
    HOMURA · 书库连续阅读顺序与可见跨页边界
    ========================================================================== */
 
+export const READING_DIRECTIONS = ['ltr', 'rtl', 'vertical'];
+export const WEBTOON_FITS = ['screen', 'medium', 'wide'];
+
+export function normalizeMangaLayout(layout) {
+  const result = {};
+  if (READING_DIRECTIONS.includes(layout?.direction)) result.direction = layout.direction;
+  if (WEBTOON_FITS.includes(layout?.webtoonFit)) result.webtoonFit = layout.webtoonFit;
+  return result;
+}
+
 export function collectionReadingOrder(books, frozenIds = []) {
   const remaining = new Map(books.map(book => [book.id, book]));
   const ordered = [];

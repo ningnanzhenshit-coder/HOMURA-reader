@@ -26,17 +26,20 @@
       <!-- Manga: 1P Single -->
       <template v-if="isManga">
         <div class="w-full h-full items-center justify-center overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'single' ? 'flex' : 'hidden'">
-          <img :ref="el => { if (el) imgEls[slot].single = el; }" class="manga-page-img h-full w-auto max-w-full object-contain select-none" />
+          <NovelCard v-if="slotVMs[slot]?.single?.html" :page="slotVMs[slot].single" :total="slotVMs[slot].total" :font-size="14" />
+          <img v-else :ref="el => { imgEls[slot].single = el; }" class="manga-page-img h-full w-auto max-w-full object-contain select-none" />
         </div>
         <!-- Manga: 2P Double -->
         <div class="w-full h-full items-center justify-center overflow-hidden" :class="slotVMs[slot] && slotVMs[slot].mode === 'double' ? 'flex' : 'hidden'">
           <div class="flex items-center justify-center w-full h-full relative">
             <div class="w-1/2 h-full flex items-center justify-end overflow-hidden">
-              <img :ref="el => { if (el) imgEls[slot].left = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-right select-none" />
+              <NovelCard v-if="slotVMs[slot]?.left?.html" :page="slotVMs[slot].left" :total="slotVMs[slot].total" :font-size="14" />
+              <img v-else :ref="el => { imgEls[slot].left = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-right select-none" />
             </div>
             <div class="w-2 h-full book-spine-shadow pointer-events-none z-10 shrink-0"></div>
             <div class="w-1/2 h-full flex items-center justify-start overflow-hidden">
-              <img :ref="el => { if (el) imgEls[slot].right = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-left select-none" />
+              <NovelCard v-if="slotVMs[slot]?.right?.html" :page="slotVMs[slot].right" :total="slotVMs[slot].total" :font-size="14" />
+              <img v-else :ref="el => { imgEls[slot].right = el; }" class="manga-page-img h-full max-h-full w-auto max-w-full object-contain object-left select-none" />
             </div>
           </div>
         </div>
@@ -89,7 +92,7 @@ import { useThemeStore } from '../stores/theme.js';
 import { useUiStore } from '../stores/ui.js';
 import { useViewport } from '../composables/useViewport.js';
 import { isAndroid } from '../services/platform.js';
-import { ensurePageUrlLoaded, decodePageImage, releaseDistantPageUrls } from '../services/pagination.js';
+import { ensurePageUrlLoaded, decodeImgIntoElement } from '../services/pagination.js';
 import { classifyReaderGesture } from '../services/readerGestures.js';
 import NovelCard from './NovelCard.vue';
 
@@ -122,18 +125,6 @@ const imgEls = [{ single: null, left: null, right: null }, { single: null, left:
 let initialized = false;
 let preloadGeneration = 0;
 
-// 槽位切换后清掉不再使用的 img.src，释放上一页的位图。
-// 两个槽位共用同一组 img 节点，隐藏模式里的旧图会一直占内存。
-function clearSlotImages(slotIndex, keepKeys) {
-  const refs = imgEls[slotIndex];
-  for (const key of ['single', 'left', 'right']) {
-    const el = refs[key];
-    if (!el || keepKeys.includes(key) || !el.getAttribute('src')) continue;
-    el.removeAttribute('src');
-    el.setAttribute('data-current-src', '');
-  }
-}
-
 function buildSlotVM(pair, total) {
   const rtl = reader.layoutConfig.direction === 'rtl';
   if (pair.length === 1) {
@@ -159,9 +150,7 @@ function buildSlotVM(pair, total) {
 // Populate a target buffer slot (0 or 1) and decode its images BEFORE starting the transition
 async function populateBufferSlot(slotIndex, pair, total) {
   if (isManga.value) {
-    for (const p of pair) {
-      await ensurePageUrlLoaded(p.itemRef);
-    }
+    await Promise.all(pair.map(page => ensurePageUrlLoaded(page.itemRef)));
   }
   const vm = buildSlotVM(pair, total);
   const next = slotVMs.value.slice();
@@ -169,15 +158,14 @@ async function populateBufferSlot(slotIndex, pair, total) {
   slotVMs.value = next;
   // 等 Vue 把槽位内容（包装显隐 / 小说 v-html）patch 进 DOM 后再解码或开启动画
   await nextTick();
-  clearSlotImages(slotIndex, vm.mode === 'single' ? ['single'] : ['left', 'right']);
 
   if (isManga.value) {
     if (vm.mode === 'single') {
-      await decodePageImage(imgEls[slotIndex].single, vm.single.itemRef);
+      await decodeImgIntoElement(imgEls[slotIndex].single, vm.single.itemRef.url);
     } else {
       await Promise.all([
-        decodePageImage(imgEls[slotIndex].left, vm.left.itemRef),
-        decodePageImage(imgEls[slotIndex].right, vm.right.itemRef)
+        decodeImgIntoElement(imgEls[slotIndex].left, vm.left.itemRef.url),
+        decodeImgIntoElement(imgEls[slotIndex].right, vm.right.itemRef.url)
       ]);
     }
   }
@@ -301,12 +289,7 @@ function scheduleIdlePreload() {
   const pagesAhead = isAndroid ? 2 : 4;
   const delay = isAndroid ? 420 : 280;
 
-  // 回收必须跟翻页同步执行：预载会被下一次快速翻页取消，
-  // 若把回收放进延时的预载任务，连续翻页时旧 asset URL 会一直不释放。
-  releaseDistantPageUrls(reader.currentBook, startIndex, isAndroid ? 3 : 5);
-
   reader.preloadTimer = setTimeout(async () => {
-    if (generation !== preloadGeneration || reader.currentIndex !== startIndex) return;
     for (let i = 1; i <= pagesAhead; i++) {
       if (generation !== preloadGeneration) return;
       if (document.visibilityState === 'hidden') return;
@@ -451,7 +434,7 @@ onMounted(() => {
   window.addEventListener('blur', onPointerCancel);
   reader.renderFn = renderReaderViewport;
   // store 动作可能在组件挂载前就已完成分页，这里自检后直接首渲染
-  if (reader.activePages.length > 0) {
+  if (!reader.openingBook && reader.activePages.length > 0) {
     renderReaderViewport('none');
   }
 });

@@ -10,7 +10,6 @@
     "android-installer:default",
     "android-archive:default",
     "android-system-bars:default",
-    "dialog:allow-open",
     "fs:default",
     "fs:allow-appcache-read-recursive",
     "fs:allow-appdata-meta-recursive",

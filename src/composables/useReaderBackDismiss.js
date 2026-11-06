@@ -74,6 +74,7 @@ export function useReaderBackDismiss(reader, ui) {
     activeDirection = 1;
     document.documentElement.classList.remove('reader-back-settling');
     document.documentElement.classList.remove('reader-back-entering');
+    document.documentElement.classList.remove('reader-back-preparing');
     applyProgress(0, activeDirection);
   }
 
@@ -435,8 +436,11 @@ export function useReaderBackDismiss(reader, ui) {
       gesture = null;
       closing = false;
       settling = false;
-      if (book && !previousBook) playEnter();
-      else resetVisuals();
+      resetVisuals();
+      if (book && !previousBook) {
+        if (reader.openingBook) document.documentElement.classList.add('reader-back-preparing');
+        else playEnter();
+      }
 
       if (!book) {
         disableNativePredictiveBack();
@@ -448,6 +452,10 @@ export function useReaderBackDismiss(reader, ui) {
       }
     }
   );
+
+  watch(() => reader.openingBook, opening => {
+    if (!opening && document.documentElement.classList.contains('reader-back-preparing')) playEnter();
+  });
 
   initializeAndroidBack();
 

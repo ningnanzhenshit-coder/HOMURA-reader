@@ -3,6 +3,7 @@
    ========================================================================== */
 
 import { normalizeBookTitle } from './bookTitles.js';
+import { normalizeMangaLayout } from './collectionReading.js';
 
 export function collectionNameError(title, collections, exceptId = null) {
   const name = String(title || '').trim();
@@ -37,7 +38,10 @@ export function restoreCollections(records, books) {
       assigned.add(id);
       bookIds.push(id);
     }
-    restored.push({ id: item.id, title: String(item.title || '未命名书库'), createdAt: Number(item.createdAt) || 0, bookIds });
+    const record = { id: item.id, title: String(item.title || '未命名书库'), createdAt: Number(item.createdAt) || 0, bookIds };
+    const mangaLayout = normalizeMangaLayout(item.mangaLayout);
+    if (Object.keys(mangaLayout).length) record.mangaLayout = mangaLayout;
+    restored.push(record);
   }
   return restored;
 }
@@ -53,6 +57,10 @@ export function availableCollectionName(title, collections) {
 const BOOK_FILE = /\.(epub|pdf|cbz|zip|mobi|prc|azw|md|txt)$/i;
 const IMAGE_FILE = /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i;
 
+export function isImageImportFile(file) {
+  return !BOOK_FILE.test(file.name) && (!!file.type?.startsWith('image/') || IMAGE_FILE.test(file.name));
+}
+
 export function planFolderCollections(files) {
   const groups = new Map();
   const imageFolders = new Set();
@@ -60,7 +68,7 @@ export function planFolderCollections(files) {
   for (const file of files) {
     const parts = String(file.customRelativePath || file.webkitRelativePath || file.name).replace(/\\/g, '/').split('/').filter(Boolean);
     if (parts.some(part => part.startsWith('.'))) continue;
-    const isImage = IMAGE_FILE.test(file.name);
+    const isImage = isImageImportFile(file);
     if (!isImage && !BOOK_FILE.test(file.name)) continue;
     hasDirectories ||= parts.length > 1;
     const directory = parts.slice(0, -1);

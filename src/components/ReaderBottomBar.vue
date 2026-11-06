@@ -1,5 +1,5 @@
 <template>
-  <!-- 阅读器底部栏：M3 floating bottom app bar + 进度滑条 -->
+  <!-- 阅读器底部栏与进度滑条 -->
   <footer class="md-reader-bottombar" aria-label="阅读进度与翻页">
     <button
       type="button"
@@ -35,7 +35,7 @@
     <!-- 桌面快捷：单页 / 双页 -->
     <div v-if="!isVertical" class="hidden min-[900px]:block shrink-0 ml-1.5">
       <MdSegmentedControl
-        :model-value="config.spread"
+        :model-value="reader.requestedSpread"
         :options="spreadOptions"
         aria-label="翻页布局"
         style="--md-segmented-bg: var(--md-surface-high)"

@@ -6,12 +6,6 @@ use std::time::{Duration, Instant};
 #[cfg(desktop)]
 use tauri::{Manager, WindowEvent};
 
-mod cover_thumb;
-mod desktop_archive;
-mod metadata_store;
-mod mobi_parser;
-mod native_import;
-mod text_decoder;
 mod update_downloader;
 
 // 全屏退出（macOS 的 Space 切换动画、Windows 的窗口样式重设）会让 WebView 丢掉键盘焦点，
@@ -91,10 +85,7 @@ fn spawn_focus_worker(window: tauri::WebviewWindow) {
 pub fn run() {
     tauri::Builder::default()
         .manage(update_downloader::UpdateDownloadState::default())
-        .manage(desktop_archive::DesktopArchiveState::default())
-        .manage(metadata_store::MetadataState::default())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_android_toast::init())
         .plugin(tauri_plugin_android_predictive_back::init())
@@ -105,26 +96,6 @@ pub fn run() {
             update_downloader::download_update_asset,
             update_downloader::cancel_update_download,
             update_downloader::open_update_file,
-            text_decoder::decode_text_bytes,
-            mobi_parser::parse_mobi_container,
-            cover_thumb::create_cover_thumbnail,
-            native_import::stage_import_path,
-            native_import::scan_import_paths,
-            metadata_store::metadata_load,
-            metadata_store::metadata_replace_all,
-            metadata_store::metadata_upsert_book,
-            metadata_store::metadata_delete_book,
-            metadata_store::metadata_save_collections,
-            metadata_store::metadata_save_progress,
-            metadata_store::metadata_clear_progress,
-            metadata_store::metadata_clear_all,
-            desktop_archive::open,
-            desktop_archive::open_document,
-            desktop_archive::extract,
-            desktop_archive::read_text_batch,
-            desktop_archive::close,
-            desktop_archive::clear_book,
-            desktop_archive::clear_all,
         ])
         .setup(|app| {
             #[cfg(desktop)]
