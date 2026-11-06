@@ -11,7 +11,7 @@ import { planFolderCollections, availableCollectionName, collectionNameError } f
 import { findSameTitleBook, normalizeBookTitle } from '../services/bookTitles.js';
 import { HomuraStore } from '../services/storage.js';
 import { formatBytes, isAndroid } from '../services/platform.js';
-import { parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook } from '../services/parsers.js';
+import { parseCbzFileLazy, parseTxtFile, parseMobiFileLazy, parseMarkdownFile, parsePdfFileLazy, buildImageFolderBooks, discardParsedBook, isJunkImagePath } from '../services/parsers.js';
 import { makeEpubId, parseEpubFile } from '../services/epubParser.js';
 import {
   makeFileSource,
@@ -124,7 +124,9 @@ function buildImportTasks(files) {
   addFileTasks(files.filter(f => /\.md$/i.test(f.name)), 'markdown');
   addFileTasks(files.filter(f => /\.txt$/i.test(f.name)), 'txt');
 
-  const imgFiles = files.filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(f.name));
+  // macOS 打包留下的 __MACOSX / ._* 不是真正的页面，提前剔掉免得白读内存。
+  const imgFiles = files.filter(f => f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|avif|bmp)$/i.test(f.name))
+    .filter(f => !isJunkImagePath(f.customRelativePath || f.webkitRelativePath || f.name));
   for (const group of buildImageFolderBooks(imgFiles)) {
     tasks.push({
       kind: 'images',
@@ -177,9 +179,11 @@ export function useImporter() {
   }
 
   async function importBatch(files, targetId, offerCollection) {
+    // 返回本批实际入架的书籍 id，调用方靠它判断导入结果；别把返回值吞在这里。
     const importIntoCurrent = async () => {
       const ids = await importFiles(files);
       if (ids.length && targetId && shelf.collections.some(item => item.id === targetId)) await shelf.moveBooks(ids, targetId);
+      return ids;
     };
     const plan = planFolderCollections(files);
     if (plan.bookCount < 2 || (!plan.hasDirectories && (!offerCollection || targetId))) return importIntoCurrent();
@@ -188,7 +192,7 @@ export function useImporter() {
       kind: 'folder', title: '为导入内容创建书库？',
       message: `检测到 ${plan.bookCount} 本作品。可以${grouping}，也可以直接导入。`
     });
-    if (create === null) return;
+    if (create === null) return [];
     if (!create) return importIntoCurrent();
     const reserved = [...shelf.collections];
     const groups = [];
@@ -196,17 +200,20 @@ export function useImporter() {
     for (const group of plan.groups) {
       const message = group.path ? `目录：${group.path} · ${group.bookCount} 本作品` : `${group.bookCount} 本作品`;
       const title = await askShelfDialog({ kind: 'name', title: '创建导入书库', message, initialName: availableCollectionName(group.title, reserved), validate: name => collectionNameError(name, reserved) });
-      if (title === null) return;
+      if (title === null) return [];
       reserved.push({ title });
       groups.push({ ...group, title });
     }
+    const savedIds = [];
     for (const group of groups) {
       const ids = await importFiles(group.files);
       if (!ids.length) continue;
+      savedIds.push(...ids);
       const collection = await shelf.createCollection(group.title);
       await shelf.moveBooks(ids, collection.id);
     }
     shelf.activeCollectionId = null;
+    return savedIds;
   }
 
   // 导入前只按文件名快速识别可能的同名书，避免重复文件也走完整解析。
@@ -280,6 +287,9 @@ export function useImporter() {
       } catch (err) {
         if (!shouldFallbackNativeImport(err)) {
           console.warn('[HOMURA] 原生 EPUB 预存被拒绝', err);
+          // 安全 / 超限拒绝不会进入回退分支，已经写了一半的 AppData 目录同样要回收，
+          // 否则会留下没有书目指向的孤儿文件。
+          await removeNativeBookDir(bookId).catch(() => {});
           return null;
         }
         console.warn('[HOMURA] 原生 EPUB 预存失败，沿用 JSZip', err);
@@ -346,6 +356,8 @@ export function useImporter() {
       } catch (err) {
         if (!shouldFallbackNativeImport(err)) {
           console.warn('[HOMURA] 原生压缩包预存被拒绝', err);
+          // 同上：被安全规则拒绝时不会回退，必须顺手清掉半成品目录。
+          await removeNativeBookDir(bookId).catch(() => {});
           return null;
         }
         console.warn('[HOMURA] 原生压缩包预存失败，沿用 JSZip', err);
@@ -531,8 +543,18 @@ export function useImporter() {
 
   function traverseFileTree(item, path, outList) {
     return new Promise(resolve => {
+      // __MACOSX 整个目录跳过，里面的 ._* 只是资源分叉，读进来也叫不醒。
+      if (item.name === '__MACOSX') {
+        resolve();
+        return;
+      }
       if (item.isFile) {
         item.file(file => {
+          // 隐藏文件和 macOS 资源分叉文件不参与导入。
+          if (file.name.startsWith('.') || isJunkImagePath(path + file.name)) {
+            resolve();
+            return;
+          }
           try {
             Object.defineProperty(file, 'customRelativePath', {
               value: path + file.name,
@@ -658,7 +680,7 @@ export function useImporter() {
 
   async function collectFilesFromDirHandle(dirHandle, path, out) {
     for await (const [name, entry] of dirHandle.entries()) {
-      if (name.startsWith('.')) continue;
+      if (name.startsWith('.') || name === '__MACOSX') continue;
       if (entry.kind === 'file') {
         try {
           const file = await entry.getFile();
