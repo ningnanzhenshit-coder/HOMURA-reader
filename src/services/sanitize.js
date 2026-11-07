@@ -1,8 +1,9 @@
 /* ============================================================================
    HOMURA · 阅读内容净化
    ----------------------------------------------------------------------------
-   EPUB 的 XHTML 会通过 v-html 进入阅读器，必须在解析阶段移除脚本、事件属性
-   与外部资源。这里使用标签/属性白名单，同时保留常见排版、表格、脚注与 SVG。
+   EPUB 的 XHTML 与 MOBI 的正文都会通过 v-html 进入阅读器，必须在解析阶段
+   移除脚本、事件属性与外部资源。这里使用标签/属性白名单，同时保留常见排版、
+   表格、脚注与 SVG。两条路径共用同一份清单，避免各自演化出现防护漂移。
    ========================================================================== */
 
 import { isSafeImageUrl, isSafeLinkUrl } from './utils.js';
@@ -112,14 +113,12 @@ function unwrap(el) {
   el.remove();
 }
 
-export function sanitizeEpubHtml(html) {
-  if (!html) return '';
-  const doc = new DOMParser().parseFromString(String(html), 'text/html');
-  const root = doc.body;
-  if (!root) return '';
+// 就地净化任意元素子树。EPUB 与 MOBI 共用，避免两条路径的标签清单各自演化。
+export function sanitizeElement(root) {
+  if (!root) return;
 
   const elements = [];
-  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   let node = walker.nextNode();
   while (node) {
     elements.push(node);
@@ -141,6 +140,13 @@ export function sanitizeEpubHtml(html) {
 
     sanitizeAttributes(el, tagName);
   }
+}
 
-  return root.innerHTML.trim();
+export function sanitizeEpubHtml(html) {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(String(html), 'text/html');
+  if (!doc.body) return '';
+
+  sanitizeElement(doc.body);
+  return doc.body.innerHTML.trim();
 }
