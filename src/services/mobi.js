@@ -10,13 +10,13 @@
    ========================================================================== */
 
 import { isSafeImageUrl } from './utils.js';
-
-const BLOCKED_TAGS = new Set([
-  'script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
-  'textarea', 'select', 'option', 'link', 'meta', 'base', 'frame', 'frameset', 'applet'
-]);
+import { sanitizeElement } from './sanitize.js';
 
 const TAG_HEADINGS = 'h1,h2,h3,h4,h5,h6,font,p,div,td,th';
+
+// recindex 解引用得到的是 blob: URL，会被白名单净化器的 isSafeImageUrl 判为不安全。
+// 所以净化前先换成无协议占位串，净化通过后再写回真实 blob: URL。
+const REC_PLACEHOLDER = /^__homura_rec_(\d+)__$/;
 
 class MobiError extends Error {
   constructor(code, message) {
@@ -146,40 +146,43 @@ function decodeText(bytes, encoding) {
 
 // ---- 正文净化 + 图片 recindex 解引用 ----
 
-function sanitizeInto(dom, imageUrlFor) {
-  // 拆除 filepos 锚点时，继续处理它的子元素和后续图片。
-  for (const node of dom.body.querySelectorAll('*')) {
+// 净化前的 MOBI 专有预处理：占位 recindex，并拆掉没有跳转目标的 filepos 锚点。
+function prepareMobiBody(body) {
+  for (const node of body.querySelectorAll('*')) {
     if (!node.isConnected) continue;
     const tag = node.tagName.toLowerCase();
-    if (BLOCKED_TAGS.has(tag)) {
-      node.remove();
-    } else {
-      for (const attr of Array.from(node.attributes)) {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith('on') || name === 'style' || name === 'srcset') {
-          node.removeAttribute(attr.name);
-        } else if (name === 'href') {
-          const value = (attr.value || '').trim();
-          if (!/^(https?:|mailto:|tel:)/i.test(value)) node.removeAttribute(attr.name);
-        }
+    if (tag === 'img') {
+      const recindex = parseInt(node.getAttribute('recindex') || '', 10);
+      node.removeAttribute('recindex');
+      if (Number.isInteger(recindex) && recindex > 0) {
+        node.setAttribute('src', `__homura_rec_${recindex}__`);
       }
-      if (tag === 'img') {
-        const recindex = parseInt(node.getAttribute('recindex') || '', 10);
-        node.removeAttribute('recindex');
-        if (Number.isInteger(recindex) && recindex > 0) {
-          const url = imageUrlFor(recindex);
-          if (url) node.setAttribute('src', url);
-          else node.remove();
-        } else if (!/^(https?:|data:image\/)/i.test(node.getAttribute('src') || '')) {
-          node.remove();
-        }
-      }
-      if (tag === 'a' && !node.getAttribute('href')) {
-        // 无 href 的锚点（MOBI 内部 filepos）直接拆掉，避免渲染成彩色假链接
-        node.replaceWith(...Array.from(node.childNodes));
-      }
+    } else if (tag === 'a' && !node.getAttribute('href')) {
+      // MOBI 内部 filepos 锚点没有可跳转目标，拆掉避免渲染成彩色假链接
+      node.replaceWith(...Array.from(node.childNodes));
     }
   }
+}
+
+// 净化后的 MOBI 专有后处理：占位串换成 blob URL，其余图片只保留内嵌位图。
+// 远程 http(s) 图片在此被丢弃——书内 HTML 不该在打开书籍时偷偷发起外部请求。
+function resolveMobiImages(body, imageUrlFor) {
+  for (const img of body.querySelectorAll('img')) {
+    const src = img.getAttribute('src') || '';
+    const recindex = src.match(REC_PLACEHOLDER)?.[1];
+    const url = recindex
+      ? imageUrlFor(Number(recindex))
+      : (/^data:image\//i.test(src) && isSafeImageUrl(src) ? src : null);
+    if (url) img.setAttribute('src', url);
+    else img.remove();
+  }
+}
+
+function sanitizeMobiBody(doc, imageUrlFor) {
+  if (!doc.body) return;
+  prepareMobiBody(doc.body);
+  sanitizeElement(doc.body);
+  resolveMobiImages(doc.body, imageUrlFor);
 }
 
 // ---- 章节标题：取首个短标题块，否则退化为书号 ----
@@ -324,7 +327,7 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
   parts.forEach((part, index) => {
     const doc = parser.parseFromString(part, 'text/html');
     if (!doc.body) return;
-    sanitizeInto(doc, imageUrlFor);
+    sanitizeMobiBody(doc, imageUrlFor);
     const html = (doc.body.innerHTML || '').trim();
     const textLength = doc.body.textContent.replace(/[\s\u200b]/gu, '').length;
     const images = [...doc.body.querySelectorAll('img[src]')];
@@ -345,7 +348,7 @@ function splitChapters(rawText, bookTitle, imageUrlFor) {
 
   if (chapters.length === 0) {
     const doc = parser.parseFromString(cleaned, 'text/html');
-    sanitizeInto(doc, imageUrlFor);
+    sanitizeMobiBody(doc, imageUrlFor);
     chapters.push({
       title: bookTitle,
       htmlContent: (doc.body && doc.body.innerHTML) || '<p>（无法解析该 MOBI 的正文）</p>'

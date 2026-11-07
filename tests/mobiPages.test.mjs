@@ -7,6 +7,7 @@ import { applyRestoredProgress } from '../src/services/progress.js';
 
 const { window } = new JSDOM('');
 globalThis.DOMParser = window.DOMParser;
+globalThis.NodeFilter = window.NodeFilter;
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jg7sAAAAASUVORK5CYII=', 'base64');
 
