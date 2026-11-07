@@ -1,4 +1,5 @@
 <img width="400" height="400" alt="Untitled-1 - 02-11-2026 19-19-50" src="https://github.com/user-attachments/assets/818e7aba-f12a-49e1-8640-8852cb852b8b" />
+
 欢迎star
 # HOMURA — 本地漫画与轻小说阅读器
 
